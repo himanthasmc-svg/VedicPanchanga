@@ -1,0 +1,1203 @@
+import React, { useState, useMemo } from 'react';
+import { 
+  ArrowLeft, 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  Sparkles, 
+  Eye, 
+  Bell, 
+  Compass, 
+  ShieldCheck, 
+  Info, 
+  Download,
+  Share2,
+  Printer,
+  FileDown,
+  Loader2,
+  Award,
+  Zap,
+  CheckCircle2,
+  AlertTriangle,
+  Flame,
+  Activity,
+  Layers
+} from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { CityLocation, KundaliData, Language, PlanetPosition } from '../types';
+import { calculateKundali, CITIES, formatJustNumber, getPanchangaForDate } from '../utils/panchanga';
+import { calculatePlanetaryBala, PlanetaryBalaBreakdown } from '../utils/planetaryBala';
+
+interface LagnaKundaliPageProps {
+  currentLang: Language;
+  selectedCity: CityLocation;
+  onSelectCity: (city: CityLocation) => void;
+  onBackToCalendar: () => void;
+}
+
+export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
+  currentLang,
+  selectedCity,
+  onSelectCity,
+  onBackToCalendar
+}) => {
+  const now = new Date();
+  const defaultDate = now.toISOString().split('T')[0];
+  const defaultHours = String(now.getHours()).padStart(2, '0');
+  const defaultMins = String(now.getMinutes()).padStart(2, '0');
+
+  const [dateStr, setDateStr] = useState<string>(defaultDate);
+  const [timeStr, setTimeStr] = useState<string>(`${defaultHours}:${defaultMins}`);
+  const [chartStyle, setChartStyle] = useState<'north' | 'south'>('north');
+  const [notificationArmed, setNotificationArmed] = useState<boolean>(false);
+  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+  const [balaFilter, setBalaFilter] = useState<'all' | 'strong' | 'moderate' | 'weak'>('all');
+
+  // Compute Kundali data
+  const kundaliData: KundaliData = useMemo(() => {
+    const combinedStr = `${dateStr}T${timeStr}:00`;
+    return calculateKundali(combinedStr, selectedCity);
+  }, [dateStr, timeStr, selectedCity]);
+
+  // Compute Planetary Strengths (Bala)
+  const planetaryBalas: PlanetaryBalaBreakdown[] = useMemo(() => {
+    return kundaliData.planets.map(planet => calculatePlanetaryBala(planet));
+  }, [kundaliData.planets]);
+
+  // Planetary Bala Statistics
+  const balaStats = useMemo(() => {
+    if (planetaryBalas.length === 0) return null;
+    const sorted = [...planetaryBalas].sort((a, b) => b.totalScore - a.totalScore);
+    const strongest = sorted[0];
+    const digbalaPlanets = planetaryBalas.filter(b => b.digbala.hasDigbala);
+    const kendraTrikonaCount = planetaryBalas.filter(b => [1, 4, 7, 10, 5, 9].includes(b.planet.bhava)).length;
+    const avgScore = Math.round(planetaryBalas.reduce((acc, b) => acc + b.totalScore, 0) / planetaryBalas.length);
+
+    return {
+      strongest,
+      digbalaPlanets,
+      kendraTrikonaCount,
+      avgScore
+    };
+  }, [planetaryBalas]);
+
+  // Filtered Planetary Balas
+  const filteredBalas = useMemo(() => {
+    if (balaFilter === 'strong') {
+      return planetaryBalas.filter(b => b.level === 'supreme' || b.level === 'strong');
+    }
+    if (balaFilter === 'moderate') {
+      return planetaryBalas.filter(b => b.level === 'moderate');
+    }
+    if (balaFilter === 'weak') {
+      return planetaryBalas.filter(b => b.level === 'weak');
+    }
+    return planetaryBalas;
+  }, [planetaryBalas, balaFilter]);
+
+  // Compute Day Panchanga for the selected date
+  const panchangDay = useMemo(() => {
+    const parts = dateStr.split('-');
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    return getPanchangaForDate(d, selectedCity);
+  }, [dateStr, selectedCity]);
+
+  const handleArmAlerts = async () => {
+    if ('Notification' in window) {
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        setNotificationArmed(true);
+        new Notification('HCMM Planetary Timing Alert', {
+          body: `Planetary period armed: Rahu Kaal (${panchangDay.rahuKaal.start} - ${panchangDay.rahuKaal.end}), Gulika Kaal (${panchangDay.gulikaKaal.start} - ${panchangDay.gulikaKaal.end})`
+        });
+      }
+    } else {
+      setNotificationArmed(!notificationArmed);
+    }
+  };
+
+  // Dedicated PDF Export using jsPDF & html2canvas
+  const handleExportPdf = async () => {
+    setIsExportingPdf(true);
+    try {
+      const element = document.getElementById('printable-kundali-content');
+      if (!element) {
+        window.print();
+        return;
+      }
+
+      // Capture element with high pixel ratio for print sharpness
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // First page
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      // Extra pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      const cleanCityName = selectedCity.name.replace(/[^a-zA-Z0-9]/g, '_');
+      pdf.save(`HCMM_Lagna_Kundali_${cleanCityName}_${dateStr}.pdf`);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      window.print();
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  // Helper to get planet abbreviation/name in the selected language
+  const getPlanetLabel = (planet: PlanetPosition) => {
+    if (currentLang === 'kn') {
+      const knMap: Record<string, string> = {
+        Sun: 'ಸೂರ್ಯ',
+        Moon: 'ಚಂದ್ರ',
+        Mars: 'ಕುಜ',
+        Mercury: 'ಬುಧ',
+        Jupiter: 'ಗುರು',
+        Venus: 'ಶುಕ್ರ',
+        Saturn: 'ಶನಿ',
+        Rahu: 'ರಾಹು',
+        Ketu: 'ಕೇತು'
+      };
+      return knMap[planet.name] || planet.sanskritName.kn;
+    }
+    if (currentLang === 'hi') {
+      const hiMap: Record<string, string> = {
+        Sun: 'सूर्य',
+        Moon: 'चन्द्र',
+        Mars: 'मंगल',
+        Mercury: 'बुध',
+        Jupiter: 'गुरु',
+        Venus: 'शुक्र',
+        Saturn: 'शनि',
+        Rahu: 'राहु',
+        Ketu: 'केतु'
+      };
+      return hiMap[planet.name] || planet.sanskritName.hi;
+    }
+    // English
+    const enMap: Record<string, string> = {
+      Sun: 'Sun',
+      Moon: 'Moon',
+      Mars: 'Mars',
+      Mercury: 'Merc',
+      Jupiter: 'Jup',
+      Venus: 'Ven',
+      Saturn: 'Sat',
+      Rahu: 'Rahu',
+      Ketu: 'Ketu'
+    };
+    return enMap[planet.name] || planet.name;
+  };
+
+  // Helper to render planet acronyms inside a Bhava
+  const renderHousePlanets = (houseNum: number, orientation: 'horizontal' | 'vertical' | 'diamond' = 'diamond') => {
+    const house = kundaliData.houses.find(h => h.bhava === houseNum);
+    if (!house || house.planets.length === 0) return null;
+
+    const retrogradeLabel = currentLang === 'kn' ? '[ವ]' : currentLang === 'hi' ? '[व]' : '[R]';
+
+    return (
+      <div className={`flex ${orientation === 'vertical' ? 'flex-col items-center gap-0.5' : 'flex-wrap items-center justify-center gap-0.5'} max-w-full`}>
+        {house.planets.map((p) => (
+          <span
+            key={p.name}
+            className="font-bold text-[7.5px] sm:text-[8.5px] px-1 py-0.5 rounded bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 border border-amber-600/75 shadow-2xs whitespace-nowrap inline-flex items-center gap-0.5 leading-none shrink-0"
+            title={`${p.name} (${p.degrees}°) in ${p.rashiName[currentLang]}`}
+          >
+            <span>{getPlanetLabel(p)}</span>
+            {p.isRetrograde && <span className="text-[7px] text-red-600 font-extrabold">{retrogradeLabel}</span>}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
+  // House Rashi number (1 to 12)
+  const getHouseRashiNum = (houseNum: number) => {
+    const house = kundaliData.houses.find(h => h.bhava === houseNum);
+    return house ? house.rashiIndex + 1 : 1;
+  };
+
+  return (
+    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto px-2 xs:px-3 sm:px-6 lg:px-8 py-2 sm:py-4">
+      
+      {/* Top Banner (Hidden in Print) */}
+      <div className="no-print rounded-2xl bg-gradient-to-r from-indigo-800 via-purple-800 to-amber-700 text-white p-4 sm:p-6 shadow-xl border border-indigo-500/30">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          
+          <div>
+            <div className="flex items-center gap-2 text-indigo-200 text-xs font-mono font-bold uppercase tracking-widest mb-1">
+              <Compass className="w-4 h-4 text-amber-300" />
+              <span>VEDIC ASTROLOGY • SIDEREAL LAHIRI AYANAMSHA</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight">
+              {currentLang === 'kn' ? 'ಲಗ್ನ ಕುಂಡಲಿ ಮತ್ತು ಗ್ರಹ ಬಲ ವಿಶ್ಲೇಷಣೆ' : currentLang === 'hi' ? 'लग्न कुण्डली एवं ग्रह बल विश्लेषण' : 'Lagna Kundali Chart & Planetary Strength (Bala)'}
+            </h1>
+            <p className="text-xs sm:text-sm text-indigo-100 mt-1 max-w-2xl leading-relaxed">
+              {currentLang === 'kn'
+                ? 'ಪ್ರಸ್ತುತ ದಿನಾಂಕ ಮತ್ತು ಸಮಯದ ಆಧಾರದ ಮೇಲೆ ನಿಖರ ಲಗ್ನ, ೧೨ ಭಾವಗಳು, ನವಗ್ರಹ ಸ್ಥಾನ ಮತ್ತು ಸ್ಥಾನ-ದಿಗ್ಬಲ-ಚೇಷ್ಟಾ ಬಲಗಳ ಆಳವಾದ ಜ್ಯೋತಿಷ್ಯ ಒಳನೋಟಗಳು.'
+                : currentLang === 'hi'
+                ? 'दिनांक व समय अनुसार शुद्ध लग्न, १२ भाव, नवग्रह स्थिति एवं स्थान-दिग्बल-चेष्टा बल का पूर्ण ज्योतिषीय विश्लेषण।'
+                : 'Real-time Vedic ascendant, 12 Bhavas, 9 Grahas, and deep planetary strength (Bala) based on house placement.'}
+            </p>
+          </div>
+
+          {/* Date, Time & City Controls + PDF Export Buttons */}
+          <div className="flex flex-wrap items-center gap-2.5 bg-black/25 p-3 rounded-xl backdrop-blur-xs border border-white/10">
+            
+            {/* Date Input */}
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-amber-300" />
+              <input
+                type="date"
+                value={dateStr}
+                onChange={(e) => setDateStr(e.target.value)}
+                className="px-2 py-1 text-xs font-bold rounded-lg bg-white text-stone-900 border border-stone-300 focus:outline-hidden cursor-pointer"
+              />
+            </div>
+
+            {/* Time Input */}
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-amber-300" />
+              <input
+                type="time"
+                value={timeStr}
+                onChange={(e) => setTimeStr(e.target.value)}
+                className="px-2 py-1 text-xs font-bold rounded-lg bg-white text-stone-900 border border-stone-300 focus:outline-hidden cursor-pointer"
+              />
+            </div>
+
+            {/* City Selector */}
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-amber-300" />
+              <select
+                value={selectedCity.name}
+                onChange={(e) => {
+                  const c = CITIES.find(item => item.name === e.target.value);
+                  if (c) onSelectCity(c);
+                }}
+                className="px-2 py-1 text-xs font-bold rounded-lg bg-white text-stone-900 border border-stone-300 focus:outline-hidden cursor-pointer"
+              >
+                {CITIES.map(c => (
+                  <option key={c.name} value={c.name}>
+                    {c.nameLocalized ? c.nameLocalized[currentLang] : c.name} ({c.stateLocalized ? c.stateLocalized[currentLang] : c.state})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Export PDF Button */}
+            <button
+              onClick={handleExportPdf}
+              disabled={isExportingPdf}
+              className="px-3.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs transition-colors shadow-md flex items-center gap-1.5 disabled:opacity-50"
+              title="Export complete formatted Lagna Kundali & Planetary Strength report as PDF"
+            >
+              {isExportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+              <span>{isExportingPdf ? 'Exporting...' : 'Export PDF'}</span>
+            </button>
+
+            {/* Print Button */}
+            <button
+              onClick={() => window.print()}
+              className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+              title="Print chart using browser print dialog"
+            >
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">Print</span>
+            </button>
+
+            {/* Back to Calendar */}
+            <button
+              onClick={onBackToCalendar}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Calendar</span>
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+
+      {/* Lagna & Auspicious Periods Bar (Hidden in Print) */}
+      <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Lagna Card */}
+        <div className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/20">
+          <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider block">
+            {currentLang === 'kn' ? 'ಲಗ್ನ (Ascendant):' : currentLang === 'hi' ? 'लग्न (Lagna):' : 'Ascendant (Lagna):'}
+          </span>
+          <div className="text-xl font-bold font-serif text-stone-900 dark:text-stone-100 mt-1">
+            {kundaliData.houses[0].rashiName[currentLang]}
+          </div>
+          <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+            {kundaliData.lagnaDegree}° • {kundaliData.lagnaNakshatra[currentLang]}
+          </p>
+        </div>
+
+        {/* Rahu Kaal */}
+        <div className="p-4 rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/50 dark:bg-red-950/20">
+          <span className="text-[11px] font-bold text-red-700 dark:text-red-300 uppercase tracking-wider block">
+            {currentLang === 'kn' ? 'ರಾಹು ಕಾಲ (Rahu Kaal):' : currentLang === 'hi' ? 'राहु काल:' : 'Rahu Kaal:'}
+          </span>
+          <div className="text-lg font-mono font-bold text-stone-900 dark:text-stone-100 mt-1">
+            {panchangDay.rahuKaal.start} - {panchangDay.rahuKaal.end}
+          </div>
+          <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 font-mono">
+            {panchangDay.rahuKaal.startGhati.split('(')[0]}
+          </p>
+        </div>
+
+        {/* Gulika Kaal */}
+        <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/50 dark:bg-amber-950/20">
+          <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider block">
+            {currentLang === 'kn' ? 'ಗುಳಿಕ ಕಾಲ (Gulika Kaal):' : currentLang === 'hi' ? 'गुलिक काल:' : 'Gulika Kaal:'}
+          </span>
+          <div className="text-lg font-mono font-bold text-stone-900 dark:text-stone-100 mt-1">
+            {panchangDay.gulikaKaal.start} - {panchangDay.gulikaKaal.end}
+          </div>
+          <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 font-mono">
+            {panchangDay.gulikaKaal.startGhati.split('(')[0]}
+          </p>
+        </div>
+
+        {/* Yamaganda Kaal & Alert Trigger */}
+        <div className="p-4 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/50 dark:bg-blue-950/20 flex flex-col justify-between">
+          <div>
+            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider block">
+              {currentLang === 'kn' ? 'ಯಮಗಂಡ ಕಾಲ (Yamaganda):' : currentLang === 'hi' ? 'यमगण्ड काल:' : 'Yamaganda Kaal:'}
+            </span>
+            <div className="text-lg font-mono font-bold text-stone-900 dark:text-stone-100 mt-1">
+              {panchangDay.yamagandaKaal.start} - {panchangDay.yamagandaKaal.end}
+            </div>
+          </div>
+
+          <button
+            onClick={handleArmAlerts}
+            className={`mt-2 py-1 px-2.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 ${
+              notificationArmed
+                ? 'bg-emerald-600 text-white'
+                : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 border border-stone-300 dark:border-stone-700 hover:border-amber-500'
+            }`}
+          >
+            <Bell className="w-3.5 h-3.5" />
+            <span>{notificationArmed ? 'Alert Armed' : 'Set Timing Notification'}</span>
+          </button>
+        </div>
+
+      </div>
+
+      {/* ========================================================================= */}
+      {/* WRAPPER FOR PDF GENERATION & SCREEN RENDERING */}
+      {/* ========================================================================= */}
+      <div id="printable-kundali-content" className="space-y-8 bg-white dark:bg-stone-900 p-2 sm:p-4 rounded-2xl">
+        
+        {/* Printable Official Header (Shows when exported to PDF or printed) */}
+        <div className="print-only border-b-2 border-amber-600 pb-4 mb-4 text-center">
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-amber-800 font-bold">
+                SRI HCMM VEDIC PANCHANGA • LAHIRI AYANAMSHA
+              </span>
+              <h1 className="text-2xl font-serif font-black text-stone-950">
+                {currentLang === 'kn' ? 'ಲಗ್ನ ಕುಂಡಲಿ ಮತ್ತು ಗ್ರಹ ಬಲ ಪತ್ರಿಕೆ' : currentLang === 'hi' ? 'लग्न कुण्डली एवं ग्रह बल पत्रिका' : 'Lagna Kundali Birth & Astrological Chart'}
+              </h1>
+            </div>
+            <div className="text-right text-xs">
+              <div className="font-bold text-stone-900">
+                {selectedCity.nameLocalized ? selectedCity.nameLocalized[currentLang] : selectedCity.name} ({selectedCity.state})
+              </div>
+              <div className="font-mono text-stone-600">
+                {dateStr} • {timeStr}
+              </div>
+              <div className="text-[11px] text-stone-500">
+                Lat: {selectedCity.lat.toFixed(2)}° N, Lng: {selectedCity.lng.toFixed(2)}° E
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-4 gap-2 text-left bg-amber-50 p-2.5 rounded-lg border border-amber-200 text-xs">
+            <div>
+              <span className="text-[10px] text-amber-900 font-bold block uppercase">Lagna (Ascendant):</span>
+              <span className="font-bold text-stone-950">{kundaliData.houses[0].rashiName[currentLang]} ({kundaliData.lagnaDegree}°)</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-amber-900 font-bold block uppercase">Lagna Nakshatra:</span>
+              <span className="font-bold text-stone-950">{kundaliData.lagnaNakshatra[currentLang]}</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-amber-900 font-bold block uppercase">Rahu Kaal:</span>
+              <span className="font-bold text-red-700">{panchangDay.rahuKaal.start} - {panchangDay.rahuKaal.end}</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-amber-900 font-bold block uppercase">Gulika Kaal:</span>
+              <span className="font-bold text-amber-800">{panchangDay.gulikaKaal.start} - {panchangDay.gulikaKaal.end}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Kundali Chart Display & Style Switcher */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start page-break-inside-avoid">
+          
+          {/* Left: SVG Kundali Chart (7 Cols) */}
+          <div className="lg:col-span-7 bg-white dark:bg-stone-900 rounded-2xl p-6 border border-amber-200/80 dark:border-stone-800 shadow-xl space-y-4">
+            
+            <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-600" />
+                <h2 className="font-serif font-bold text-lg text-stone-900 dark:text-stone-100">
+                  {chartStyle === 'north' ? 'ಉತ್ತರ ಭಾರತ ಶೈಲಿ (North Indian Diamond Chart)' : 'ದಕ್ಷಿಣ ಭಾರತ ಶೈಲಿ (South Indian Chart)'}
+                </h2>
+              </div>
+
+              {/* Toggle North vs South Indian Style */}
+              <div className="no-print inline-flex rounded-lg border border-stone-300 dark:border-stone-700 p-0.5 bg-stone-100 dark:bg-stone-800 text-xs font-semibold">
+                <button
+                  onClick={() => setChartStyle('north')}
+                  className={`px-3 py-1 rounded-md transition-all ${
+                    chartStyle === 'north'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                  }`}
+                >
+                  North Style (Diamond)
+                </button>
+                <button
+                  onClick={() => setChartStyle('south')}
+                  className={`px-3 py-1 rounded-md transition-all ${
+                    chartStyle === 'south'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                  }`}
+                >
+                  South Style (Square)
+                </button>
+              </div>
+            </div>
+
+            {/* North Indian Diamond Chart */}
+            {chartStyle === 'north' ? (
+              <div className="relative w-full aspect-square max-w-[330px] xs:max-w-[390px] sm:max-w-[500px] mx-auto bg-amber-50/60 rounded-2xl p-1.5 sm:p-2 border-2 border-amber-500 shadow-xl overflow-hidden select-none">
+                <svg viewBox="0 0 500 500" className="absolute inset-0 w-full h-full pointer-events-none">
+                  <rect x="0" y="0" width="500" height="500" fill="#fefce8" stroke="#b45309" strokeWidth="3" />
+                  <line x1="0" y1="0" x2="500" y2="500" stroke="#d97706" strokeWidth="2" />
+                  <line x1="500" y1="0" x2="0" y2="500" stroke="#d97706" strokeWidth="2" />
+                  <polygon points="250,0 500,250 250,500 0,250" fill="none" stroke="#b45309" strokeWidth="2.5" />
+                </svg>
+
+                <div className="absolute inset-0 w-full h-full pointer-events-none">
+                  {/* House 1: Lagna */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '50%', top: '25%', maxWidth: '140px' }}
+                  >
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <span className="text-[9.5px] font-black uppercase text-red-700 bg-red-100/90 px-1 py-0.2 rounded shadow-2xs">
+                        {currentLang === 'kn' ? 'ಲಗ್ನ' : currentLang === 'hi' ? 'लग्न' : 'LAGNA'}
+                      </span>
+                      <span className="text-[10.5px] font-extrabold text-amber-900 bg-amber-100/90 px-1 py-0.2 rounded shadow-2xs leading-none">
+                        {getHouseRashiNum(1)}
+                      </span>
+                    </div>
+                    <div className="max-w-[135px]">
+                      {renderHousePlanets(1, 'diamond')}
+                    </div>
+                  </div>
+
+                  {/* House 2 */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '25%', top: '9%', maxWidth: '85px' }}
+                  >
+                    <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100/90 px-1 rounded-xs shadow-2xs leading-none mb-0.5">
+                      {getHouseRashiNum(2)}
+                    </span>
+                    <div className="max-w-[82px]">
+                      {renderHousePlanets(2, 'horizontal')}
+                    </div>
+                  </div>
+
+                  {/* House 3 */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '9%', top: '25%', maxWidth: '56px' }}
+                  >
+                    <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100/90 px-1 rounded-xs shadow-2xs leading-none mb-0.5">
+                      {getHouseRashiNum(3)}
+                    </span>
+                    <div className="max-w-[54px]">
+                      {renderHousePlanets(3, 'vertical')}
+                    </div>
+                  </div>
+
+                  {/* House 4 */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '25%', top: '50%', maxWidth: '140px' }}
+                  >
+                    <span className="text-[10.5px] font-extrabold text-amber-900 bg-amber-100/90 px-1 py-0.2 rounded shadow-2xs leading-none mb-0.5">
+                      {getHouseRashiNum(4)}
+                    </span>
+                    <div className="max-w-[130px]">
+                      {renderHousePlanets(4, 'diamond')}
+                    </div>
+                  </div>
+
+                  {/* House 5 */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '9%', top: '75%', maxWidth: '56px' }}
+                  >
+                    <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100/90 px-1 rounded-xs shadow-2xs leading-none mb-0.5">
+                      {getHouseRashiNum(5)}
+                    </span>
+                    <div className="max-w-[54px]">
+                      {renderHousePlanets(5, 'vertical')}
+                    </div>
+                  </div>
+
+                  {/* House 6 */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '25%', top: '91%', maxWidth: '85px' }}
+                  >
+                    <div className="max-w-[82px] mb-0.5">
+                      {renderHousePlanets(6, 'horizontal')}
+                    </div>
+                    <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100/90 px-1 rounded-xs shadow-2xs leading-none">
+                      {getHouseRashiNum(6)}
+                    </span>
+                  </div>
+
+                  {/* House 7 */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '50%', top: '75%', maxWidth: '140px' }}
+                  >
+                    <span className="text-[10.5px] font-extrabold text-amber-900 bg-amber-100/90 px-1 py-0.2 rounded shadow-2xs leading-none mb-0.5">
+                      {getHouseRashiNum(7)}
+                    </span>
+                    <div className="max-w-[135px]">
+                      {renderHousePlanets(7, 'diamond')}
+                    </div>
+                  </div>
+
+                  {/* House 8 */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '75%', top: '91%', maxWidth: '85px' }}
+                  >
+                    <div className="max-w-[82px] mb-0.5">
+                      {renderHousePlanets(8, 'horizontal')}
+                    </div>
+                    <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100/90 px-1 rounded-xs shadow-2xs leading-none">
+                      {getHouseRashiNum(8)}
+                    </span>
+                  </div>
+
+                  {/* House 9 */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '91%', top: '75%', maxWidth: '56px' }}
+                  >
+                    <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100/90 px-1 rounded-xs shadow-2xs leading-none mb-0.5">
+                      {getHouseRashiNum(9)}
+                    </span>
+                    <div className="max-w-[54px]">
+                      {renderHousePlanets(9, 'vertical')}
+                    </div>
+                  </div>
+
+                  {/* House 10 */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '75%', top: '50%', maxWidth: '140px' }}
+                  >
+                    <span className="text-[10.5px] font-extrabold text-amber-900 bg-amber-100/90 px-1 py-0.2 rounded shadow-2xs leading-none mb-0.5">
+                      {getHouseRashiNum(10)}
+                    </span>
+                    <div className="max-w-[130px]">
+                      {renderHousePlanets(10, 'diamond')}
+                    </div>
+                  </div>
+
+                  {/* House 11 */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '91%', top: '25%', maxWidth: '56px' }}
+                  >
+                    <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100/90 px-1 rounded-xs shadow-2xs leading-none mb-0.5">
+                      {getHouseRashiNum(11)}
+                    </span>
+                    <div className="max-w-[54px]">
+                      {renderHousePlanets(11, 'vertical')}
+                    </div>
+                  </div>
+
+                  {/* House 12 */}
+                  <div 
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto z-10 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: '75%', top: '9%', maxWidth: '85px' }}
+                  >
+                    <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100/90 px-1 rounded-xs shadow-2xs leading-none mb-0.5">
+                      {getHouseRashiNum(12)}
+                    </span>
+                    <div className="max-w-[82px]">
+                      {renderHousePlanets(12, 'horizontal')}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            ) : (
+              /* South Indian Fixed Zodiac Square Chart */
+              <div className="relative w-full aspect-square max-w-[330px] xs:max-w-[390px] sm:max-w-[500px] mx-auto bg-amber-50 rounded-xl p-1.5 sm:p-2 border-2 border-amber-600 shadow-xl">
+                <div className="w-full h-full grid grid-cols-4 grid-rows-4 gap-1 p-1 bg-amber-100/70 border border-amber-300">
+                  {/* Row 1 */}
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ಮೀನ (Meena)' : currentLang === 'hi' ? 'मीन (Meena)' : 'Pisces (Meena)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 11)?.bhava || 0)}</div>
+                  </div>
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ಮೇಷ (Mesha)' : currentLang === 'hi' ? 'मेष (Mesha)' : 'Aries (Mesha)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 0)?.bhava || 0)}</div>
+                  </div>
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ವೃಷಭ (Vrishabha)' : currentLang === 'hi' ? 'वृषभ (Vrishabha)' : 'Taurus (Vrishabha)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 1)?.bhava || 0)}</div>
+                  </div>
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ಮಿಥುನ (Mithuna)' : currentLang === 'hi' ? 'मिथुन (Mithuna)' : 'Gemini (Mithuna)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 2)?.bhava || 0)}</div>
+                  </div>
+
+                  {/* Row 2 */}
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ಕುಂಭ (Kumbha)' : currentLang === 'hi' ? 'कुम्भ (Kumbha)' : 'Aquarius (Kumbha)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 10)?.bhava || 0)}</div>
+                  </div>
+                  <div className="col-span-2 row-span-2 p-4 border border-amber-400/80 rounded bg-amber-50 flex flex-col items-center justify-center text-center shadow-inner">
+                    <span className="text-base font-serif font-bold text-amber-950">
+                      {currentLang === 'kn' ? 'ದಕ್ಷಿಣ ಭಾರತ ಕುಂಡಲಿ' : currentLang === 'hi' ? 'दक्षिण भारतीय कुण्डली' : 'South Indian Kundali'}
+                    </span>
+                    <span className="text-xs text-amber-800 font-bold mt-1 bg-amber-200/60 px-2 py-0.5 rounded-md">
+                      Lagna: {kundaliData.houses[0].rashiName[currentLang]}
+                    </span>
+                  </div>
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ಕರ್ಕ (Karka)' : currentLang === 'hi' ? 'कर्क (Karka)' : 'Cancer (Karka)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 3)?.bhava || 0)}</div>
+                  </div>
+
+                  {/* Row 3 */}
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ಮಕರ (Makara)' : currentLang === 'hi' ? 'मकर (Makara)' : 'Capricorn (Makara)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 9)?.bhava || 0)}</div>
+                  </div>
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ಸಿಂಹ (Simha)' : currentLang === 'hi' ? 'सिंह (Simha)' : 'Leo (Simha)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 4)?.bhava || 0)}</div>
+                  </div>
+
+                  {/* Row 4 */}
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ಧನುಸ್ಸು (Dhanus)' : currentLang === 'hi' ? 'धनु (Dhanu)' : 'Sagittarius (Dhanus)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 8)?.bhava || 0)}</div>
+                  </div>
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ವೃಶ್ಚಿಕ (Vrischika)' : currentLang === 'hi' ? 'वृश्चिक (Vrischika)' : 'Scorpio (Vrischika)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 7)?.bhava || 0)}</div>
+                  </div>
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ತುಲಾ (Tula)' : currentLang === 'hi' ? 'तुला (Tula)' : 'Libra (Tula)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 6)?.bhava || 0)}</div>
+                  </div>
+                  <div className="p-1.5 border border-amber-400 rounded bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 border-b border-amber-200 pb-0.5">
+                      {currentLang === 'kn' ? 'ಕನ್ಯಾ (Kanya)' : currentLang === 'hi' ? 'कन्या (Kanya)' : 'Virgo (Kanya)'}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">{renderHousePlanets(kundaliData.houses.find(h => h.rashiIndex === 5)?.bhava || 0)}</div>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* Right: Planetary Ephemeris Table (5 Cols) */}
+          <div className="lg:col-span-5 bg-white dark:bg-stone-900 rounded-2xl p-6 border border-amber-200/80 dark:border-stone-800 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
+              <h3 className="font-serif font-bold text-lg text-stone-900 dark:text-stone-100">
+                {currentLang === 'kn' ? 'ನವಗ್ರಹ ಸ್ಥಿತಿ (Planetary Ephemeris)' : currentLang === 'hi' ? 'नवग्रह स्थिति' : 'Planetary Positions'}
+              </h3>
+              <span className="text-[11px] font-mono text-stone-400">
+                Sidereal Lahiri
+              </span>
+            </div>
+
+            <div className="overflow-x-auto border border-stone-200 dark:border-stone-700 rounded-xl">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-amber-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-bold border-b border-stone-200 dark:border-stone-700">
+                  <tr>
+                    <th className="p-2">ಗ್ರಹ (Graha)</th>
+                    <th className="p-2">ರಾಶಿ (Rashi)</th>
+                    <th className="p-2">ಅಂಶ (Deg)</th>
+                    <th className="p-2">ನಕ್ಷತ್ರ (Nakshatra)</th>
+                    <th className="p-2 text-center">ಭಾವ (H)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
+                  {kundaliData.planets.map((planet) => (
+                    <tr key={planet.name} className="hover:bg-amber-500/5">
+                      <td className="p-2 font-bold font-serif text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
+                        <span className="text-amber-600 dark:text-amber-400 font-mono text-[11px]">
+                          {planet.symbol.split(' ')[0]}
+                        </span>
+                        <span>{planet.sanskritName[currentLang]}</span>
+                        {planet.isRetrograde && (
+                          <span className="text-[9px] text-red-500 font-bold" title="Retrograde (ವಕ್ರ)">
+                            [R]
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-2 font-semibold text-stone-700 dark:text-stone-300">
+                        {planet.rashiName[currentLang]}
+                      </td>
+                      <td className="p-2 font-mono text-stone-600 dark:text-stone-400">
+                        {planet.degrees}°
+                      </td>
+                      <td className="p-2 text-stone-600 dark:text-stone-400 text-[11px]">
+                        {planet.nakshatra[currentLang]}
+                      </td>
+                      <td className="p-2 text-center font-bold font-mono text-amber-700 dark:text-amber-400">
+                        {planet.bhava}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 12 Bhavas Quick Summary */}
+            <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-800/40 text-xs space-y-2">
+              <span className="font-bold text-stone-900 dark:text-stone-100 block border-b border-stone-200 dark:border-stone-700 pb-1">
+                {currentLang === 'kn' ? '೧೨ ಭಾವಗಳ ಸಾರಾಂಶ:' : currentLang === 'hi' ? '१२ भावों का संक्षिप्त विवरण:' : '12 Bhavas (Houses) Overview:'}
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-stone-600 dark:text-stone-400">
+                <div>೧: ತನು ಭಾವ (Lagna - Self)</div>
+                <div>೨: ಧನ ಭಾವ (Wealth)</div>
+                <div>೩: ಸಹಜ ಭಾವ (Siblings)</div>
+                <div>೪: ಸುಖ ಭಾವ (Mother & Home)</div>
+                <div>೫: ಪುತ್ರ ಭಾವ (Intellect & Children)</div>
+                <div>೬: ಶತ್ರು ಭಾವ (Health & Obstacles)</div>
+                <div>೭: ಕಳತ್ರ ಭಾವ (Spouse & Partnership)</div>
+                <div>೮: ಆಯುಷ್ಯ ಭಾವ (Longevity)</div>
+                <div>೯: ಭಾಗ್ಯ ಭಾವ (Fortune & Dharma)</div>
+                <div>೧೦: ಕರ್ಮ ಭಾವ (Profession)</div>
+                <div>೧೧: ಲಾಭ ಭಾವ (Gains)</div>
+                <div>೧೨: ವ್ಯಯ ಭಾವ (Expenditure & Moksha)</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ========================================================================= */}
+        {/* NEW SECTION: PLANETARY STRENGTH (BALA) BASED ON HOUSE PLACEMENT */}
+        {/* ========================================================================= */}
+        <div className="pt-6 border-t-2 border-amber-200/70 dark:border-stone-800 space-y-6 page-break-inside-avoid">
+          
+          {/* Section Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-mono font-bold uppercase tracking-widest">
+                <Activity className="w-4 h-4" />
+                <span>BHAVA BALA & STHANA BALA • ASTROLOGICAL INSIGHTS</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-serif font-black text-stone-950 dark:text-white mt-1">
+                {currentLang === 'kn' 
+                  ? 'ಗ್ರಹ ಬಲ ವಿಶ್ಲೇಷಣೆ (Planetary Strength / Bala)' 
+                  : currentLang === 'hi' 
+                  ? 'ग्रह बल एवं भाव स्थिति विश्लेषण (Planetary Strength)' 
+                  : 'Planetary Strength (Bala) by House Placement'}
+              </h2>
+              <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 mt-1 max-w-3xl">
+                {currentLang === 'kn'
+                  ? 'ಭಾವ ಸ್ಥಿತಿ (ಕೇಂದ್ರ, ತ್ರಿಕೋಣ, ಉಪಚಯ, ದುಃಸ್ಥಾನ), ದಿಗ್ಬಲ (ದಿಕ್ಕುಗಳ ಬಲ), ಉಚ್ಚ-ನೀಚ-ಸ್ವಕ್ಷೇತ್ರ ಮತ್ತು ಚೇಷ್ಟಾ ಬಲಗಳ ಆಧಾರದ ಮೇಲೆ ಪ್ರತಿಯೊಂದು ಗ್ರಹದ ನಿಖರ ಸಾಮರ್ಥ್ಯ ಮತ್ತು ಶುಭ-ಅಶುಭ ಪ್ರಭಾವ.'
+                  : currentLang === 'hi'
+                  ? 'भाव स्थिति (केन्द्र, त्रिकोण, उपचय, त्रिक), दिग्बल, उच्च-नीच-स्वराशि एवं चेष्टा बल अनुसार नवग्रहों की वास्तविक शक्ति एवं फल।'
+                  : 'Calculated using classical Vedic Jyotish principles: Sthana Bala (Sign Dignity), Bhava Bala (Angle/Trine Placement), Digbala (Directional Strength), and Cheshta Bala (Luminosity/Retrograde).'}
+              </p>
+            </div>
+
+            {/* Quick Filter Buttons (Hidden in print) */}
+            <div className="no-print inline-flex rounded-xl border border-stone-300 dark:border-stone-700 p-1 bg-stone-100 dark:bg-stone-800 text-xs font-bold self-start md:self-auto">
+              <button
+                onClick={() => setBalaFilter('all')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  balaFilter === 'all'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                }`}
+              >
+                {currentLang === 'kn' ? 'ಎಲ್ಲಾ ೯ ಗ್ರಹಗಳು' : currentLang === 'hi' ? 'सभी ९ ग्रह' : 'All 9 Grahas'}
+              </button>
+              <button
+                onClick={() => setBalaFilter('strong')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  balaFilter === 'strong'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                }`}
+              >
+                {currentLang === 'kn' ? 'ಬಲಿಷ್ಠ (Strong)' : currentLang === 'hi' ? 'बलवान (Strong)' : 'Strong'}
+              </button>
+              <button
+                onClick={() => setBalaFilter('moderate')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  balaFilter === 'moderate'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                }`}
+              >
+                {currentLang === 'kn' ? 'ಮಧ್ಯಮ (Moderate)' : currentLang === 'hi' ? 'मध्यम' : 'Moderate'}
+              </button>
+              <button
+                onClick={() => setBalaFilter('weak')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  balaFilter === 'weak'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                }`}
+              >
+                {currentLang === 'kn' ? 'ಪರಿಹಾರ ಅಪೇಕ್ಷಿತ (Remedy)' : currentLang === 'hi' ? 'उपाय योग्य' : 'Remedy'}
+              </button>
+            </div>
+          </div>
+
+          {/* KPI Summary Cards */}
+          {balaStats && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              
+              {/* 1. Strongest Planet */}
+              <div className="p-4 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+                    {currentLang === 'kn' ? 'ಅತ್ಯಧಿಕ ಬಲಿಷ್ಠ ಗ್ರಹ:' : currentLang === 'hi' ? 'सर्वाधिक बलवान ग्रह:' : 'Strongest Graha:'}
+                  </span>
+                  <Award className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="text-xl font-bold font-serif text-stone-950 dark:text-white mt-1 flex items-center gap-2">
+                  <span>{balaStats.strongest.planet.sanskritName[currentLang]}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 font-mono font-bold">
+                    {balaStats.strongest.totalScore}/100
+                  </span>
+                </div>
+                <p className="text-xs text-stone-600 dark:text-stone-300 mt-1">
+                  ಭಾವ {balaStats.strongest.planet.bhava} • {balaStats.strongest.sthanaBala.dignityText[currentLang]}
+                </p>
+              </div>
+
+              {/* 2. Digbala Planets */}
+              <div className="p-4 rounded-xl border border-blue-300 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
+                    {currentLang === 'kn' ? 'ದಿಗ್ಬಲ ಪಡೆದ ಗ್ರಹಗಳು:' : currentLang === 'hi' ? 'दिग्बल प्राप्त ग्रह:' : 'Digbala Attained:'}
+                  </span>
+                  <Compass className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="text-xl font-bold font-serif text-stone-950 dark:text-white mt-1">
+                  {balaStats.digbalaPlanets.length > 0 ? (
+                    balaStats.digbalaPlanets.map(b => b.planet.sanskritName[currentLang]).join(', ')
+                  ) : (
+                    currentLang === 'kn' ? 'ಸಮೀಪದ ದಿಗ್ಬಲ' : currentLang === 'hi' ? 'समीपस्थ दिग्बल' : 'Proximity Digbala'
+                  )}
+                </div>
+                <p className="text-xs text-stone-600 dark:text-stone-300 mt-1">
+                  {currentLang === 'kn'
+                    ? 'ಗುರು/ಬುಧ (೧), ಚಂದ್ರ/ಶುಕ್ರ (೪), ಶನಿ (೭), ಸೂರ್ಯ/ಕುಜ (೧೦)'
+                    : 'Devaguru/Budh (1), Chandra/Shukra (4), Shani (7), Surya/Kuja (10)'}
+                </p>
+              </div>
+
+              {/* 3. Kendra & Trikona Occupancy */}
+              <div className="p-4 rounded-xl border border-purple-300 dark:border-purple-800 bg-purple-50/60 dark:bg-purple-950/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-purple-800 dark:text-purple-300 uppercase tracking-wider">
+                    {currentLang === 'kn' ? 'ಕೇಂದ್ರ-ತ್ರಿಕೋಣ ಪ್ರಭಾವ:' : currentLang === 'hi' ? 'केन्द्र-त्रिकोण योग:' : 'Kendra & Trines:'}
+                  </span>
+                  <Zap className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="text-xl font-bold font-serif text-stone-950 dark:text-white mt-1">
+                  {balaStats.kendraTrikonaCount} / 9 {currentLang === 'kn' ? 'ಗ್ರಹಗಳು' : currentLang === 'hi' ? 'ग्रह' : 'Grahas'}
+                </div>
+                <p className="text-xs text-stone-600 dark:text-stone-300 mt-1">
+                  {currentLang === 'kn' ? 'ಭಾವ ೧, ೪, ೫, ೭, ೯, ೧೦ ರಲ್ಲಿ ಸ್ಥಿತಿ' : currentLang === 'hi' ? 'शुभ स्तम्भ व भाग्य भाव' : 'Pillars of chart & Divine Lakshmi grace'}
+                </p>
+              </div>
+
+              {/* 4. Chart Average Strength */}
+              <div className="p-4 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">
+                    {currentLang === 'kn' ? 'ಸರಾಸರಿ ಕುಂಡಲಿ ಬಲ:' : currentLang === 'hi' ? 'औसत कुण्डली बल:' : 'Avg Chart Bala:'}
+                  </span>
+                  <Flame className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="text-xl font-bold font-serif text-stone-950 dark:text-white mt-1 flex items-center gap-2">
+                  <span>{balaStats.avgScore}%</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 font-bold">
+                    {balaStats.avgScore >= 65 ? 'ಉತ್ತಮ (Strong)' : 'ಮಧ್ಯಮ (Balanced)'}
+                  </span>
+                </div>
+                <p className="text-xs text-stone-600 dark:text-stone-300 mt-1">
+                  {currentLang === 'kn' ? 'ಸಮಗ್ರ ಜ್ಯೋತಿಷ್ಯ ಬಲ ಸೂಚ್ಯಂಕ' : 'Composite Vedic planetary index'}
+                </p>
+              </div>
+
+            </div>
+          )}
+
+          {/* Cards Grid: 9 Planets Detailed Bala & Insights */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredBalas.map((bala) => {
+              const p = bala.planet;
+              return (
+                <div
+                  key={p.name}
+                  className={`rounded-2xl border p-5 shadow-md flex flex-col justify-between transition-all hover:shadow-lg ${bala.colorTheme.bg} ${bala.colorTheme.border} page-break-inside-avoid`}
+                >
+                  
+                  {/* Top: Planet Name, Symbol & Total Score Ring */}
+                  <div>
+                    <div className="flex items-start justify-between border-b border-black/10 dark:border-white/10 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 flex items-center justify-center font-bold text-lg text-amber-600 dark:text-amber-400 shadow-xs">
+                          {p.symbol.split(' ')[0]}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-serif font-black text-base text-stone-950 dark:text-white leading-tight">
+                              {p.sanskritName[currentLang]}
+                            </h3>
+                            {p.isRetrograde && (
+                              <span className="text-[10px] bg-red-600 text-white font-black px-1.5 py-0.2 rounded shadow-2xs" title="Retrograde (ವಕ್ರ)">
+                                {currentLang === 'kn' ? 'ವಕ್ರ' : currentLang === 'hi' ? 'वक्री' : 'Vakri [R]'}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-stone-500 dark:text-stone-400">
+                            {p.name} • {p.rashiName[currentLang]} ({p.degrees}°)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Score Badge */}
+                      <div className="text-right">
+                        <div className="font-mono font-black text-lg text-stone-900 dark:text-white leading-tight">
+                          {bala.totalScore}<span className="text-xs font-normal text-stone-500">/100</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${bala.colorTheme.badge}`}>
+                          {bala.levelText[currentLang]}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* House Placement & Dignity Tag */}
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+                      <span className="px-2 py-0.5 rounded-md font-bold bg-white/80 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700">
+                        {bala.bhavaBala.houseTypeText[currentLang]}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md font-bold bg-white/80 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700">
+                        {bala.sthanaBala.dignityText[currentLang]}
+                      </span>
+                      {bala.digbala.hasDigbala && (
+                        <span className="px-2 py-0.5 rounded-md font-bold bg-blue-600 text-white shadow-2xs">
+                          {currentLang === 'kn' ? 'ಪೂರ್ಣ ದಿಗ್ಬಲ' : currentLang === 'hi' ? 'पूर्ण दिग्बल' : 'Full Digbala'}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 4 Score Breakdown Bars */}
+                    <div className="mt-4 space-y-2 text-xs">
+                      
+                      {/* Sthana Bala */}
+                      <div>
+                        <div className="flex justify-between text-[11px] font-medium text-stone-600 dark:text-stone-400">
+                          <span>{currentLang === 'kn' ? 'ಸ್ಥಾನ ಬಲ (Sign Dignity)' : currentLang === 'hi' ? 'स्थान बल' : 'Sthana Bala'}:</span>
+                          <span className="font-mono font-bold text-stone-900 dark:text-stone-200">{bala.sthanaBala.points}/{bala.sthanaBala.maxPoints}</span>
+                        </div>
+                        <div className="w-full bg-stone-200 dark:bg-stone-700 h-1.5 rounded-full overflow-hidden mt-0.5">
+                          <div 
+                            className={`h-full ${bala.colorTheme.bar}`} 
+                            style={{ width: `${(bala.sthanaBala.points / bala.sthanaBala.maxPoints) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Bhava Bala */}
+                      <div>
+                        <div className="flex justify-between text-[11px] font-medium text-stone-600 dark:text-stone-400">
+                          <span>{currentLang === 'kn' ? 'ಭಾವ ಬಲ (House Placement)' : currentLang === 'hi' ? 'भाव बल' : 'Bhava Bala'}:</span>
+                          <span className="font-mono font-bold text-stone-900 dark:text-stone-200">{bala.bhavaBala.points}/{bala.bhavaBala.maxPoints}</span>
+                        </div>
+                        <div className="w-full bg-stone-200 dark:bg-stone-700 h-1.5 rounded-full overflow-hidden mt-0.5">
+                          <div 
+                            className={`h-full ${bala.colorTheme.bar}`} 
+                            style={{ width: `${(bala.bhavaBala.points / bala.bhavaBala.maxPoints) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Digbala */}
+                      <div>
+                        <div className="flex justify-between text-[11px] font-medium text-stone-600 dark:text-stone-400">
+                          <span>{currentLang === 'kn' ? 'ದಿಗ್ಬಲ (Directional Power)' : currentLang === 'hi' ? 'दिग्बल' : 'Digbala'}:</span>
+                          <span className="font-mono font-bold text-stone-900 dark:text-stone-200">{bala.digbala.points}/{bala.digbala.maxPoints}</span>
+                        </div>
+                        <div className="w-full bg-stone-200 dark:bg-stone-700 h-1.5 rounded-full overflow-hidden mt-0.5">
+                          <div 
+                            className={`h-full ${bala.colorTheme.bar}`} 
+                            style={{ width: `${(bala.digbala.points / bala.digbala.maxPoints) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Cheshta Bala */}
+                      <div>
+                        <div className="flex justify-between text-[11px] font-medium text-stone-600 dark:text-stone-400">
+                          <span>{currentLang === 'kn' ? 'ಚೇಷ್ಟಾ ಬಲ (Motion/Luminosity)' : currentLang === 'hi' ? 'चेष्टा बल' : 'Cheshta Bala'}:</span>
+                          <span className="font-mono font-bold text-stone-900 dark:text-stone-200">{bala.cheshtaBala.points}/{bala.cheshtaBala.maxPoints}</span>
+                        </div>
+                        <div className="w-full bg-stone-200 dark:bg-stone-700 h-1.5 rounded-full overflow-hidden mt-0.5">
+                          <div 
+                            className={`h-full ${bala.colorTheme.bar}`} 
+                            style={{ width: `${(bala.cheshtaBala.points / bala.cheshtaBala.maxPoints) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Astrological Insight Quote */}
+                    <div className="mt-4 p-3 rounded-xl bg-white/90 dark:bg-stone-800/90 border border-black/5 dark:border-white/5 shadow-inner">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-1">
+                        <Sparkles className="w-3 h-3 text-amber-600" />
+                        <span>{currentLang === 'kn' ? 'ಜ್ಯೋತಿಷ್ಯ ಫಲ:' : currentLang === 'hi' ? 'ज्योतिषीय फल:' : 'Astrological Insight:'}</span>
+                      </div>
+                      <p className="text-xs text-stone-800 dark:text-stone-200 leading-relaxed font-serif">
+                        {bala.insight[currentLang]}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* Remedial Guidance Box */}
+                  <div className="mt-3 pt-3 border-t border-black/10 dark:border-white/10 text-[11px] text-stone-700 dark:text-stone-300">
+                    <span className="font-bold text-stone-900 dark:text-stone-100 block mb-0.5">
+                      {currentLang === 'kn' ? 'ಉಪಾಧೇಯ / ಪರಿಹಾರ ಮಾರ್ಗ:' : currentLang === 'hi' ? 'उपाय एवं अनुकूलता:' : 'Remedy & Harmonization:'}
+                    </span>
+                    <p className="text-[11px] text-stone-600 dark:text-stone-400">
+                      {bala.remedy[currentLang]}
+                    </p>
+                  </div>
+
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+
+        {/* Printable Shanti Sloka & Blessing (Appears on print & PDF) */}
+        <div className="print-only border-t-2 border-stone-300 pt-4 mt-6 text-center text-xs text-stone-600">
+          <div className="font-serif font-bold text-sm text-stone-900 mb-1">
+            ॥ ನವಗ್ರಹ ದೇವತಾಭ್ಯೋ ನಮಃ • ಸರ್ವೇ ಜನಾಃ ಸುಖಿನೋ ಭವಂತು ॥
+          </div>
+          <div className="text-[10px] text-stone-500">
+            HCMM Vedic Calendar & Panchanga Engine • Generated on {dateStr} at {timeStr} for {selectedCity.name}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Bottom Navigation & Export Action Bar (Hidden in Print) */}
+      <div className="no-print pt-4 border-t border-stone-200 dark:border-stone-800 flex flex-wrap items-center justify-between gap-4">
+        <button
+          onClick={onBackToCalendar}
+          className="px-6 py-3 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-sm transition-all shadow-md flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>{currentLang === 'kn' ? 'ಕ್ಯಾಲೆಂಡರ್‌ಗೆ ಹಿಂತಿರುಗಿ (Back to Calendar)' : 'Back to Calendar'}</span>
+        </button>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportPdf}
+            disabled={isExportingPdf}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+          >
+            {isExportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+            <span>{isExportingPdf ? 'Exporting PDF...' : 'Export Kundali & Bala as PDF'}</span>
+          </button>
+
+          <button
+            onClick={() => window.print()}
+            className="px-5 py-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 text-xs font-semibold hover:border-amber-500 transition-colors shadow-2xs flex items-center gap-1.5"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print Chart</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  );
+};

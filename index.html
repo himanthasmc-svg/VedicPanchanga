@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HCMM Vedic Panchanga Calendar & Kundali</title>
+    <meta name="description" content="Authentic Hindu Panchanga Calendar (1900-2100+), Lagna Kundali charts, Sankalpa Vidhi with auto-filled date details, Mantras library, biometric privacy, and offline sync." />
+    <meta property="og:title" content="HCMM Vedic Panchanga Calendar & Kundali" />
+    <meta property="og:description" content="Authentic Hindu Panchanga Calendar (1900-2100+), Lagna Kundali charts, Sankalpa Vidhi with auto-filled date details, Mantras library, biometric privacy, and offline sync." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Noto+Sans+Kannada:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #printable-sankalpa, #printable-sankalpa *,
+        #printable-month-calendar, #printable-month-calendar *,
+        #printable-kundali-content, #printable-kundali-content * {
+          visibility: visible;
+        }
+        #printable-sankalpa,
+        #printable-month-calendar,
+        #printable-kundali-content {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          padding: 16px;
+          background: white !important;
+          color: black !important;
+        }
+        .no-print {
+          display: none !important;
+        }
+        @page {
+          size: auto;
+          margin: 10mm;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-amber-50/40 text-stone-900 antialiased selection:bg-amber-500 selection:text-white transition-colors">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

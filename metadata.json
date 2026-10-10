@@ -1,0 +1,6 @@
+{
+  "name": "HCMM Vedic Panchanga & Kundali",
+  "description": "Authentic Hindu Panchanga Calendar (1900-2100+), Lagna Kundali charts, Sankalpa Vidhi with auto-filled date details, Mantras library, biometric privacy, and offline sync.",
+  "requestFramePermissions": ["notifications", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

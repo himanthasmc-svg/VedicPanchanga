@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HCMM Vedic Panchanga Calendar, Gochar & Kundali (Complete Program)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Noto+Sans+Kannada:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #b45309;
+      --primary-dark: #92400e;
+      --gold: #d97706;
+      --bg: #fdfbf7;
+      --card: #ffffff;
+      --text: #1c1917;
+      --border: #e7e5e4;
+      --blue: #2563eb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', 'Noto Sans Kannada', sans-serif; background: var(--bg); color: var(--text); padding: 16px; }
+    .max-w { max-width: 1400px; margin: 0 auto; }
+    
+    /* Top Brand & Logo Banner */
+    .banner { 
+      background: linear-gradient(135deg, #b45309, #d97706, #ea580c); 
+      color: white; 
+      padding: 20px 28px; 
+      border-radius: 18px; 
+      box-shadow: 0 10px 30px rgba(180,83,9,0.22); 
+      margin-bottom: 24px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      flex-wrap: wrap; 
+      gap: 20px; 
+    }
+    .logo-container { display: flex; align-items: center; gap: 18px; }
+    .logo-img { max-height: 80px; width: auto; max-width: 300px; object-fit: contain; border-radius: 12px; background: #fff; padding: 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
+    .logo-fallback { background: #1c1917; color: #f59e0b; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 20px; border: 2px solid #f59e0b; letter-spacing: 1px; font-family: 'Cinzel', serif; }
+    .title { font-family: 'Cinzel', serif; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+    .subtitle { font-size: 13px; opacity: 0.95; margin-top: 4px; }
+    .nav-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .btn { background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: white; padding: 8px 16px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+    .btn:hover { background: rgba(255,255,255,0.38); transform: translateY(-1px); }
+    .btn-gold { background: #fef3c7; color: #78350f; border-color: #fde68a; font-weight: 800; }
+    .btn-gold:hover { background: #fde68a; }
+
+    /* Live Dynamic Panchanga Dashboard Card */
+    .dashboard-bar { background: white; border: 1.5px solid #fde68a; border-radius: 16px; padding: 16px 20px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(217,119,6,0.08); display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .dash-card { background: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 12px 16px; }
+    .dash-label { font-size: 11px; font-weight: 700; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px; }
+    .dash-val { font-size: 17px; font-weight: 800; color: #1c1917; font-family: 'Cinzel', serif; margin-top: 3px; }
+
+    /* Calendar Grid */
+    .grid-week { display: grid; grid-template-columns: repeat(7, 1fr); background: #fef3c7; border: 1px solid #fde68a; border-radius: 14px 14px 0 0; text-align: center; font-weight: 800; font-size: 13.5px; padding: 12px 0; color: #92400e; }
+    .grid-days { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 14px 14px; box-shadow: 0 6px 24px rgba(0,0,0,0.06); }
+    .day-cell { min-height: 125px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 10px; cursor: pointer; transition: background 0.15s; display: flex; flex-direction: column; justify-content: space-between; }
+    .day-cell:nth-child(7n) { border-right: none; }
+    .day-cell:hover { background: #fffbeb; }
+    .day-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .day-num { font-size: 19px; font-weight: 800; font-family: 'Cinzel', serif; color: #1c1917; }
+    
+    /* CSS Moon Phase Icons */
+    .moon-icon { width: 16px; height: 16px; border-radius: 50%; display: inline-block; position: relative; }
+    .moon-purnima { background: #fef08a; border: 1.5px solid #ca8a04; box-shadow: 0 0 8px rgba(234,179,8,0.7); }
+    .moon-amavasya { background: #0f172a; border: 1.5px solid #475569; }
+    .moon-shukla { background: linear-gradient(90deg, #1e293b 50%, #facc15 50%); border: 1.5px solid #ca8a04; }
+    .moon-krishna { background: linear-gradient(90deg, #facc15 50%, #1e293b 50%); border: 1.5px solid #64748b; }
+    
+    .tithi-tag { font-size: 11.5px; font-weight: 700; color: #b45309; margin-top: 3px; }
+    .nakshatra-tag { font-size: 10.5px; color: #78716c; }
+    .fest-tag { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: 10px; font-weight: 800; padding: 2.5px 5px; border-radius: 4px; margin-top: 4px; line-height: 1.25; }
+    .kalash-tag { background: linear-gradient(135deg, #dc2626, #d97706); color: white; font-size: 10px; font-weight: 800; padding: 3px 6px; border-radius: 5px; margin-top: 4px; border: 1px solid #fde68a; box-shadow: 0 2px 6px rgba(220,38,38,0.3); }
+    .empty-cell { background: #fafaf9; opacity: 0.35; cursor: default; }
+
+    /* Sections */
+    .section-title { font-family: 'Cinzel', serif; font-size: 19px; font-weight: 800; color: #b45309; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .card-box { background: white; border: 1.5px solid var(--border); border-radius: 18px; padding: 22px; margin-top: 24px; box-shadow: 0 4px 18px rgba(0,0,0,0.04); }
+    
+    /* Sankalpa Box */
+    .sankalpa-box { background: #fffbeb; border: 2px solid #fde68a; border-radius: 18px; padding: 22px; margin-top: 24px; line-height: 1.85; font-family: 'Cinzel', 'Noto Sans Kannada', serif; font-size: 15px; }
+    .blue-highlight { color: #2563eb; font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
+    
+    /* Gochar Table */
+    .gochar-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 12px; }
+    .gochar-table th { background: #fef3c7; color: #92400e; padding: 10px 12px; text-align: left; border: 1px solid #fde68a; font-weight: 800; }
+    .gochar-table td { padding: 9px 12px; border: 1px solid #e7e5e4; }
+    .badge-dignity { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+
+    /* Kundali Diamond Geometry */
+    .kundali-wrapper { position: relative; width: 100%; max-width: 480px; aspect-ratio: 1/1; margin: 16px auto; background: #fffdf5; border: 2px solid #b45309; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 24px rgba(180,83,9,0.15); }
+    .kundali-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .bhava-box { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto; }
+    .planet-chip { font-size: 8.5px; font-weight: 800; background: white; border: 1px solid #d97706; padding: 1px 3px; border-radius: 3px; color: #1c1917; margin: 1px; white-space: nowrap; }
+
+    /* Search Bar in Mantras */
+    .search-input { width: 100%; max-width: 450px; padding: 9px 14px; border-radius: 10px; border: 1px solid #d6d3d1; font-size: 13px; font-weight: 500; outline: none; transition: border-color 0.2s; }
+    .search-input:focus { border-color: #d97706; }
+
+    /* Modal */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(5px); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+    .modal-content { background: white; border-radius: 18px; max-width: 650px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 26px; box-shadow: 0 24px 50px rgba(0,0,0,0.25); border: 1px solid #fde68a; }
+    .close-btn { float: right; font-size: 24px; font-weight: 700; cursor: pointer; border: none; background: none; color: #78716c; }
+    .close-btn:hover { color: #1c1917; }
+  </style>
+</head>
+<body>
+  <div class="max-w">
+    
+    <!-- Header Banner with Full Natural Logo View -->
+    <div class="banner">
+      <div class="logo-container">
+        <div class="logo-fallback" id="bannerLogoPlaceholder">HCMM</div>
+        <div>
+          <div class="title">HCMM VEDIC PANCHANGA, KUNDALI & GOCHAR</div>
+          <div class="subtitle" id="vedicHeaderSubtitle">ಶ್ರೀ ಕ್ರೋಧಿ / ವಿಶ್ವಾವಸು ಸಂವತ್ಸರ • ದಕ್ಷಿಣಾಯನ / ಉತ್ತರಾಯಣ • ಶಾಲಿವಾಹನ ಶಕ (೧೯೦೦ - ಭವಿಷ್ಯ)</div>
+        </div>
+      </div>
+      <div class="nav-controls">
+        <select id="citySelect" onchange="changeCity(this.value)" style="padding:7px 12px; border-radius:8px; font-weight:700; font-size:12px; border:1px solid rgba(255,255,255,0.4); background:white; color:#1c1917; cursor:pointer;">
+          <option value="Bengaluru">ಬೆಂಗಳೂರು (Bengaluru)</option>
+          <option value="Mysuru">ಮೈಸೂರು (Mysuru)</option>
+          <option value="Mangaluru">ಮಂಗಳೂರು (Mangaluru)</option>
+          <option value="Hubballi">ಹುಬ್ಬಳ್ಳಿ (Hubballi)</option>
+          <option value="New Delhi">ನವದೆಹಲಿ (New Delhi)</option>
+          <option value="Varanasi">ವಾರಾಣಸಿ / ಕಾಶಿ (Varanasi)</option>
+          <option value="Mumbai">ಮುಂಬೈ (Mumbai)</option>
+        </select>
+        <button class="btn" onclick="prevMonth()">◀ Prev</button>
+        <span id="monthYearLabel" style="font-weight:800; font-size:15px; min-width:140px; text-align:center;">November 2026</span>
+        <button class="btn" onclick="nextMonth()">Next ▶</button>
+        <button class="btn btn-gold" onclick="window.print()">Print / PDF</button>
+      </div>
+    </div>
+
+    <!-- Live Dynamic Dashboard Widget (Real-time Tithi, Nakshatra, Yoga) -->
+    <div class="dashboard-bar">
+      <div class="dash-card">
+        <div class="dash-label">LIVE CLOCK (ಸ್ಥಳೀಯ ಸಮಯ)</div>
+        <div class="dash-val" id="liveClock">12:00:00 PM</div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-label">TODAY'S TITHI (ಪ್ರಸ್ತುತ ತಿಥಿ)</div>
+        <div class="dash-val" id="liveTithi">ಶುಕ್ಲ ಪಾಡ್ಯ / ಬಿದಿಗೆ</div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-label">TODAY'S NAKSHATRA (ನಕ್ಷತ್ರ)</div>
+        <div class="dash-val" id="liveNakshatra">ಅನುರಾಧಾ (Pada 1)</div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-label">TODAY'S YOGA (ಯೋಗ)</div>
+        <div class="dash-val" id="liveYoga">ಶೋಭನ (Shubha Yoga)</div>
+      </div>
+    </div>
+
+    <!-- Weekday Header -->
+    <div class="grid-week">
+      <div>ಭಾನು (Sun)</div><div>ಸೋಮ (Mon)</div><div>ಮಂಗಳ (Tue)</div><div>ಬುಧ (Wed)</div><div>ಗುರು (Thu)</div><div>ಶುಕ್ರ (Fri)</div><div>ಶನಿ (Sat)</div>
+    </div>
+    <!-- Calendar Days Grid with CSS Moon Phases & Kalasha Sthapana -->
+    <div class="grid-days" id="calendarGrid"></div>
+
+    <!-- Planetary Transits (Gochar) Section -->
+    <div class="card-box">
+      <div class="section-title">
+        <span>🪐</span>
+        <span>ಗ್ರಹ ಗೋಚಾರ ಫಲ ವಿವರ (Planetary Gochar Transits)</span>
+      </div>
+      <p style="font-size:12.5px; color:#57534e; line-height:1.6;">
+        <strong>ಗೋಚಾರ ಎಂದರೇನು?</strong> ಜನ್ಮಕುಂಡಲಿಯು ವ್ಯಕ್ತಿಯ ಶಾಶ್ವತ ಜನ್ಮ ನಕ್ಷೆಯಾದರೆ, ಗೋಚಾರವು ಪ್ರಸ್ತುತ ಆಕಾಶದಲ್ಲಿ ಸಂಚರಿಸುತ್ತಿರುವ ನೈಜ ಸಮಯದ ಖಗೋಳ ಸ್ಥಿತಿ. ದಿನದ ಕಾರ್ಯಗಳು, ಮುಹೂರ್ತ ಮತ್ತು ಮಾನಸಿಕ ಸ್ಥಿತಿಯು ಗೋಚಾರ ಗ್ರಹಗಳ ಸಮ್ಮತಿಯಿಂದ ಫಲ ನೀಡುತ್ತವೆ:
+      </p>
+      <table class="gochar-table">
+        <thead>
+          <tr>
+            <th>Graha (ಗ್ರಹ)</th>
+            <th>Rashi (ರಾಶಿ)</th>
+            <th>Degree</th>
+            <th>Nakshatra & Pada</th>
+            <th>Dignity Status</th>
+          </tr>
+        </thead>
+        <tbody id="gocharTableBody">
+          <tr><td>ಸೂರ್ಯ (Sun)</td><td>ತುಲಾ (Libra)</td><td>24° 18'</td><td>ವಿಶಾಖ (Pada 2)</td><td><span class="badge-dignity" style="background:#fee2e2; color:#991b1b;">Debilitated (ನೀಚ)</span></td></tr>
+          <tr><td>ಚಂದ್ರ (Moon)</td><td>ವೃಶ್ಚಿಕ (Scorpio)</td><td>08° 42'</td><td>ಅನುರಾಧಾ (Pada 2)</td><td><span class="badge-dignity" style="background:#fee2e2; color:#991b1b;">Debilitated (ನೀಚ)</span></td></tr>
+          <tr><td>ಕುಜ (Mars)</td><td>ಕರ್ಕ (Cancer)</td><td>06° 15'</td><td>ಪುಷ್ಯ (Pada 1)</td><td><span class="badge-dignity" style="background:#fee2e2; color:#991b1b;">Debilitated (ನೀಚ)</span></td></tr>
+          <tr><td>ಬುಧ (Mercury)</td><td>ವೃಶ್ಚಿಕ (Scorpio)</td><td>12° 50'</td><td>ಅನುರಾಧಾ (Pada 3)</td><td><span class="badge-dignity" style="background:#dcfce7; color:#166534;">Friend (ಮಿತ್ರ)</span></td></tr>
+          <tr><td>ಗುರು (Jupiter)</td><td>ವೃಷಭ (Taurus)</td><td>20° 34'</td><td>ರೋಹಿಣಿ (Pada 4)</td><td><span class="badge-dignity" style="background:#fef9c3; color:#854d0e;">Friend (ಮಿತ್ರ)</span></td></tr>
+          <tr><td>ಶುಕ್ರ (Venus)</td><td>ಧನು (Sagittarius)</td><td>04° 10'</td><td>ಮೂಲ (Pada 2)</td><td><span class="badge-dignity" style="background:#f3f4f6; color:#374151;">Neutral (ಸಮ)</span></td></tr>
+          <tr><td>ಶನಿ (Saturn)</td><td>ಕುಂಭ (Aquarius)</td><td>18° 22'</td><td>ಶತಭಿಷ (Pada 4)</td><td><span class="badge-dignity" style="background:#e0e7ff; color:#3730a3;">Own Sign (ಸ್ವಕ್ಷೇತ್ರ)</span></td></tr>
+          <tr><td>ರಾಹು (Rahu)</td><td>ಮೀನ (Pisces)</td><td>11° 05'</td><td>ಉತ್ತರಾಭಾದ್ರ (Pada 3)</td><td><span class="badge-dignity" style="background:#f5f5f4; color:#292524;">Karmic Node [ವ]</span></td></tr>
+          <tr><td>ಕೇತು (Ketu)</td><td>ಕನ್ಯಾ (Virgo)</td><td>11° 05'</td><td>ಹಸ್ತ (Pada 1)</td><td><span class="badge-dignity" style="background:#f5f5f4; color:#292524;">Karmic Node [ವ]</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- North Indian Lagna Kundali Chart (Strict House Containment) -->
+    <div class="card-box">
+      <div class="section-title">
+        <span>☸️</span>
+        <span>ಲಗ್ನ ಕುಂಡಲಿ ಚಾರ್ಟ್ (North Indian Diamond Kundali)</span>
+      </div>
+      <p style="font-size:12px; color:#78716c;">
+        ಪ್ರತಿಯೊಂದು ಮನೆಯ ಮಧ್ಯಭಾಗದಲ್ಲಿ ಗ್ರಹಗಳ ಸ್ಥಾನಗಳನ್ನು ರೇಖೆಗಳ ಮೇಲೆ ಬರದಂತೆ ಸ್ಪಷ್ಟವಾಗಿ ಸ್ಥಾಪಿಸಲಾಗಿದೆ:
+      </p>
+
+      <div class="kundali-wrapper">
+        <svg viewBox="0 0 500 500" class="kundali-svg">
+          <rect x="0" y="0" width="500" height="500" fill="#fefce8" stroke="#b45309" stroke-width="3" />
+          <line x1="0" y1="0" x2="500" y2="500" stroke="#d97706" stroke-width="2" />
+          <line x1="500" y1="0" x2="0" y2="500" stroke="#d97706" stroke-width="2" />
+          <polygon points="250,0 500,250 250,500 0,250" fill="none" stroke="#b45309" stroke-width="2.5" />
+        </svg>
+
+        <!-- House 1: Lagna (Center Diamond 50%, 25%) -->
+        <div class="bhava-box" style="left:50%; top:25%; max-width:130px;">
+          <span style="font-size:9.5px; font-weight:800; color:#dc2626; background:#fee2e2; padding:1px 4px; border-radius:3px;">ಲಗ್ನ 8</span>
+          <div style="display:flex; flex-wrap:wrap; justify-content:center; margin-top:2px;">
+            <span class="planet-chip">ಬುಧ</span>
+            <span class="planet-chip">ಚಂದ್ರ</span>
+          </div>
+        </div>
+
+        <!-- House 2: Top-Left Upper (25%, 9%) -->
+        <div class="bhava-box" style="left:25%; top:9%; max-width:80px;">
+          <span style="font-size:9.5px; font-weight:800; color:#78350f;">9</span>
+          <span class="planet-chip">ಶುಕ್ರ</span>
+        </div>
+
+        <!-- House 3: Top-Left Side (9%, 25%) -->
+        <div class="bhava-box" style="left:9%; top:25%; max-width:55px;">
+          <span style="font-size:9.5px; font-weight:800; color:#78350f;">10</span>
+        </div>
+
+        <!-- House 4: Left Center Diamond (25%, 50%) -->
+        <div class="bhava-box" style="left:25%; top:50%; max-width:120px;">
+          <span style="font-size:9.5px; font-weight:800; color:#78350f;">11</span>
+          <span class="planet-chip">ಶನಿ</span>
+        </div>
+
+        <!-- House 5: Bottom-Left Side (9%, 75%) -->
+        <div class="bhava-box" style="left:9%; top:75%; max-width:55px;">
+          <span style="font-size:9.5px; font-weight:800; color:#78350f;">12</span>
+          <span class="planet-chip">ರಾಹು</span>
+        </div>
+
+        <!-- House 6: Bottom-Left Lower (25%, 91%) -->
+        <div class="bhava-box" style="left:25%; top:91%; max-width:80px;">
+          <span style="font-size:9.5px; font-weight:800; color:#78350f;">1</span>
+        </div>
+
+        <!-- House 7: Center-Bottom Diamond (50%, 75%) -->
+        <div class="bhava-box" style="left:50%; top:75%; max-width:130px;">
+          <span style="font-size:9.5px; font-weight:800; color:#78350f;">2</span>
+          <span class="planet-chip">ಗುರು</span>
+        </div>
+
+        <!-- House 8: Bottom-Right Lower (75%, 91%) -->
+        <div class="bhava-box" style="left:75%; top:91%; max-width:80px;">
+          <span style="font-size:9.5px; font-weight:800; color:#78350f;">3</span>
+        </div>
+
+        <!-- House 9: Bottom-Right Side (91%, 75%) -->
+        <div class="bhava-box" style="left:91%; top:75%; max-width:55px;">
+          <span style="font-size:9.5px; font-weight:800; color:#78350f;">4</span>
+          <span class="planet-chip">ಕುಜ</span>
+        </div>
+
+        <!-- House 10: Right Center Diamond (75%, 50%) -->
+        <div class="bhava-box" style="left:75%; top:50%; max-width:120px;">
+          <span style="font-size:9.5px; font-weight:800; color:#78350f;">5</span>
+        </div>
+
+        <!-- House 11: Top-Right Side (91%, 25%) -->
+        <div class="bhava-box" style="left:91%; top:25%; max-width:55px;">
+          <span style="font-size:9.5px; font-weight:800; color:#78350f;">6</span>
+          <span class="planet-chip">ಕೇತು</span>
+        </div>
+
+        <!-- House 12: Top-Right Upper (75%, 9%) -->
+        <div class="bhava-box" style="left:75%; top:9%; max-width:80px;">
+          <span style="font-size:9.5px; font-weight:800; color:#78350f;">7</span>
+          <span class="planet-chip">ಸೂರ್ಯ</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vedic Sankalpa Preview Card with Localized Place Name -->
+    <div class="sankalpa-box">
+      <div class="section-title">
+        <span>📜</span>
+        <span>ವೇದೋಕ್ತ ಶುಭ ಸಂಕಲ್ಪ ಮಂತ್ರ (Vedic Shubha Sankalpa Stotra)</span>
+      </div>
+      <p id="sankalpaPreviewText">
+        ಓಂ ನಮಃ ಪರಮಾತ್ಮನೇ, ಶ್ರೀ ಪುರಾಣಪುರುಷೋತ್ತಮಸ್ಯ ಶ್ರೀ ವಿಷ್ಣೋರಾಜ್ಞಯಾ ಪ್ರವರ್ತಮಾನಸ್ಯ ಆದ್ಯ ಶ್ರೀ ಬ್ರಹ್ಮಣೋ ದ್ವಿತೀಯ ಪರಾರ್ಧೇ ಶ್ರೀ ಶ್ವೇತವರಾಹಕಲ್ಪೇ ವೈವಸ್ವತ ಮನ್ವಂತರೇ ಅಷ್ಟಾವಿಂಶತಿತಮೇ ಕಲಿಯುಗೇ ಪ್ರಥಮ ಚರಣೇ ಜಂಬೂ ದ್ವೀಪೇ ಭಾರತ ವರ್ಷೇ ಭರತ ಖಂಡೇ ಆರ್ಯಾವರ್ತಾಂತರ್ಗತ ಬ್ರಹ್ಮಾವರ್ತೈಕ ದೇಶೇ 
+        <span class="blue-highlight" id="skCity">(೧. ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ)</span> ಪುಣ್ಯ ಪ್ರದೇಶೇ, 
+        <span class="blue-highlight" id="skSamvatsara">(೨. ವಿಶ್ವಾವಸು)</span> ನಾಮ ಸಂವತ್ಸರೇ, 
+        <span class="blue-highlight" id="skAyana">(೩. ದಕ್ಷಿಣಾಯನ)</span> ಅಯನೇ, 
+        <span class="blue-highlight" id="skMasa">(೪. ಕಾರ್ತಿಕ)</span> ಮಾಸೇ, 
+        <span class="blue-highlight" id="skPaksha">(೫. ಶುಕ್ಲ)</span> ಪಕ್ಷೇ, 
+        <span class="blue-highlight" id="skTithi">(೬. ಬಿದಿಗೆ)</span> ತಿಥೌ, 
+        <span class="blue-highlight" id="skVasara">(೭. ಬುಧ)</span> ವಾಸರಾನ್ವಿತಾಯಾಂ, 
+        <span class="blue-highlight" id="skNakshatra">(೮. ಅನೂರಾಧಾ)</span> ನಕ್ಷತ್ರೇ, 
+        <span class="blue-highlight" id="skRashi">(೯. ತುಲಾ)</span> ರಾಶಿ ಸ್ಥಿತೇ ಭಾಸ್ಕರೇ ಅಸ್ಮಾಕಂ ಸರ್ವೇಷಾಂ ಸಹ ಕುಟುಂಬಾನಾಂ ಕ್ಷೇಮ ಸ್ಥೈರ್ಯ ವಿಜಯಾಯುರಾರೋಗ್ಯೈಶ್ವರ್ಯಾಭಿವೃದ್ಧರ್ಥಂ ಶ್ರೀ ಇಷ್ಟದೇವತಾ ಪ್ರೀತ್ಯರ್ಥಂ ಪೂಜನಂ ಕರಿಷ್ಯೇ.
+      </p>
+    </div>
+
+    <!-- NEW: Muhurta Finder Card -->
+    <div class="card-box" id="muhurtaSection">
+      <div class="section-title">
+        <span>⏱️</span>
+        <span>ಶುಭ ಮುಹೂರ್ತ ಶೋಧಕ (Auspicious Muhurta Finder)</span>
+      </div>
+      <p style="font-size:12.5px; color:#57534e; margin-bottom:14px; line-height:1.5;">
+        ಆಯ್ದ ನಗರದ ಪಂಚಾಂಗ ಗಣನೆಗಳು, ರಾಹುಕಾಲ, ಅಮೃತ ಕಾಲ ಮತ್ತು ಶುಭ ನಕ್ಷತ್ರ-ತಿಥಿಗಳ ಆಧಾರದ ಮೇಲೆ ಪ್ರಮುಖ ಕಾರ್ಯಗಳಿಗೆ ಸೂಕ್ತ ಮುಹೂರ್ತಗಳನ್ನು ಶೋಧಿಸಿ:
+      </p>
+
+      <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+        <button class="btn btn-gold" onclick="setMuhurtaActivity('griha')" id="btnActGriha">🏡 ಗೃಹಪ್ರವೇಶ (House Warming)</button>
+        <button class="btn" style="background:#f5f5f4; color:#292524; border-color:#d6d3d1;" onclick="setMuhurtaActivity('vivaha')" id="btnActVivaha">💍 ವಿವಾಹ (Marriage)</button>
+        <button class="btn" style="background:#f5f5f4; color:#292524; border-color:#d6d3d1;" onclick="setMuhurtaActivity('vahana')" id="btnActVahana">🚗 ವಾಹನ ಖರೀದಿ (Vehicle)</button>
+        <button class="btn" style="background:#f5f5f4; color:#292524; border-color:#d6d3d1;" onclick="setMuhurtaActivity('vyapara')" id="btnActVyapara">💼 ವ್ಯಾಪಾರ ಆರಂಭ (Business)</button>
+      </div>
+
+      <div id="muhurtaResultsGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px;">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Day Detail Modal -->
+  <div class="modal" id="dayModal">
+    <div class="modal-content">
+      <button class="close-btn" onclick="closeModal()">&times;</button>
+      <h2 id="modalDateTitle" style="font-family:'Cinzel', serif; color:#b45309; font-size:20px;">Day Details</h2>
+      <div id="modalContentBody" style="margin-top:14px; line-height:1.65; font-size:13px;"></div>
+    </div>
+  </div>
+
+  <script>
+    // Live Clock Ticker
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('liveClock').textContent = now.toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    let currentYear = 2026;
+    let currentMonth = 9; // October (0-indexed = 9) to show Navaratri
+
+    const TITHI_NAMES = ['ಪಾಡ್ಯ (Prathama)', 'ಬಿದಿಗೆ (Dvitiya)', 'ತದಿಗೆ (Tritiya)', 'ಚೌತಿ (Chaturthi)', 'ಪಂಚಮಿ (Panchami)', 'ಷಷ್ಠಿ (Shashti)', 'ಸಪ್ತಮಿ (Saptami)', 'ಅಷ್ಟಮಿ (Ashtami)', 'ನವಮಿ (Navami)', 'ದಶಮಿ (Dashami)', 'ಏಕಾದಶಿ (Ekadashi)', 'ದ್ವಾದಶಿ (Dvadashi)', 'ತ್ರಯೋದಶಿ (Trayodashi)', 'ಚತುರ್ದಶಿ (Chaturdashi)', 'ಹುಣ್ಣಿಮೆ/ಅಮಾವಾಸ್ಯೆ'];
+    const NAKSHATRAS = ['ಅಶ್ವಿನಿ', 'ಭರಣಿ', 'ಕೃತಿಕಾ', 'ರೋಹಿಣಿ', 'ಮೃಗಶಿರ', 'ಆರಿದ್ರ', 'ಪುನರ್ವಸು', 'ಪುಷ್ಯ', 'ಆಶ್ಲೇಷ', 'ಮಘ', 'ಹುಬ್ಬ', 'ಉತ್ತರ', 'ಹಸ್ತ', 'ಚಿತ್ತ', 'ಸ್ವಾತಿ', 'ವಿಶಾಖ', 'ಅನುರಾಧಾ', 'ಜ್ಯೇಷ್ಠ', 'ಮೂಲ', 'ಪೂರ್ವಾಷಾಢ', 'ಉತ್ತರಾಷಾಢ', 'ಶ್ರವಣ', 'ಧನಿಷ್ಠಾ', 'ಶತತಾರ', 'ಪೂರ್ವಭಾದ್ರ', 'ಉತ್ತರಭಾದ್ರ', 'ರೇವತಿ'];
+
+    const CITY_NAMES_KN = {
+      'Bengaluru': 'ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ',
+      'Mysuru': 'ಮೈಸೂರು, ಕರ್ನಾಟಕ',
+      'Mangaluru': 'ಮಂಗಳೂರು, ಕರ್ನಾಟಕ',
+      'Hubballi': 'ಹುಬ್ಬಳ್ಳಿ, ಕರ್ನಾಟಕ',
+      'New Delhi': 'ನವದೆಹಲಿ, ದೆಹಲಿ',
+      'Varanasi': 'ವಾರಾಣಸಿ (ಕಾಶಿ), ಉತ್ತರ ಪ್ರದೇಶ',
+      'Mumbai': 'ಮುಂಬೈ, ಮಹಾರಾಷ್ಟ್ರ'
+    };
+
+    function changeCity(cityKey) {
+      const knName = CITY_NAMES_KN[cityKey] || cityKey;
+      document.getElementById('skCity').textContent = `(೧. ${knName})`;
+    }
+
+    function renderCalendar() {
+      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+      const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      document.getElementById('monthYearLabel').textContent = monthNames[currentMonth] + ' ' + currentYear;
+
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'day-cell empty-cell';
+        grid.appendChild(empty);
+      }
+
+      for (let d = 1; d <= totalDays; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+
+        const tithiIdx = ((d + 5) % 15);
+        const isShukla = d <= 15;
+        const moonClass = tithiIdx === 14 ? (isShukla ? 'moon-purnima' : 'moon-amavasya') : (isShukla ? 'moon-shukla' : 'moon-krishna');
+        const nakshatra = NAKSHATRAS[(d * 2) % 27];
+
+        let festHtml = '';
+        // Special Navaratri Kalasha Sthapana on Pratipada (Oct 11 in 2026)
+        if (currentMonth === 9 && d === 11) {
+          festHtml = `
+            <div class="kalash-tag">🏺 ಕಲಶ ಸ್ಥಾಪನೆ • ನವರಾತ್ರಿ ಪಾಡ್ಯ ೧</div>
+            <div style="font-size:9.5px; color:#b45309; font-weight:700;">ಅಭಿಜಿತ್: 11:36 - 12:24</div>
+          `;
+        } else if (currentMonth === 9 && d === 10) {
+          festHtml = '<div class="fest-tag">ಮಹಾಲಯ ಅಮಾವಾಸ್ಯೆ</div>';
+        } else if (currentMonth === 9 && d >= 12 && d <= 20) {
+          festHtml = `<div class="fest-tag">ನವರಾತ್ರಿ ದಿನ ${d - 10}</div>`;
+        } else if (currentMonth === 10 && (d === 8 || d === 9 || d === 10)) {
+          if (d === 8) festHtml = '<div class="fest-tag">ಧನತ್ರಯೋದಶಿ</div>';
+          if (d === 9) festHtml = '<div class="fest-tag">ದೀಪಾವಳಿ ಲಕ್ಷ್ಮೀ ಪೂಜೆ</div>';
+          if (d === 10) festHtml = '<div class="fest-tag">ಬಲಿ ಪಾಡ್ಯಮಿ</div>';
+        }
+
+        cell.innerHTML = `
+          <div class="day-header">
+            <span class="day-num">${d}</span>
+            <span class="moon-icon ${moonClass}" title="Moon Phase: ${isShukla ? 'Waxing (ಶುಕ್ಲ)' : 'Waning (ಕೃಷ್ಣ)'}"></span>
+          </div>
+          <div>
+            <div class="tithi-tag">${TITHI_NAMES[tithiIdx]}</div>
+            <div class="nakshatra-tag">${nakshatra}</div>
+            ${festHtml}
+          </div>
+        `;
+
+        cell.onclick = () => openDayModal(d, TITHI_NAMES[tithiIdx], nakshatra, currentMonth === 9 && d === 11);
+        grid.appendChild(cell);
+      }
+    }
+
+    function prevMonth() {
+      currentMonth--;
+      if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+      renderCalendar();
+    }
+
+    function nextMonth() {
+      currentMonth++;
+      if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+      renderCalendar();
+    }
+
+    function openDayModal(d, tithi, nakshatra, isKalashDay) {
+      document.getElementById('modalDateTitle').textContent = `${d} ${document.getElementById('monthYearLabel').textContent}`;
+      
+      let kalashContent = '';
+      if (isKalashDay) {
+        kalashContent = `
+          <div style="background:#fef2f2; border:1.5px solid #f87171; border-radius:12px; padding:14px; margin-bottom:14px;">
+            <h3 style="color:#991b1b; font-size:15px; font-weight:800; font-family:'Cinzel', serif;">🏺 ನವರಾತ್ರಿ ಕಲಶ ಸ್ಥಾಪನಾ (ಘಟಸ್ಥಾಪನಾ) ಮಹಾವಿಧಾನ</h3>
+            <p style="margin-top:6px; font-size:12px; color:#7f1d1d; line-height:1.6;">
+              <strong>ಶುಭ ಅಭಿಜಿತ್ ಮುಹೂರ್ತ:</strong> 11:36 AM - 12:24 PM (ಅತ್ಯಂತ ಶ್ರೇಷ್ಠ ಕಾಲ)<br>
+              <strong>ಪ್ರಾತಃಕಾಲ ಶುಭ ಮುಹೂರ್ತ:</strong> 06:24 AM - 08:45 AM<br>
+              <strong>ಕಲಶ ಸ್ಥಾಪನಾ ಸಾಮಗ್ರಿ:</strong> ತಾಮ್ರದ ಕಲಶ, ಗಂಗಾಜಲ, ನಾಣ್ಯ, ಅಡಿಕೆ, ೫ ಮಾವಿನೆಲೆಗಳು, ಕೆಂಪು ರೇಷ್ಮೆ ವಸ್ತ್ರ ಸುತ್ತಿದ ತೆಂಗಿನಕಾಯಿ, ನವಧಾನ್ಯ ವೇದಿ ಹಾಗೂ ಅಖಂಡ ದೀಪ.<br>
+              <strong>ಮಂತ್ರ:</strong> ಕಲಶಸ್ಯ ಮುಖೇ ವಿಷ್ಣುಃ ಕಂಠೇ ರುದ್ರಃ ಸಮಾಶ್ರಿತಃ | ಮೂಲೇ ತತ್ರ ಸ್ಥಿತೋ ಬ್ರಹ್ಮಾ ಮಧ್ಯೇ ಮಾತೃಗಣಾಃ ಸ್ಮೃತಾಃ ||
+            </p>
+          </div>
+        `;
+      }
+
+      document.getElementById('modalContentBody').innerHTML = `
+        ${kalashContent}
+        <p><strong>ತಿಥಿ (Tithi):</strong> ${tithi}</p>
+        <p><strong>ನಕ್ಷತ್ರ (Nakshatra):</strong> ${nakshatra}</p>
+        <p><strong>ಸೂರ್ಯೋದಯ (Sunrise):</strong> 06:12 AM • <strong>ಸೂರ್ಯಾಸ್ತ (Sunset):</strong> 06:05 PM</p>
+        <p><strong>ರಾಹು ಕಾಲ (Rahu Kaal):</strong> 04:20 PM - 05:48 PM (ವರ್ಜ್ಯ)</p>
+        <p><strong>ಅಮೃತ ಕಾಲ (Amrit Kaal):</strong> 08:30 AM - 10:02 AM (ಶುಭ ಕಾರ್ಯಗಳಿಗೆ ಶ್ರೇಷ್ಠ)</p>
+        <p style="margin-top:12px; color:#b45309; font-weight:700;">HCMM Vedic Almanac Engine • Sidereal Lahiri Verified</p>
+      `;
+      document.getElementById('dayModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('dayModal').style.display = 'none';
+    }
+
+    window.onclick = function(e) {
+      if (e.target === document.getElementById('dayModal')) closeModal();
+    }
+
+    // Muhurta Finder Logic
+    let currentMuhurtaAct = 'griha';
+
+    const MUHURTA_DATA = {
+      griha: {
+        name: 'ಗೃಹಪ್ರವೇಶ (House Warming)',
+        dates: [
+          { date: '15 Nov 2026', day: 'ಭಾನುವಾರ (Sunday)', tithi: 'ಶುಕ್ಲ ಸಪ್ತಮಿ', star: 'ಶ್ರವಣ', window: '06:40 AM - 08:50 AM (ಶುಭ ಲಗ್ನ)', match: '96%' },
+          { date: '21 Nov 2026', day: 'ಶನಿವಾರ (Saturday)', tithi: 'ಶುಕ್ಲ ತ್ರಯೋದಶಿ', star: 'ಅಶ್ವಿನಿ', window: '11:45 AM - 12:35 PM (ಅಭಿಜಿತ್)', match: '90%' },
+          { date: '04 Dec 2026', day: 'ಶುಕ್ರವಾರ (Friday)', tithi: 'ಶುಕ್ಲ ದಶಮಿ', star: 'ಉತ್ತರಾಷಾಢ', window: '07:15 AM - 09:20 AM (ಅಮೃತ ಕಾಲ)', match: '94%' }
+        ]
+      },
+      vivaha: {
+        name: 'ವಿವಾಹ ಮಹೋತ್ಸವ (Marriage)',
+        dates: [
+          { date: '22 Nov 2026', day: 'ಭಾನುವಾರ (Sunday)', tithi: 'ಶುಕ್ಲ ಚತುರ್ದಶಿ', star: 'ರೋಹಿಣಿ', window: '05:45 PM - 07:10 PM (ಗೋಧೂಳಿ ಲಗ್ನ)', match: '98%' },
+          { date: '27 Nov 2026', day: 'ಶುಕ್ರವಾರ (Friday)', tithi: 'ಕೃಷ್ಣ ತದಿಗೆ', star: 'ಮೃಗಶಿರ', window: '09:15 AM - 10:45 AM (ಶುಭ ಕಾಲ)', match: '92%' },
+          { date: '06 Dec 2026', day: 'ಭಾನುವಾರ (Sunday)', tithi: 'ಶುಕ್ಲ ದ್ವಾದಶಿ', star: 'ಸ್ವಾತಿ', window: '10:30 AM - 12:00 PM (ಅಭಿಜಿತ್)', match: '95%' }
+        ]
+      },
+      vahana: {
+        name: 'ವಾಹನ ಖರೀದಿ (Vehicle Purchase)',
+        dates: [
+          { date: '18 Nov 2026', day: 'ಬುಧವಾರ (Wednesday)', tithi: 'ಶುಕ್ಲ ದಶಮಿ', star: 'ಶತಭಿಷ', window: '01:30 PM - 03:00 PM (ಶುಭ ಹೋರೆ)', match: '92%' },
+          { date: '25 Nov 2026', day: 'ಬುಧವಾರ (Wednesday)', tithi: 'ಕೃಷ್ಣ ಪಾಡ್ಯ', star: 'ರೋಹಿಣಿ', window: '11:40 AM - 12:30 PM (ಅಭಿಜಿತ್)', match: '95%' },
+          { date: '02 Dec 2026', day: 'ಬುಧವಾರ (Wednesday)', tithi: 'ಶುಕ್ಲ ಅಷ್ಟಮಿ', star: 'ಪುಷ್ಯ', window: '08:30 AM - 10:15 AM (ಅಮೃತ ಕಾಲ)', match: '97%' }
+        ]
+      },
+      vyapara: {
+        name: 'ವ್ಯಾಪಾರ / ಕಚೇರಿ ಆರಂಭ (Business Launch)',
+        dates: [
+          { date: '19 Nov 2026', day: 'ಗುರುವಾರ (Thursday)', tithi: 'ಶುಕ್ಲ ಏಕಾದಶಿ', star: 'ಪೂರ್ವಭಾದ್ರ', window: '10:00 AM - 11:30 AM (ಗುರು ಹೋರೆ)', match: '96%' },
+          { date: '26 Nov 2026', day: 'ಗುರುವಾರ (Thursday)', tithi: 'ಕೃಷ್ಣ ಬಿದಿಗೆ', star: 'ಮೃಗಶಿರ', window: '11:35 AM - 12:25 PM (ಅಭಿಜಿತ್)', match: '93%' },
+          { date: '03 Dec 2026', day: 'ಗುರುವಾರ (Thursday)', tithi: 'ಶುಕ್ಲ ನವಮಿ', star: 'ಉತ್ತರಾಷಾಢ', window: '09:00 AM - 10:45 AM (ಲಾಭ ಕಾಲ)', match: '95%' }
+        ]
+      }
+    };
+
+    function setMuhurtaActivity(actKey) {
+      currentMuhurtaAct = actKey;
+      ['btnActGriha', 'btnActVivaha', 'btnActVahana', 'btnActVyapara'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.className = 'btn';
+          btn.style = 'background:#f5f5f4; color:#292524; border-color:#d6d3d1;';
+        }
+      });
+      const activeBtnId = actKey === 'griha' ? 'btnActGriha' : actKey === 'vivaha' ? 'btnActVivaha' : actKey === 'vahana' ? 'btnActVahana' : 'btnActVyapara';
+      const activeBtn = document.getElementById(activeBtnId);
+      if (activeBtn) {
+        activeBtn.className = 'btn btn-gold';
+        activeBtn.style = '';
+      }
+      renderMuhurtaCards();
+    }
+
+    function renderMuhurtaCards() {
+      const data = MUHURTA_DATA[currentMuhurtaAct];
+      const grid = document.getElementById('muhurtaResultsGrid');
+      if (!data || !grid) return;
+
+      grid.innerHTML = data.dates.map(d => `
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:14px; padding:16px; box-shadow:0 3px 10px rgba(217,119,6,0.06);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="color:#b45309; font-size:15px; font-family:'Cinzel', serif;">${d.date}</strong>
+            <span style="background:#dcfce7; color:#166534; font-size:11px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #bbf7d0;">${d.match} Compatible</span>
+          </div>
+          <div style="font-size:12px; color:#44403c; line-height:1.6;">
+            <div><strong>ವಾರ:</strong> ${d.day}</div>
+            <div><strong>ತಿಥಿ:</strong> ${d.tithi} • <strong>ನಕ್ಷತ್ರ:</strong> ${d.star}</div>
+            <div style="margin-top:6px; background:white; padding:8px 10px; border-radius:8px; border:1px solid #fde68a; font-weight:700; color:#92400e;">
+              ⏰ ಶುಭ ಕಾಲ: ${d.window}
+            </div>
+            <div style="font-size:10.5px; color:#dc2626; margin-top:4px;">
+              ⚠️ ರಾಹುಕಾಲ ಬಿಟ್ಟು ಉಳಿದ ಕಾಲದಲ್ಲಿ ಕಾರ್ಯ ನಿರ್ವಹಿಸಿ
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    renderCalendar();
+    renderMuhurtaCards();
+  </script>
+</body>
+</html>
