@@ -61,6 +61,15 @@ export const FestivalModal: React.FC<FestivalModalProps> = ({
         ? UNIVERSAL_FESTIVAL_TIMINGS.navaratri_daily
         : UNIVERSAL_FESTIVAL_TIMINGS.generic_vedic_festival);
 
+  // Close on Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const toggleCheck = (idx: number) => {
     setCheckedItems(prev => ({ ...prev, [idx]: !prev[idx] }));
   };
@@ -73,7 +82,7 @@ export const FestivalModal: React.FC<FestivalModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs overflow-hidden animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-xs overflow-hidden animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div 
@@ -83,7 +92,7 @@ export const FestivalModal: React.FC<FestivalModalProps> = ({
         
         {/* Sticky Header Bar - Always visible */}
         <div 
-          className="sticky top-0 z-30 shrink-0 p-5 sm:p-6 text-white overflow-hidden shadow-md"
+          className="sticky top-0 z-30 shrink-0 p-4 sm:p-6 text-white overflow-hidden shadow-md"
           style={{ background: `linear-gradient(135deg, ${festival.tagColor}, #b45309)` }}
         >
           <div className="flex items-start justify-between relative z-10">
@@ -104,10 +113,11 @@ export const FestivalModal: React.FC<FestivalModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors shrink-0 ml-3"
+              className="px-3 py-1.5 rounded-xl bg-black/30 hover:bg-black/50 text-white font-bold text-xs flex items-center gap-1.5 transition-all ring-1 ring-white/40 shrink-0 ml-3 cursor-pointer"
               title="Close (Esc)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 stroke-[2.5]" />
+              <span>Close</span>
             </button>
           </div>
 

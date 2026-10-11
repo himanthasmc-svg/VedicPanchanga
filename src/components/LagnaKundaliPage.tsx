@@ -14,6 +14,7 @@ import {
   Share2,
   Printer,
   FileDown,
+  Image as ImageIcon,
   Loader2,
   Award,
   Zap,
@@ -21,13 +22,29 @@ import {
   AlertTriangle,
   Flame,
   Activity,
-  Layers
+  Layers,
+  Heart,
+  Users,
+  TrendingUp
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { 
+  ResponsiveContainer, 
+  BarChart, 
+  Bar, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid 
+} from 'recharts';
 import { CityLocation, KundaliData, Language, PlanetPosition } from '../types';
-import { calculateKundali, CITIES, formatJustNumber, getPanchangaForDate } from '../utils/panchanga';
+import { calculateKundali, CITIES, formatJustNumber, getPanchangaForDate, RASHIS, RASHI_NAKSHATRA_CHART } from '../utils/panchanga';
 import { calculatePlanetaryBala, PlanetaryBalaBreakdown } from '../utils/planetaryBala';
+import { calculateVimshottariDasha, VimshottariDashaResult } from '../utils/vimshottariDasha';
+import { calculateGunaMilan, GunaMilanResult } from '../utils/jatakaCompatibility';
 
 interface LagnaKundaliPageProps {
   currentLang: Language;
@@ -52,7 +69,17 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
   const [chartStyle, setChartStyle] = useState<'north' | 'south'>('north');
   const [notificationArmed, setNotificationArmed] = useState<boolean>(false);
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+  const [isExportingImage, setIsExportingImage] = useState<boolean>(false);
   const [balaFilter, setBalaFilter] = useState<'all' | 'strong' | 'moderate' | 'weak'>('all');
+  const [activeSectionTab, setActiveSectionTab] = useState<'chart' | 'dasha' | 'compatibility' | 'transits'>('chart');
+
+  // Jataka Compatibility State
+  const [groomNakshatra, setGroomNakshatra] = useState<number>(12); // Hasta
+  const [groomRashi, setGroomRashi] = useState<number>(5); // Kanya
+  const [groomMarsHouse, setGroomMarsHouse] = useState<number>(1);
+  const [brideNakshatra, setBrideNakshatra] = useState<number>(13); // Chitra
+  const [brideRashi, setBrideRashi] = useState<number>(6); // Tula
+  const [brideMarsHouse, setBrideMarsHouse] = useState<number>(7);
 
   // Compute Kundali data
   const kundaliData: KundaliData = useMemo(() => {
@@ -103,6 +130,97 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
     return getPanchangaForDate(d, selectedCity);
   }, [dateStr, selectedCity]);
 
+  // Vimshottari Dasha calculation
+  const vimshottariDasha: VimshottariDashaResult = useMemo(() => {
+    const moon = kundaliData.planets.find(p => p.name === 'Moon');
+    const moonLong = moon ? (moon.rashiIndex * 30 + moon.degrees) : 0;
+    const bDate = new Date(`${dateStr}T${timeStr}:00`);
+    return calculateVimshottariDasha(isNaN(bDate.getTime()) ? new Date() : bDate, moonLong);
+  }, [dateStr, timeStr, kundaliData]);
+
+  // Planetary Transit (Gochar) Alerts relative to Lagna House
+  const transitAlerts = useMemo(() => {
+    const lagna = kundaliData.lagnaRashiIndex;
+    const saturnHouse = ((11 - lagna + 12) % 12) + 1; // Saturn in Meena
+    const jupiterHouse = ((2 - lagna + 12) % 12) + 1;  // Jupiter in Mithuna
+    const rahuHouse = ((10 - lagna + 12) % 12) + 1;    // Rahu in Kumbha
+    const ketuHouse = ((4 - lagna + 12) % 12) + 1;     // Ketu in Simha
+
+    return [
+      {
+        planet: 'Jupiter (Guru)',
+        symbol: 'Ju',
+        currentRashi: 'Mithuna (Gemini)',
+        houseFromLagna: jupiterHouse,
+        isBenefic: true,
+        impactTitle: {
+          en: `Jupiter Transiting House ${jupiterHouse} from Lagna`,
+          kn: `ಲಗ್ನದಿಂದ ${jupiterHouse}ನೇ ಭಾವದಲ್ಲಿ ಗುರು ಸಂಚಾರ`,
+          hi: `लग्न से ${jupiterHouse}वें भाव में गुरु गोचर`
+        },
+        impactDesc: {
+          en: [1, 5, 9, 11].includes(jupiterHouse)
+            ? 'Supreme Bhagya and Trine activation! Excellent period for wisdom, auspicious rituals, academic accolades, and spiritual progress.'
+            : 'Favorable transit supporting dharmic focus, expanded perspective, and steady professional gains.',
+          kn: [1, 5, 9, 11].includes(jupiterHouse)
+            ? 'ಪರಮ ಭಾಗ್ಯ ಮತ್ತು ತ್ರಿಕೋಣ ಬಲ ಜಾಗೃತ! ವಿದ್ಯಾಭ್ಯಾಸ, ಧರ್ಮ ಕಾರ್ಯಗಳು ಹಾಗೂ ಆರ್ಥಿಕ ಸಮೃದ್ಧಿಗೆ ಅತ್ಯಂತ ಶ್ರೇಷ್ಠ ಕಾಲ.'
+            : 'ಧರ್ಮ ಕಾರ್ಯಗಳಿಗೆ ಅನುಕೂಲಕರ ಸಂಚಾರ; ವೃತ್ತಿಯಲ್ಲಿ ಸ್ಥಿರ ಪ್ರಗತಿ ಹಾಗೂ ಆಂತರಿಕ ನೆಮ್ಮದಿ.',
+          hi: 'परम भाग्य एवं त्रिकोण शक्ति जागृत! शिक्षा, धार्मिक कार्य एवं समृद्धि हेतु श्रेष्ठ काल।'
+        }
+      },
+      {
+        planet: 'Saturn (Shani)',
+        symbol: 'Sa',
+        currentRashi: 'Meena (Pisces)',
+        houseFromLagna: saturnHouse,
+        isBenefic: false,
+        impactTitle: {
+          en: `Saturn Transiting House ${saturnHouse} from Lagna`,
+          kn: `ಲಗ್ನದಿಂದ ${saturnHouse}ನೇ ಭಾವದಲ್ಲಿ ಶನಿ ಸಂಚಾರ`,
+          hi: `लग्न से ${saturnHouse}वें भाव में शनि गोचर`
+        },
+        impactDesc: {
+          en: [1, 4, 7, 8].includes(saturnHouse)
+            ? 'Kendra / Kantaka Shani influence. Requires patience, meticulous contracts, health discipline, and ethical perseverance.'
+            : 'Productive karmic transit strengthening work foundations and long-term stamina.',
+          kn: [1, 4, 7, 8].includes(saturnHouse)
+            ? 'ಕೇಂದ್ರ / ಕಂಟಕ ಶನಿ ಪ್ರಭಾವ. ತಾಳ್ಮೆ, ಸಂಯಮ, ಆರೋಗ್ಯ ರಕ್ಷಣೆ ಮತ್ತು ಶನೈಶ್ಚರ ಸ್ತೋತ್ರ ಪಾರಾಯಣ ಅತ್ಯಾವಶ್ಯಕ.'
+            : 'ದೀರ್ಘಾವಧಿ ಕಾರ್ಯಗಳಿಗೆ ಶಿಸ್ತಿನ ಶ್ರಮ ನೀಡುವ ಕರ್ಮಫಲ ಸಂಚಾರ.',
+          hi: 'केन्द्र / कंटक शनि प्रभाव। धैर्य, अनुशासन एवं हनुमान चालीसा पाठ श्रेयस्कर।'
+        }
+      },
+      {
+        planet: 'Rahu - Ketu Axis',
+        symbol: 'Ra-Ke',
+        currentRashi: 'Kumbha / Simha Axis',
+        houseFromLagna: rahuHouse,
+        isBenefic: false,
+        impactTitle: {
+          en: `Rahu in House ${rahuHouse} & Ketu in House ${ketuHouse} from Lagna`,
+          kn: `ಲಗ್ನದಿಂದ ${rahuHouse}ನೇ ಮನೆಯಲ್ಲಿ ರಾಹು & ${ketuHouse}ನೇ ಮನೆಯಲ್ಲಿ ಕೇತು`,
+          hi: `लग्न से ${rahuHouse}वें भाव में राहु एवं ${ketuHouse}वें में केतु`
+        },
+        impactDesc: {
+          en: 'Karmic axis highlighting unexpected career breakthroughs alongside spiritual introspection.',
+          kn: 'ಆಕಸ್ಮಿಕ ಬದಲಾವಣೆಗಳು, ವಿದೇಶ ಸಂಪರ್ಕ ಹಾಗೂ ಆಧ್ಯಾತ್ಮಿಕ ಸಾಧನೆಗೆ ಪ್ರೇರಣೆ ನೀಡುವ ಸಂಚಾರ.',
+          hi: 'आकस्मिक परिवर्तन, तकनीक उन्नति एवं आध्यात्मिक चेतना का समय।'
+        }
+      }
+    ];
+  }, [kundaliData.lagnaRashiIndex]);
+
+  // Jataka Compatibility Guna Milan calculation
+  const gunaMilan: GunaMilanResult = useMemo(() => {
+    return calculateGunaMilan(
+      groomNakshatra,
+      groomRashi,
+      brideNakshatra,
+      brideRashi,
+      groomMarsHouse,
+      brideMarsHouse
+    );
+  }, [groomNakshatra, groomRashi, brideNakshatra, brideRashi, groomMarsHouse, brideMarsHouse]);
+
   const handleArmAlerts = async () => {
     if ('Notification' in window) {
       const perm = await Notification.requestPermission();
@@ -114,6 +232,33 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
       }
     } else {
       setNotificationArmed(!notificationArmed);
+    }
+  };
+
+  // Dedicated Image (PNG) Export using html2canvas
+  const handleExportImage = async () => {
+    setIsExportingImage(true);
+    try {
+      const element = document.getElementById('printable-kundali-content');
+      if (!element) return;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const cleanCityName = selectedCity.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const link = document.createElement('a');
+      link.download = `HCMM_Lagna_Kundali_${cleanCityName}_${dateStr}.png`;
+      link.href = imgData;
+      link.click();
+    } catch (err) {
+      console.error('Image generation error:', err);
+    } finally {
+      setIsExportingImage(false);
     }
   };
 
@@ -308,6 +453,17 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
               </select>
             </div>
 
+            {/* Export Image Button */}
+            <button
+              onClick={handleExportImage}
+              disabled={isExportingImage}
+              className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold text-xs transition-colors shadow-md flex items-center gap-1.5 disabled:opacity-50"
+              title="Export complete formatted Lagna Kundali as high-res Image (PNG)"
+            >
+              {isExportingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+              <span>{isExportingImage ? 'Exporting...' : 'Export Image'}</span>
+            </button>
+
             {/* Export PDF Button */}
             <button
               onClick={handleExportPdf}
@@ -411,6 +567,57 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
 
       </div>
 
+      {/* Active Section Tabs Navigation */}
+      <div className="no-print flex items-center gap-2 overflow-x-auto pb-1 border-b border-stone-200 dark:border-stone-800 scrollbar-none">
+        <button
+          onClick={() => setActiveSectionTab('chart')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+            activeSectionTab === 'chart'
+              ? 'bg-indigo-700 text-white shadow-md'
+              : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200'
+          }`}
+        >
+          <Compass className="w-4 h-4" />
+          <span>{currentLang === 'kn' ? '೧. ಲಗ್ನ ಕುಂಡಲಿ ಮತ್ತು ಗ್ರಹ ಬಲ' : currentLang === 'hi' ? '१. लग्न कुण्डली एवं ग्रह बल' : '1. Kundali Chart & Bala'}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSectionTab('dasha')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+            activeSectionTab === 'dasha'
+              ? 'bg-purple-700 text-white shadow-md'
+              : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200'
+          }`}
+        >
+          <Activity className="w-4 h-4" />
+          <span>{currentLang === 'kn' ? '೨. ವಿಂಶೋತ್ತರಿ ದಶಾ ಮತ್ತು ಒಳನೋಟಗಳು' : currentLang === 'hi' ? '२. विंशोत्तरी दशा एवं अंतर्दशा' : '2. Vimshottari Dasha Insights'}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSectionTab('compatibility')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+            activeSectionTab === 'compatibility'
+              ? 'bg-rose-700 text-white shadow-md'
+              : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200'
+          }`}
+        >
+          <Heart className="w-4 h-4" />
+          <span>{currentLang === 'kn' ? '೩. ಜಾತಕ ಮೈತ್ರಿ (ಗುಣ ಮಿಲನ)' : currentLang === 'hi' ? '३. जातक गुण मिलान' : '3. Jataka Compatibility'}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSectionTab('transits')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
+            activeSectionTab === 'transits'
+              ? 'bg-amber-700 text-white shadow-md'
+              : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200'
+          }`}
+        >
+          <Zap className="w-4 h-4" />
+          <span>{currentLang === 'kn' ? '೪. ಗ್ರಹ ಗೋಚಾರ & ಲಗ್ನ ಪ್ರಭಾವ' : currentLang === 'hi' ? '४. गोचर फल एवं लग्न प्रभाव' : '4. Transit Alerts on Lagna'}</span>
+        </button>
+      </div>
+
       {/* ========================================================================= */}
       {/* WRAPPER FOR PDF GENERATION & SCREEN RENDERING */}
       {/* ========================================================================= */}
@@ -460,6 +667,9 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
           </div>
         </div>
 
+        {/* TAB 1: Lagna Kundali Chart & Planetary Bala */}
+        {activeSectionTab === 'chart' && (
+          <>
         {/* Main Kundali Chart Display & Style Switcher */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start page-break-inside-avoid">
           
@@ -1155,6 +1365,540 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
           </div>
 
         </div>
+        </>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 2: VIMSHOTTARI DASHA & DASHA INSIGHTS WITH RECHARTS */}
+        {/* ========================================================================= */}
+        {activeSectionTab === 'dasha' && (
+          <div className="space-y-6 animate-in fade-in">
+            
+            {/* Current Active Mahadasha & Antardasha Highlight Card */}
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-stone-900 text-white shadow-xl border border-purple-500/30">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-purple-300 text-xs font-mono font-bold uppercase tracking-wider mb-1">
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>{currentLang === 'kn' ? 'ಪ್ರಸ್ತುತ ಸಕ್ರಿಯ ದಶಾ ಅವಧಿ' : 'CURRENTLY ACTIVE DASHA PERIOD'}</span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight flex items-center gap-3">
+                    <span>{vimshottariDasha.currentMahadasha.lord.sanskrit[currentLang]} ಮಹಾದಶಾ</span>
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono font-bold">
+                      ACTIVE
+                    </span>
+                  </h2>
+                  <p className="text-xs sm:text-sm text-purple-200 mt-1 max-w-2xl">
+                    {vimshottariDasha.currentMahadasha.lord.generalSignificance[currentLang]}
+                  </p>
+                </div>
+
+                <div className="bg-black/30 p-4 rounded-xl border border-purple-400/20 shrink-0 text-xs space-y-1.5">
+                  <div>
+                    <span className="text-purple-300 font-bold block">Current Sub-period (ಅಂತರ್ದಶಾ):</span>
+                    <span className="text-base font-bold text-amber-300 font-serif">
+                      {vimshottariDasha.currentAntardasha.lord.sanskrit[currentLang]} ಅಂತರ್ದಶಾ
+                    </span>
+                  </div>
+                  <div className="text-stone-300 text-[11px] pt-1 border-t border-white/10">
+                    <span>ರತ್ನ: <strong>{vimshottariDasha.currentMahadasha.lord.gemstone[currentLang]}</strong></span> • 
+                    <span className="ml-1">ಮಂತ್ರ: <span className="font-mono text-purple-200">{vimshottariDasha.currentMahadasha.lord.mantra[currentLang]}</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dasha Insights Recharts Visualization */}
+            <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-purple-200 dark:border-purple-900/60 shadow-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200 dark:border-stone-800 pb-3">
+                <div>
+                  <h3 className="font-serif font-bold text-base sm:text-lg text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-purple-600" />
+                    <span>{currentLang === 'kn' ? 'ದಶಾ ಪ್ರಭಾವ ಮತ್ತು ತೀವ್ರತೆಯ ಹರಿವು (Dasha Insights)' : currentLang === 'hi' ? 'दशा प्रभाव एवं प्रवाह विश्लेषण (Dasha Insights)' : 'Vimshottari Dasha Intensity & Planetary Flow (Dasha Insights)'}</span>
+                  </h3>
+                  <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                    {currentLang === 'kn' 
+                      ? '೧೨೦ ವರ್ಷಗಳ ವಿಂಶೋತ್ತರಿ ಚಕ್ರದಲ್ಲಿ ಪ್ರತಿ ಗ್ರಹದ ಮಹಾದಶಾ ಅವಧಿ ಮತ್ತು ಪ್ರಭಾವ ತೀವ್ರತೆಯ ರೇಖಾಚಿತ್ರ' 
+                      : 'Monthly & yearly planetary period intensity flow across the complete 120-year cycle.'}
+                  </p>
+                </div>
+                <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 shrink-0">
+                  Total Cycle: 120 Years
+                </span>
+              </div>
+
+              {/* AreaChart Component */}
+              <div className="h-64 sm:h-72 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={vimshottariDasha.chartData} margin={{ top: 10, right: 15, left: -20, bottom: 20 }}>
+                    <defs>
+                      <linearGradient id="dashaGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#9333ea" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#c084fc" stopOpacity={0.05}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <XAxis dataKey="periodName" tick={{ fontSize: 10 }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+                    <Tooltip 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="p-3 bg-stone-900 text-white rounded-xl shadow-xl text-xs space-y-1 border border-purple-500/40">
+                              <p className="font-bold text-purple-300 font-serif text-sm">{data.lord} Mahadasha</p>
+                              <p className="text-stone-300">Period: {data.yearStart} - {data.yearEnd}</p>
+                              <p>Influence Intensity: <strong className="text-amber-300 font-bold">{data.intensity} / 100</strong></p>
+                              {data.isActive && <p className="text-emerald-400 font-bold">● Currently Running</p>}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Area type="monotone" dataKey="intensity" stroke="#7e22ce" strokeWidth={3} fillOpacity={1} fill="url(#dashaGradient)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Complete 9 Mahadashas Lifecycle Breakdown Table */}
+            <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-xl space-y-3">
+              <h3 className="font-serif font-bold text-base text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-indigo-600" />
+                <span>{currentLang === 'kn' ? '೯ ಗ್ರಹಗಳ ಮಹಾದಶಾ ಕಾಲಾವಧಿ ಕೋಷ್ಟಕ (Complete 9 Mahadashas)' : 'Complete 9 Planetary Mahadasha Periods (120 Years)'}</span>
+              </h3>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-800/60 text-stone-600 dark:text-stone-400 font-bold">
+                      <th className="py-2.5 px-3">Planet (ದಶಾ ನಾಯಕ)</th>
+                      <th className="py-2.5 px-3">Duration (ವರ್ಷಗಳು)</th>
+                      <th className="py-2.5 px-3">Start Date</th>
+                      <th className="py-2.5 px-3">End Date</th>
+                      <th className="py-2.5 px-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+                    {vimshottariDasha.mahadashas.map((md, idx) => {
+                      const nowTime = new Date().getTime();
+                      const isPast = md.endDate.getTime() < nowTime;
+                      const isCurrent = md.isCurrent;
+
+                      return (
+                        <tr key={idx} className={isCurrent ? 'bg-purple-500/10 font-bold' : 'hover:bg-stone-50 dark:hover:bg-stone-800/40'}>
+                          <td className="py-2.5 px-3 flex items-center gap-2">
+                            <span 
+                              className="w-3 h-3 rounded-full shrink-0" 
+                              style={{ backgroundColor: md.lord.color }} 
+                            />
+                            <span className="font-serif">{md.lord.sanskrit[currentLang]}</span>
+                          </td>
+                          <td className="py-2.5 px-3 font-mono">{md.durationYears} Years</td>
+                          <td className="py-2.5 px-3 font-mono">{md.startDate.toISOString().split('T')[0]}</td>
+                          <td className="py-2.5 px-3 font-mono">{md.endDate.toISOString().split('T')[0]}</td>
+                          <td className="py-2.5 px-3">
+                            {isCurrent ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                Current Active
+                              </span>
+                            ) : isPast ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-100 dark:bg-stone-800 text-stone-500">
+                                Completed
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                                Upcoming
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 3: JATAKA COMPATIBILITY (ASHTAKOOTA GUNA MILAN CALCULATOR) */}
+        {/* ========================================================================= */}
+        {activeSectionTab === 'compatibility' && (
+          <div className="space-y-6 animate-in fade-in">
+            
+            {/* Header Banner */}
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-rose-900 via-pink-900 to-amber-900 text-white shadow-xl border border-rose-500/30">
+              <div className="flex items-center gap-2 text-rose-200 text-xs font-mono font-bold uppercase tracking-wider mb-1">
+                <Heart className="w-4 h-4 text-amber-300" />
+                <span>{currentLang === 'kn' ? 'ವೈದಿಕ ಜಾತಕ ಮೈತ್ರಿ • ಅಷ್ಟಕೂಟ ಗುಣ ಮಿಲನ' : 'ASHTAKOOTA GUNA MILAN • MARRIAGE COMPATIBILITY'}</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight">
+                {currentLang === 'kn' ? 'ವರ ಮತ್ತು ವಧು ಜಾತಕ ಗುಣ ಮಿಲನ ಪರೀಕ್ಷಕ' : 'Groom & Bride Astrological Compatibility'}
+              </h2>
+              <p className="text-xs sm:text-sm text-rose-200 mt-1 max-w-2xl">
+                {currentLang === 'kn'
+                  ? 'ನಕ್ಷತ್ರ ಮತ್ತು ರಾಶಿ ಆಧಾರಿತ ೩೬ ಗುಣಗಳ ಅಷ್ಟಕೂಟ (ವರ್ಣ, ವಶ್ಯ, ತಾರಾ, ಯೋನಿ, ಗ್ರಹಮೈತ್ರಿ, ಗಣ, ಭಕೂಟ, ನಾಡಿ) ಹಾಗೂ ಮಾಂಗಲ್ಯ ದೋಷ ವಿಶ್ಲೇಷಣೆ.'
+                  : 'Traditional 36-point Guna Milan matching covering Varna, Vashya, Tara, Yoni, Graha Maitri, Gana, Bhakoot, and Nadi with Manglik dosha.'}
+              </p>
+            </div>
+
+            {/* Interactive Selectors: Groom & Bride Chart Selection */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Groom (ವರ) Box */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border-2 border-indigo-200 dark:border-indigo-900 shadow-md space-y-4">
+                <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold border-b pb-2">
+                  <Users className="w-5 h-5" />
+                  <h3 className="font-serif text-base">{currentLang === 'kn' ? '೧. ವರನ ಜಾತಕ ವಿವರಗಳು (Groom)' : '1. Groom Birth Profile'}</h3>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-bold text-stone-700 dark:text-stone-300 block mb-1">
+                      {currentLang === 'kn' ? 'ವರನ ಜನ್ಮ ನಕ್ಷತ್ರ (Nakshatra):' : 'Groom Nakshatra:'}
+                    </label>
+                    <select
+                      value={groomNakshatra}
+                      onChange={(e) => setGroomNakshatra(Number(e.target.value))}
+                      className="w-full p-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 font-semibold cursor-pointer"
+                    >
+                      {RASHI_NAKSHATRA_CHART.map((n) => (
+                        <option key={n.index} value={n.index}>
+                          {n.index + 1}. {currentLang === 'kn' ? n.nakshatraKn : n.nakshatraEn}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-stone-700 dark:text-stone-300 block mb-1">
+                      {currentLang === 'kn' ? 'ವರನ ಚಂದ್ರ ರಾಶಿ (Moon Rashi):' : 'Groom Moon Rashi:'}
+                    </label>
+                    <select
+                      value={groomRashi}
+                      onChange={(e) => setGroomRashi(Number(e.target.value))}
+                      className="w-full p-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 font-semibold cursor-pointer"
+                    >
+                      {RASHIS.map((r, rIdx) => (
+                        <option key={rIdx} value={rIdx}>
+                          {rIdx + 1}. {r.kn} ({r.en})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-stone-700 dark:text-stone-300 block mb-1">
+                      {currentLang === 'kn' ? 'ಕುಜ ಸ್ಥಾನ (Mars House / Manglik):' : 'Mars House (Manglik):'}
+                    </label>
+                    <select
+                      value={groomMarsHouse}
+                      onChange={(e) => setGroomMarsHouse(Number(e.target.value))}
+                      className="w-full p-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 font-semibold cursor-pointer"
+                    >
+                      <option value={1}>House 1 (Tanu - Manglik)</option>
+                      <option value={4}>House 4 (Sukha - Manglik)</option>
+                      <option value={7}>House 7 (Kalatra - Manglik)</option>
+                      <option value={8}>House 8 (Ayur - Manglik)</option>
+                      <option value={12}>House 12 (Vyaya - Manglik)</option>
+                      <option value={5}>House 5 (Non-Manglik)</option>
+                      <option value={9}>House 9 (Non-Manglik)</option>
+                      <option value={10}>House 10 (Non-Manglik)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bride (ವಧು) Box */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border-2 border-rose-200 dark:border-rose-900 shadow-md space-y-4">
+                <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-bold border-b pb-2">
+                  <Users className="w-5 h-5" />
+                  <h3 className="font-serif text-base">{currentLang === 'kn' ? '೨. ವಧುವಿನ ಜಾತಕ ವಿವರಗಳು (Bride)' : '2. Bride Birth Profile'}</h3>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-bold text-stone-700 dark:text-stone-300 block mb-1">
+                      {currentLang === 'kn' ? 'ವಧುವಿನ ಜನ್ಮ ನಕ್ಷತ್ರ (Nakshatra):' : 'Bride Nakshatra:'}
+                    </label>
+                    <select
+                      value={brideNakshatra}
+                      onChange={(e) => setBrideNakshatra(Number(e.target.value))}
+                      className="w-full p-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 font-semibold cursor-pointer"
+                    >
+                      {RASHI_NAKSHATRA_CHART.map((n) => (
+                        <option key={n.index} value={n.index}>
+                          {n.index + 1}. {currentLang === 'kn' ? n.nakshatraKn : n.nakshatraEn}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-stone-700 dark:text-stone-300 block mb-1">
+                      {currentLang === 'kn' ? 'ವಧುವಿನ ಚಂದ್ರ ರಾಶಿ (Moon Rashi):' : 'Bride Moon Rashi:'}
+                    </label>
+                    <select
+                      value={brideRashi}
+                      onChange={(e) => setBrideRashi(Number(e.target.value))}
+                      className="w-full p-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 font-semibold cursor-pointer"
+                    >
+                      {RASHIS.map((r, rIdx) => (
+                        <option key={rIdx} value={rIdx}>
+                          {rIdx + 1}. {r.kn} ({r.en})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-stone-700 dark:text-stone-300 block mb-1">
+                      {currentLang === 'kn' ? 'ಕುಜ ಸ್ಥಾನ (Mars House / Manglik):' : 'Mars House (Manglik):'}
+                    </label>
+                    <select
+                      value={brideMarsHouse}
+                      onChange={(e) => setBrideMarsHouse(Number(e.target.value))}
+                      className="w-full p-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 font-semibold cursor-pointer"
+                    >
+                      <option value={7}>House 7 (Kalatra - Manglik)</option>
+                      <option value={1}>House 1 (Tanu - Manglik)</option>
+                      <option value={4}>House 4 (Sukha - Manglik)</option>
+                      <option value={8}>House 8 (Ayur - Manglik)</option>
+                      <option value={12}>House 12 (Vyaya - Manglik)</option>
+                      <option value={5}>House 5 (Non-Manglik)</option>
+                      <option value={9}>House 9 (Non-Manglik)</option>
+                      <option value={10}>House 10 (Non-Manglik)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Quick Test Presets */}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-bold text-stone-500">Quick Test Pairs:</span>
+              <button
+                onClick={() => {
+                  setGroomNakshatra(12); // Hasta
+                  setGroomRashi(5); // Kanya
+                  setBrideNakshatra(13); // Chitra
+                  setBrideRashi(6); // Tula
+                }}
+                className="px-3 py-1 rounded-lg bg-amber-50 dark:bg-stone-800 border border-amber-300 hover:bg-amber-100 font-semibold transition-colors cursor-pointer"
+              >
+                Hasta (Kanya) & Chitra (Tula)
+              </button>
+              <button
+                onClick={() => {
+                  setGroomNakshatra(3); // Rohini
+                  setGroomRashi(1); // Vrishabha
+                  setBrideNakshatra(4); // Mrigashira
+                  setBrideRashi(2); // Mithuna
+                }}
+                className="px-3 py-1 rounded-lg bg-amber-50 dark:bg-stone-800 border border-amber-300 hover:bg-amber-100 font-semibold transition-colors cursor-pointer"
+              >
+                Rohini & Mrigashira
+              </button>
+              <button
+                onClick={() => {
+                  setGroomNakshatra(0); // Ashwini
+                  setGroomRashi(0); // Mesha
+                  setBrideNakshatra(1); // Bharani
+                  setBrideRashi(0); // Mesha
+                }}
+                className="px-3 py-1 rounded-lg bg-amber-50 dark:bg-stone-800 border border-amber-300 hover:bg-amber-100 font-semibold transition-colors cursor-pointer"
+              >
+                Ashwini & Bharani
+              </button>
+            </div>
+
+            {/* Ashtakoota Guna Milan Scorecard (Big Results Banner) */}
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-stone-900 dark:to-stone-800 border-2 border-amber-400 dark:border-stone-700 shadow-xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200 dark:border-stone-700 pb-4">
+                <div>
+                  <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
+                    TOTAL ASHTAKOOTA SCORE (ಒಟ್ಟು ಗುಣ ಮಿಲನ)
+                  </span>
+                  <div className="flex items-baseline gap-3 mt-1">
+                    <span className="text-4xl sm:text-5xl font-extrabold font-serif text-stone-950 dark:text-white">
+                      {gunaMilan.totalScore}
+                    </span>
+                    <span className="text-xl sm:text-2xl font-bold text-stone-500 font-serif">
+                      / 36 Points ({gunaMilan.percentage}%)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span 
+                    className="inline-block px-4 py-1.5 rounded-full text-white font-bold text-sm shadow-md"
+                    style={{ backgroundColor: gunaMilan.verdictColor }}
+                  >
+                    {gunaMilan.verdict[currentLang]}
+                  </span>
+                  <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+                    {gunaMilan.totalScore >= 18 ? 'Auspicious score for marital harmony.' : 'Requires astrological remedies & counseling.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 8 Kootas Detailed Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                {Object.entries(gunaMilan.kootas).map(([key, koota]) => {
+                  const isFull = koota.obtainedPoints === koota.maxPoints;
+                  const isZero = koota.obtainedPoints === 0;
+
+                  return (
+                    <div 
+                      key={key} 
+                      className={`p-3.5 rounded-xl border bg-white dark:bg-stone-900 shadow-xs flex flex-col justify-between ${
+                        isFull 
+                          ? 'border-emerald-300 dark:border-emerald-800' 
+                          : isZero 
+                          ? 'border-red-300 dark:border-red-800 bg-red-50/20' 
+                          : 'border-stone-200 dark:border-stone-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-stone-900 dark:text-stone-100 font-serif">
+                          {koota.name[currentLang]}
+                        </span>
+                        <span className={`font-mono font-bold px-2 py-0.5 rounded ${
+                          isFull 
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
+                            : isZero 
+                            ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' 
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                        }`}>
+                          {koota.obtainedPoints} / {koota.maxPoints}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-600 dark:text-stone-400 mt-1 leading-relaxed">
+                        {koota.description[currentLang]}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Manglik Analysis Card */}
+              <div className="p-4 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5 font-serif">
+                    <ShieldCheck className="w-4 h-4 text-amber-600" />
+                    <span>{currentLang === 'kn' ? 'ಮಾಂಗಲ್ಯ (ಕುಜ) ದೋಷ ವಿಶ್ಲೇಷಣೆ:' : 'Manglik Dosha Verification:'}</span>
+                  </span>
+                  <span className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] ${
+                    gunaMilan.manglikStatus.isCompatible 
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
+                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                  }`}>
+                    {gunaMilan.manglikStatus.isCompatible ? 'Harmonized / Balanced' : 'Requires Remedy'}
+                  </span>
+                </div>
+                <p className="text-stone-600 dark:text-stone-400 text-[11.5px]">
+                  {gunaMilan.manglikStatus.description[currentLang]}
+                </p>
+              </div>
+
+              {/* Classical Recommendations */}
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5">
+                <span className="font-bold text-amber-900 dark:text-amber-200 block">
+                  {currentLang === 'kn' ? 'ಜ್ಯೋತಿಷ್ಯ ಸಲಹೆಗಳು ಮತ್ತು ಮಾರ್ಗದರ್ಶನ:' : 'Astrological Recommendations:'}
+                </span>
+                <ul className="list-disc pl-5 space-y-1 text-stone-700 dark:text-stone-300 text-[11.5px]">
+                  {gunaMilan.recommendations.map((rec, i) => (
+                    <li key={i}>{rec[currentLang]}</li>
+                  ))}
+                </ul>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 4: PLANETARY TRANSITS (GOCHAR) ALERTS ON LAGNA HOUSE */}
+        {/* ========================================================================= */}
+        {activeSectionTab === 'transits' && (
+          <div className="space-y-6 animate-in fade-in">
+            
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-amber-800 via-orange-800 to-stone-900 text-white shadow-xl border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-amber-300 text-xs font-mono font-bold uppercase tracking-wider mb-1">
+                  <Zap className="w-4 h-4 text-amber-300" />
+                  <span>{currentLang === 'kn' ? 'ಗೋಚಾರ ಗ್ರಹ ಸಂಚಾರ ಎಚ್ಚರಿಕೆಗಳು' : 'PLANETARY GOCHAR TRANSIT ALERTS'}</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight">
+                  {currentLang === 'kn' ? 'ಲಗ್ನ ಭಾವಗಳ ಮೇಲೆ ಮುಖ್ಯ ಗ್ರಹಗಳ ಸಂಚಾರ ಪ್ರಭಾವ' : 'Transit Alerts on Your Lagna House'}
+                </h2>
+                <p className="text-xs sm:text-sm text-amber-200 mt-1 max-w-2xl">
+                  {currentLang === 'kn'
+                    ? `ನಿಮ್ಮ ಲಗ್ನ ರಾಶಿ: ${kundaliData.houses[0].rashiName[currentLang]} (${kundaliData.lagnaDegree}°). ಗುರು, ಶನಿ, ರಾಹು ಮತ್ತು ಕೇತು ಸಂಚಾರಗಳು ನಿಮ್ಮ ಜೀವಮಾನದ ಲಗ್ನ ಭಾವಗಳ ಮೇಲೆ ಬೀರುವ ಪ್ರಭಾವಗಳು.`
+                    : `Your Ascendant Lagna is ${kundaliData.houses[0].rashiName[currentLang]}. Real-time impact of Jupiter and Saturn entering new signs on your natal houses.`}
+                </p>
+              </div>
+
+              <button
+                onClick={handleArmAlerts}
+                className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 cursor-pointer ${
+                  notificationArmed
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-white text-stone-900 hover:bg-amber-100'
+                }`}
+              >
+                <Bell className="w-4 h-4" />
+                <span>{notificationArmed ? 'Alerts Active' : 'Arm Browser Transit Alert'}</span>
+              </button>
+            </div>
+
+            {/* Transit Alerts Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {transitAlerts.map((alert, idx) => (
+                <div 
+                  key={idx}
+                  className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-md space-y-3"
+                >
+                  <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center font-bold font-serif text-amber-700 dark:text-amber-300 text-sm">
+                        {alert.symbol}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-stone-900 dark:text-stone-100 text-sm font-serif">
+                          {alert.planet}
+                        </h3>
+                        <p className="text-[11px] text-stone-500">
+                          Current Sign: {alert.currentRashi}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                      House {alert.houseFromLagna}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-xs text-amber-800 dark:text-amber-300">
+                      {alert.impactTitle[currentLang]}
+                    </h4>
+                    <p className="text-xs text-stone-600 dark:text-stone-400 mt-1 leading-relaxed">
+                      {alert.impactDesc[currentLang]}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        )}
 
         {/* Printable Shanti Sloka & Blessing (Appears on print & PDF) */}
         <div className="print-only border-t-2 border-stone-300 pt-4 mt-6 text-center text-xs text-stone-600">
@@ -1179,6 +1923,15 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
         </button>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportImage}
+            disabled={isExportingImage}
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+          >
+            {isExportingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+            <span>{isExportingImage ? 'Exporting Image...' : 'Export as Image (PNG)'}</span>
+          </button>
+
           <button
             onClick={handleExportPdf}
             disabled={isExportingPdf}

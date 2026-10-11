@@ -1,6 +1,7 @@
 import { CityLocation, KundaliData, Language, LocalizedString, PanchangaDay, PlanetPosition } from '../types';
 import { FESTIVALS_CATALOG } from './festivals';
 import { RASHI_NAKSHATRA_CHART, SAMVATSARA_LIST, SamvatsaraRecord } from './pdfData';
+export { RASHI_NAKSHATRA_CHART, SAMVATSARA_LIST };
 
 export const CITIES: CityLocation[] = [
   {
@@ -114,10 +115,208 @@ export const CITIES: CityLocation[] = [
 ];
 
 export function getLocalizedPlaceName(city: CityLocation, lang: Language): string {
-  if (city.nameLocalized && city.stateLocalized) {
-    return `${city.nameLocalized[lang]}, ${city.stateLocalized[lang]}`;
+  if (!city) return 'ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ';
+  const canonical = CITIES.find(c => c.name.toLowerCase() === (city.name || '').toLowerCase()) || city;
+  if (canonical.nameLocalized && canonical.stateLocalized) {
+    const locCity = canonical.nameLocalized[lang] || canonical.nameLocalized.kn || canonical.name;
+    const locState = canonical.stateLocalized[lang] || canonical.stateLocalized.kn || canonical.state;
+    return `${locCity}, ${locState}`;
   }
   return `${city.name}, ${city.state}`;
+}
+
+export const PLACE_NAMES_DICTIONARY: Record<string, { kn: string; hi: string; en: string }> = {
+  // Karnataka Cities & Heritage Pilgrimages
+  'bengaluru': { kn: 'ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'बेंगलुरु, कर्नाटक', en: 'Bengaluru, Karnataka' },
+  'bangalore': { kn: 'ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'बेंगलुरु, कर्नाटक', en: 'Bengaluru, Karnataka' },
+  'ಬೆಂಗಳೂರು': { kn: 'ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'बेंगलुरु, कर्नाटक', en: 'Bengaluru, Karnataka' },
+  'बेंगलुरु': { kn: 'ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'बेंगलुरु, कर्नाटक', en: 'Bengaluru, Karnataka' },
+
+  'mysuru': { kn: 'ಮೈಸೂರು, ಕರ್ನಾಟಕ', hi: 'मैसूरु, कर्नाटक', en: 'Mysuru, Karnataka' },
+  'mysore': { kn: 'ಮೈಸೂರು, ಕರ್ನಾಟಕ', hi: 'मैसूरु, कर्नाटक', en: 'Mysuru, Karnataka' },
+  'ಮೈಸೂರು': { kn: 'ಮೈಸೂರು, ಕರ್ನಾಟಕ', hi: 'मैसूरु, कर्नाटक', en: 'Mysuru, Karnataka' },
+  'मैसूरु': { kn: 'ಮೈಸೂರು, ಕರ್ನಾಟಕ', hi: 'मैसूरु, कर्नाटक', en: 'Mysuru, Karnataka' },
+
+  'mangaluru': { kn: 'ಮಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'मंगलुरु, कर्नाटक', en: 'Mangaluru, Karnataka' },
+  'mangalore': { kn: 'ಮಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'मंगलुरु, कर्नाटक', en: 'Mangaluru, Karnataka' },
+  'ಮಂಗಳೂರು': { kn: 'ಮಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'मंगलुरु, कर्नाटक', en: 'Mangaluru, Karnataka' },
+  'मंगलुरु': { kn: 'ಮಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'मंगलुरु, कर्नाटक', en: 'Mangaluru, Karnataka' },
+
+  'hubballi': { kn: 'ಹುಬ್ಬಳ್ಳಿ, ಕರ್ನಾಟಕ', hi: 'हुब्बल्ली, कर्नाटक', en: 'Hubballi, Karnataka' },
+  'hubli': { kn: 'ಹುಬ್ಬಳ್ಳಿ, ಕರ್ನಾಟಕ', hi: 'हुब्बल्ली, कर्नाटक', en: 'Hubballi, Karnataka' },
+  'ಹುಬ್ಬಳ್ಳಿ': { kn: 'ಹುಬ್ಬಳ್ಳಿ, ಕರ್ನಾಟಕ', hi: 'हुब्बल्ली, कर्नाटक', en: 'Hubballi, Karnataka' },
+  'हुब्बल्ली': { kn: 'ಹುಬ್ಬಳ್ಳಿ, ಕರ್ನಾಟಕ', hi: 'हुब्बल्ली, कर्नाटक', en: 'Hubballi, Karnataka' },
+
+  'udupi': { kn: 'ಉಡುಪಿ, ಕರ್ನಾಟಕ', hi: 'उडुपी, कर्नाटक', en: 'Udupi, Karnataka' },
+  'ಉಡುಪಿ': { kn: 'ಉಡುಪಿ, ಕರ್ನಾಟಕ', hi: 'उडुपी, कर्नाटक', en: 'Udupi, Karnataka' },
+  'उडुपी': { kn: 'ಉಡುಪಿ, ಕರ್ನಾಟಕ', hi: 'उडुपी, कर्नाटक', en: 'Udupi, Karnataka' },
+
+  'belagavi': { kn: 'ಬೆಳಗಾವಿ, ಕರ್ನಾಟಕ', hi: 'बेलगावी, कर्नाटक', en: 'Belagavi, Karnataka' },
+  'belgaum': { kn: 'ಬೆಳಗಾವಿ, ಕರ್ನಾಟಕ', hi: 'बेलगावी, कर्नाटक', en: 'Belagavi, Karnataka' },
+  'ಬೆಳಗಾವಿ': { kn: 'ಬೆಳಗಾವಿ, ಕರ್ನಾಟಕ', hi: 'बेलगावी, कर्नाटक', en: 'Belagavi, Karnataka' },
+
+  'kalaburagi': { kn: 'ಕಲಬುರಗಿ, ಕರ್ನಾಟಕ', hi: 'कलबुर्गी, कर्नाटक', en: 'Kalaburagi, Karnataka' },
+  'gulbarga': { kn: 'ಕಲಬುರಗಿ, ಕರ್ನಾಟಕ', hi: 'कलबुर्गी, कर्नाटक', en: 'Kalaburagi, Karnataka' },
+
+  'shivamogga': { kn: 'ಶಿವಮೊಗ್ಗ, ಕರ್ನಾಟಕ', hi: 'शिवमोग्गा, कर्नाटक', en: 'Shivamogga, Karnataka' },
+  'shimoga': { kn: 'ಶಿವಮೊಗ್ಗ, ಕರ್ನಾಟಕ', hi: 'शिवमोग्गा, कर्नाटक', en: 'Shivamogga, Karnataka' },
+
+  'davanagere': { kn: 'ದಾವಣಗೆರೆ, ಕರ್ನಾಟಕ', hi: 'दावणगेरे, कर्नाटक', en: 'Davanagere, Karnataka' },
+  'ballari': { kn: 'ಬಳ್ಳಾರಿ, ಕರ್ನಾಟಕ', hi: 'बल्लारी, कर्नाटक', en: 'Ballari, Karnataka' },
+  'bellary': { kn: 'ಬಳ್ಳಾರಿ, ಕರ್ನಾಟಕ', hi: 'बल्लारी, कर्नाटक', en: 'Ballari, Karnataka' },
+  'vijayapura': { kn: 'ವಿಜಯಪುರ, ಕರ್ನಾಟಕ', hi: 'विजयपुरा, कर्नाटक', en: 'Vijayapura, Karnataka' },
+  'bijapur': { kn: 'ವಿಜಯಪುರ, ಕರ್ನಾಟಕ', hi: 'विजयपुरा, कर्नाटक', en: 'Vijayapura, Karnataka' },
+  'tumakuru': { kn: 'ತುಮಕೂರು, ಕರ್ನಾಟಕ', hi: 'तुमकुरु, कर्नाटक', en: 'Tumakuru, Karnataka' },
+  'tumkur': { kn: 'ತುಮಕೂರು, ಕರ್ನಾಟಕ', hi: 'तुमकुरु, कर्नाटक', en: 'Tumakuru, Karnataka' },
+  'hassan': { kn: 'ಹಾಸನ, ಕರ್ನಾಟಕ', hi: 'हासन, कर्नाटक', en: 'Hassan, Karnataka' },
+
+  'dharmasthala': { kn: 'ಧರ್ಮಸ್ಥಳ, ಕರ್ನಾಟಕ', hi: 'धर्मस्थल, कर्नाटक', en: 'Dharmasthala, Karnataka' },
+  'ಧರ್ಮಸ್ಥಳ': { kn: 'ಧರ್ಮಸ್ಥಳ, ಕರ್ನಾಟಕ', hi: 'धर्मस्थल, कर्नाटक', en: 'Dharmasthala, Karnataka' },
+  'धर्मस्थल': { kn: 'ಧರ್ಮಸ್ಥಳ, ಕರ್ನಾಟಕ', hi: 'धर्मस्थल, कर्नाटक', en: 'Dharmasthala, Karnataka' },
+
+  'sringeri': { kn: 'ಶೃಂಗೇರಿ, ಕರ್ನಾಟಕ', hi: 'शृंगेरी, कर्नाटक', en: 'Sringeri, Karnataka' },
+  'ಶೃಂಗೇರಿ': { kn: 'ಶೃಂಗೇರಿ, ಕರ್ನಾಟಕ', hi: 'शृंगेरी, कर्नाटक', en: 'Sringeri, Karnataka' },
+  'शृंगेरी': { kn: 'ಶೃಂಗೇರಿ, ಕರ್ನಾಟಕ', hi: 'शृंगेरी, कर्नाटक', en: 'Sringeri, Karnataka' },
+
+  'gokarna': { kn: 'ಗೋಕರ್ಣ, ಕರ್ನಾಟಕ', hi: 'गोकर्ण, कर्नाटक', en: 'Gokarna, Karnataka' },
+  'ಗೋಕರ್ಣ': { kn: 'ಗೋಕರ್ಣ, ಕರ್ನಾಟಕ', hi: 'गोकर्ण, कर्नाटक', en: 'Gokarna, Karnataka' },
+  'गोकर्ण': { kn: 'ಗೋಕರ್ಣ, ಕರ್ನಾಟಕ', hi: 'गोकर्ण, कर्नाटक', en: 'Gokarna, Karnataka' },
+
+  'kollur': { kn: 'ಕೊಲ್ಲೂರು, ಕರ್ನಾಟಕ', hi: 'कोल्लूर, कर्नाटक', en: 'Kollur, Karnataka' },
+  'kukke': { kn: 'ಕುಕ್ಕೆ ಸುಬ್ರಹ್ಮಣ್ಯ, ಕರ್ನಾಟಕ', hi: 'कुक्के सुब्रह्मण्य, कर्नाटक', en: 'Kukke Subramanya, Karnataka' },
+  'kukke subramanya': { kn: 'ಕುಕ್ಕೆ ಸುಬ್ರಹ್ಮಣ್ಯ, ಕರ್ನಾಟಕ', hi: 'कुक्के सुब्रह्मण्य, कर्नाटक', en: 'Kukke Subramanya, Karnataka' },
+  'hampi': { kn: 'ಹಂಪಿ, ಕರ್ನಾಟಕ', hi: 'हम्पी, कर्नाटक', en: 'Hampi, Karnataka' },
+
+  // Pan-India Sacred & Major Cities
+  'varanasi': { kn: 'ವಾರಾಣಸಿ (ಕಾಶಿ), ಉತ್ತರ ಪ್ರದೇಶ', hi: 'वाराणसी (काशी), उत्तर प्रदेश', en: 'Varanasi (Kashi), Uttar Pradesh' },
+  'kashi': { kn: 'ವಾರಾಣಸಿ (ಕಾಶಿ), ಉತ್ತರ ಪ್ರದೇಶ', hi: 'वाराणसी (काशी), उत्तर प्रदेश', en: 'Varanasi (Kashi), Uttar Pradesh' },
+  'benares': { kn: 'ವಾರಾಣಸಿ (ಕಾಶಿ), ಉತ್ತರ ಪ್ರದೇಶ', hi: 'वाराणसी (काशी), उत्तर प्रदेश', en: 'Varanasi (Kashi), Uttar Pradesh' },
+  'ವಾರಾಣಸಿ': { kn: 'ವಾರಾಣಸಿ (ಕಾಶಿ), ಉತ್ತರ ಪ್ರದೇಶ', hi: 'वाराणसी (काशी), उत्तर प्रदेश', en: 'Varanasi (Kashi), Uttar Pradesh' },
+  'ಕಾಶಿ': { kn: 'ವಾರಾಣಸಿ (ಕಾಶಿ), ಉತ್ತರ ಪ್ರದೇಶ', hi: 'वाराणसी (काशी), उत्तर प्रदेश', en: 'Varanasi (Kashi), Uttar Pradesh' },
+  'वाराणसी': { kn: 'ವಾರಾಣಸಿ (काशी), उत्तर प्रदेश', hi: 'वाराणसी (काशी), उत्तर प्रदेश', en: 'Varanasi (Kashi), Uttar Pradesh' },
+  'काशी': { kn: 'ವಾರಾಣಸಿ (ಕಾಶಿ), ಉತ್ತರ ಪ್ರದೇಶ', hi: 'वाराणसी (काशी), उत्तर प्रदेश', en: 'Varanasi (Kashi), Uttar Pradesh' },
+
+  'ayodhya': { kn: 'ಅಯೋಧ್ಯಾ, ಉತ್ತರ ಪ್ರದೇಶ', hi: 'अयोध्या, उत्तर प्रदेश', en: 'Ayodhya, Uttar Pradesh' },
+  'ಅಯೋಧ್ಯಾ': { kn: 'ಅಯೋಧ್ಯಾ, ಉತ್ತರ ಪ್ರದೇಶ', hi: 'अयोध्या, उत्तर प्रदेश', en: 'Ayodhya, Uttar Pradesh' },
+  'अयोध्या': { kn: 'ಅಯೋಧ್ಯಾ, ಉತ್ತರ ಪ್ರದೇಶ', hi: 'अयोध्या, उत्तर प्रदेश', en: 'Ayodhya, Uttar Pradesh' },
+
+  'mathura': { kn: 'ಮಥುರಾ, ಉತ್ತರ ಪ್ರದೇಶ', hi: 'मथुरा, उत्तर प्रदेश', en: 'Mathura, Uttar Pradesh' },
+  'vrindavan': { kn: 'ವೃಂದಾವನ, ಉತ್ತರ ಪ್ರದೇಶ', hi: 'वृंदावन, उत्तर प्रदेश', en: 'Vrindavan, Uttar Pradesh' },
+  'prayagraj': { kn: 'ಪ್ರಯಾಗರಾಜ್, ಉತ್ತರ ಪ್ರದೇಶ', hi: 'प्रयागराज, उत्तर प्रदेश', en: 'Prayagraj, Uttar Pradesh' },
+  'allahabad': { kn: 'ಪ್ರಯಾಗರಾಜ್, ಉತ್ತರ ಪ್ರದೇಶ', hi: 'प्रयागराज, उत्तर प्रदेश', en: 'Prayagraj, Uttar Pradesh' },
+
+  'haridwar': { kn: 'ಹರಿದ್ವಾರ, ಉತ್ತರಾಖಂಡ', hi: 'हरिद्वार, उत्तराखंड', en: 'Haridwar, Uttarakhand' },
+  'rishikesh': { kn: 'ಋಷಿಕೇಶ, ಉತ್ತರಾಖಂಡ', hi: 'ऋषिकेश, उत्तराखंड', en: 'Rishikesh, Uttarakhand' },
+  'badrinath': { kn: 'ಬದರಿನಾಥ, ಉತ್ತರಾಖಂಡ', hi: 'बद्रीनाथ, उत्तराखंड', en: 'Badrinath, Uttarakhand' },
+  'kedarnath': { kn: 'ಕೇದಾರನಾಥ, ಉತ್ತರಾಖಂಡ', hi: 'केदारनाथ, उत्तराखंड', en: 'Kedarnath, Uttarakhand' },
+
+  'tirupati': { kn: 'ತಿರುಪತಿ, ಆಂಧ್ರಪ್ರದೇಶ', hi: 'तिरुपति, आंध्र प्रदेश', en: 'Tirupati, Andhra Pradesh' },
+  'ತಿರುಪತಿ': { kn: 'ತಿರುಪತಿ, ಆಂಧ್ರಪ್ರದೇಶ', hi: 'तिरुपति, आंध्र प्रदेश', en: 'Tirupati, Andhra Pradesh' },
+  'तिरुपति': { kn: 'ತಿರುಪತಿ, ಆಂಧ್ರಪ್ರದೇಶ', hi: 'तिरुपति, आंध्र प्रदेश', en: 'Tirupati, Andhra Pradesh' },
+
+  'madurai': { kn: 'ಮಧುರೈ, ತಮಿಳುನಾಡು', hi: 'मदुरै, तमिलनाडु', en: 'Madurai, Tamil Nadu' },
+  'rameswaram': { kn: 'ರಾಮೇಶ್ವರಂ, ತಮಿಳುನಾಡು', hi: 'रामेश्वरम, तमिलनाडु', en: 'Rameswaram, Tamil Nadu' },
+  'rameshwaram': { kn: 'ರಾಮೇಶ್ವರಂ, ತಮಿಳುನಾಡು', hi: 'रामेश्वरम, तमिलनाडु', en: 'Rameswaram, Tamil Nadu' },
+  'kanchipuram': { kn: 'ಕಾಂಚೀಪುರಂ, ತಮಿಳುನಾಡು', hi: 'कांचीपुरम, तमिलनाडु', en: 'Kanchipuram, Tamil Nadu' },
+  'chidambaram': { kn: 'ಚಿದಂಬರಂ, ತಮಿಳುನಾಡು', hi: 'चिदंबरम, तमिलनाडु', en: 'Chidambaram, Tamil Nadu' },
+
+  'puri': { kn: 'ಪುರಿ (ಜಗನ್ನಾಥ ಕ್ಷೇತ್ರ), ಒಡಿಶಾ', hi: 'पुरी (जगन्नाथ क्षेत्र), ओडिशा', en: 'Puri (Jagannath Kshetra), Odisha' },
+  'jagannath puri': { kn: 'ಪುರಿ (ಜಗನ್ನಾಥ ಕ್ಷೇತ್ರ), ಒಡಿಶಾ', hi: 'पुरी (जगन्नाथ क्षेत्र), ओडिशा', en: 'Puri (Jagannath Kshetra), Odisha' },
+
+  'dwarka': { kn: 'ದ್ವಾರಕಾ, ಗುಜರಾತ್', hi: 'द्वारका, गुजरात', en: 'Dwarka, Gujarat' },
+  'somnath': { kn: 'ಸೋಮನಾಥ, ಗುಜರಾತ್', hi: 'सोमनाथ, गुजरात', en: 'Somnath, Gujarat' },
+  'ujjain': { kn: 'ಉಜ್ಜಯಿನಿ, ಮಧ್ಯಪ್ರದೇಶ', hi: 'उज्जैन, मध्य प्रदेश', en: 'Ujjain, Madhya Pradesh' },
+  'shirdi': { kn: 'ಶಿರಡಿ, ಮಹಾರಾಷ್ಟ್ರ', hi: 'शिर्डी, महाराष्ट्र', en: 'Shirdi, Maharashtra' },
+  'pandharpur': { kn: 'ಪಂಢರಪುರ, ಮಹಾರಾಷ್ಟ್ರ', hi: 'पंढरपुर, महाराष्ट्र', en: 'Pandharpur, Maharashtra' },
+  'nashik': { kn: 'ನಾಸಿಕ್ (ತ್ರ್ಯಂಬಕೇಶ್ವರ), ಮಹಾರಾಷ್ಟ್ರ', hi: 'नासिक (त्र्यंबकेश्वर), महाराष्ट्र', en: 'Nashik (Trimbakeshwar), Maharashtra' },
+
+  'new delhi': { kn: 'ನವದೆಹಲಿ, ದೆಹಲಿ', hi: 'नई दिल्ली, दिल्ली', en: 'New Delhi, Delhi' },
+  'delhi': { kn: 'ನವದೆಹಲಿ, ದೆಹಲಿ', hi: 'नई दिल्ली, दिल्ली', en: 'New Delhi, Delhi' },
+  'ನವದೆಹಲಿ': { kn: 'ನವದೆಹಲಿ, ದೆಹಲಿ', hi: 'नई दिल्ली, दिल्ली', en: 'New Delhi, Delhi' },
+  'नई दिल्ली': { kn: 'ನವದೆಹಲಿ, ದೆಹಲಿ', hi: 'नई दिल्ली, दिल्ली', en: 'New Delhi, Delhi' },
+
+  'mumbai': { kn: 'ಮುಂಬೈ, ಮಹಾರಾಷ್ಟ್ರ', hi: 'मुंबई, महाराष्ट्र', en: 'Mumbai, Maharashtra' },
+  'bombay': { kn: 'ಮುಂಬೈ, ಮಹಾರಾಷ್ಟ್ರ', hi: 'मुंबई, महाराष्ट्र', en: 'Mumbai, Maharashtra' },
+  'ಮುಂಬೈ': { kn: 'ಮುಂಬೈ, ಮಹಾರಾಷ್ಟ್ರ', hi: 'मुंबई, महाराष्ट्र', en: 'Mumbai, Maharashtra' },
+  'मुंबई': { kn: 'ಮುಂಬೈ, ಮಹಾರಾಷ್ಟ್ರ', hi: 'मुंबई, महाराष्ट्र', en: 'Mumbai, Maharashtra' },
+
+  'chennai': { kn: 'ಚೆನ್ನೈ, ತಮಿಳುನಾಡು', hi: 'चेन्नई, तमिलनाडु', en: 'Chennai, Tamil Nadu' },
+  'madras': { kn: 'ಚೆನ್ನೈ, ತಮಿಳುನಾಡು', hi: 'चेन्नई, तमिलनाडु', en: 'Chennai, Tamil Nadu' },
+  'ಚೆನ್ನೈ': { kn: 'ಚೆನ್ನೈ, ತಮಿಳುನಾಡು', hi: 'चेन्नई, तमिलनाडु', en: 'Chennai, Tamil Nadu' },
+  'चेन्नई': { kn: 'ಚೆನ್ನೈ, तमिलनाडु', hi: 'चेन्नई, तमिलनाडु', en: 'Chennai, Tamil Nadu' },
+
+  'hyderabad': { kn: 'ಹೈದರಾಬಾದ್, ತೆಲಂಗಾಣ', hi: 'हैदराबाद, तेलंगाना', en: 'Hyderabad, Telangana' },
+  'ಹೈದರಾಬಾದ್': { kn: 'ಹೈದರಾಬಾದ್, ತೆಲಂಗಾಣ', hi: 'हैदराबाद, तेलंगाना', en: 'Hyderabad, Telangana' },
+  'हैदराबाद': { kn: 'ಹೈದರಾಬಾದ್, ತೆಲಂಗಾಣ', hi: 'हैदराबाद, तेलंगाना', en: 'Hyderabad, Telangana' },
+
+  'kolkata': { kn: 'ಕೋಲ್ಕತ್ತಾ, ಪಶ್ಚಿಮ ಬಂಗಾಳ', hi: 'कोलकाता, पश्चिम बंगाल', en: 'Kolkata, West Bengal' },
+  'calcutta': { kn: 'ಕೋಲ್ಕತ್ತಾ, ಪಶ್ಚಿಮ ಬಂಗಾಳ', hi: 'कोलकाता, पश्चिम बंगाल', en: 'Kolkata, West Bengal' },
+  'ಕೋಲ್ಕತ್ತಾ': { kn: 'ಕೋಲ್ಕತ್ತಾ, ಪಶ್ಚಿಮ ಬಂಗಾಳ', hi: 'कोलकाता, पश्चिम बंगाल', en: 'Kolkata, West Bengal' },
+  'कोलकाता': { kn: 'ಕೋಲ್ಕತ್ತಾ, पश्चिम बंगाल', hi: 'कोलकाता, पश्चिम बंगाल', en: 'Kolkata, West Bengal' },
+
+  'pune': { kn: 'ಪುಣೆ, ಮಹಾರಾಷ್ಟ್ರ', hi: 'पुणे, महाराष्ट्र', en: 'Pune, Maharashtra' },
+  'ahmedabad': { kn: 'ಅಹಮದಾಬಾದ್, ಗುಜರಾತ್', hi: 'अहमदाबाद, गुजरात', en: 'Ahmedabad, Gujarat' },
+  'jaipur': { kn: 'ಜೈಪುರ, ರಾಜಸ್ಥಾನ', hi: 'जयपुर, राजस्थान', en: 'Jaipur, Rajasthan' },
+
+  // International
+  'london': { kn: 'ಲಂಡನ್, ಯುನೈಟೆಡ್ ಕಿಂಗ್‌ಡಮ್', hi: 'लंदन, यूनाइटेड किंगडम', en: 'London, UK' },
+  'new york': { kn: 'ನ್ಯೂಯಾರ್ಕ್, ಯುಎಸ್ಎ', hi: 'न्यू यॉर्क, यूएसए', en: 'New York, USA' },
+  'san francisco': { kn: 'ಸ್ಯಾನ್ ಫ್ರಾನ್ಸಿಸ್ಕೋ, ಯುಎಸ್ಎ', hi: 'सैन फ्रांसिस्को, यूएसए', en: 'San Francisco, USA' },
+  'toronto': { kn: 'ಟೊರೊಂಟೊ, ಕೆನಡಾ', hi: 'टोरंटो, कनाडा', en: 'Toronto, Canada' },
+  'sydney': { kn: 'ಸಿಡ್ನಿ, ಆಸ್ಟ್ರೇಲಿಯಾ', hi: 'सिडनी, ऑस्ट्रेलिया', en: 'Sydney, Australia' },
+  'singapore': { kn: 'ಸಿಂಗಾಪುರ', hi: 'सिंगापुर', en: 'Singapore' },
+  'dubai': { kn: 'ದುಬೈ, ಯುಎಇ', hi: 'दुबई, यूएई', en: 'Dubai, UAE' }
+};
+
+export function lookupLocalizedPlaceName(placeInput: string | CityLocation | undefined | null, lang: Language): string {
+  if (!placeInput) return getLocalizedPlaceName(CITIES[0], lang);
+
+  if (typeof placeInput !== 'string') {
+    const canonical = CITIES.find(c => c.name.toLowerCase() === (placeInput.name || '').toLowerCase());
+    if (canonical && canonical.nameLocalized && canonical.stateLocalized) {
+      const locCity = canonical.nameLocalized[lang] || canonical.nameLocalized.kn || canonical.name;
+      const locState = canonical.stateLocalized[lang] || canonical.stateLocalized.kn || canonical.state;
+      return `${locCity}, ${locState}`;
+    }
+    const key = (placeInput.name || '').toLowerCase().trim();
+    if (PLACE_NAMES_DICTIONARY[key]) {
+      return PLACE_NAMES_DICTIONARY[key][lang] || PLACE_NAMES_DICTIONARY[key].kn;
+    }
+    return `${placeInput.name || ''}, ${placeInput.state || ''}`.replace(/^,\s*|,\s*$/g, '');
+  }
+
+  const raw = placeInput.trim();
+  if (!raw) return getLocalizedPlaceName(CITIES[0], lang);
+
+  const cleanKey = raw.toLowerCase().replace(/[,.-]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // Direct key lookup
+  if (PLACE_NAMES_DICTIONARY[cleanKey]) {
+    return PLACE_NAMES_DICTIONARY[cleanKey][lang] || PLACE_NAMES_DICTIONARY[cleanKey].kn;
+  }
+
+  // Lookup across dictionary items
+  for (const [key, trans] of Object.entries(PLACE_NAMES_DICTIONARY)) {
+    if (cleanKey === key || cleanKey.startsWith(key) || cleanKey.includes(key)) {
+      return trans[lang] || trans.kn;
+    }
+    if (raw.includes(trans.kn) || raw.includes(trans.hi) || raw.includes(trans.en)) {
+      return trans[lang] || trans.kn;
+    }
+  }
+
+  // Check CITIES list
+  const canonical = CITIES.find(c => 
+    c.name.toLowerCase() === cleanKey || 
+    cleanKey.includes(c.name.toLowerCase()) ||
+    (c.nameLocalized?.kn && raw.includes(c.nameLocalized.kn)) ||
+    (c.nameLocalized?.hi && raw.includes(c.nameLocalized.hi))
+  );
+  if (canonical) {
+    return getLocalizedPlaceName(canonical, lang);
+  }
+
+  return raw;
 }
 
 export const KANNADA_DIGITS = ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯'];
@@ -453,63 +652,40 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
   ];
   const ritu = RITUS[rituIndex] || RITUS[0];
 
-  // Universal Lunar Epoch calculation that scales across all years
-  const epoch2000 = new Date(2000, 0, 6, 18, 14).getTime(); // Known New Moon
-  const diffDays = (date.getTime() - epoch2000) / 86400000;
-  const synodicMonth = 29.53058867;
-  const lunarPhase = ((diffDays % synodicMonth) + synodicMonth) % synodicMonth;
+  // Precise Astronomical Sidereal Positions (Lahiri Nirayana) for all years
+  const astro = calculateAstronomicalPositions(date);
 
-  let isShukla = lunarPhase < 14.765;
-  let paksha: 'Shukla' | 'Krishna' = isShukla ? 'Shukla' : 'Krishna';
-  let tithiNumber = Math.floor((lunarPhase / (synodicMonth / 30))) % 15 + 1;
-  tithiNumber = Math.min(15, Math.max(1, tithiNumber));
+  // Exact Astronomical Moon-Sun Elongation (0° to 360°)
+  const elongation = (astro.moonSid - astro.sunSid + 360) % 360;
+
+  // Real-time Paksha: 0° - 180° = Shukla Paksha, 180° - 360° = Krishna Paksha
+  const isShukla = elongation < 180;
+  const paksha: 'Shukla' | 'Krishna' = isShukla ? 'Shukla' : 'Krishna';
+
+  // Tithi calculation: each 12 degrees of elongation is exactly 1 Tithi (1 to 15)
+  const rawTithiNumber = isShukla 
+    ? Math.floor(elongation / 12) + 1 
+    : Math.floor((elongation - 180) / 12) + 1;
+  let tithiNumber = Math.min(15, Math.max(1, rawTithiNumber));
 
   // Determine Hindu Masa relative to solar month and lunar phase
-  let masaIndex = (month + 9) % 12;
+  let masaIndex = isShukla ? (astro.suryaRashiIndex + 1) % 12 : astro.suryaRashiIndex;
   if (month === 4 && day < 9) masaIndex = 11;
 
-  // Special alignment for 2026: October has Navaratri, November has Deepavali
+  // Precise festival alignment for 2026: October has Navaratri, November has Deepavali
   if (year === 2026 && month === 10) {
-    if (day <= 10) {
+    if (day <= 10 && !isShukla) {
       masaIndex = 5; // Bhadrapada Krishna Paksha (Pitru Paksha concluding with Mahalaya Amavasya on Oct 10)
-      isShukla = false;
-      paksha = 'Krishna';
-      tithiNumber = 5 + day; // Oct 10 = Mahalaya Amavasya (15)
-      if (tithiNumber > 15) tithiNumber = 15;
-    } else if (day <= 20) {
-      masaIndex = 6; // Ashwina Shukla Paksha (Sharannavaratri Days 1-10)
-      isShukla = true;
-      paksha = 'Shukla';
-      tithiNumber = day - 10; // Oct 11 = Pratipada (1), Oct 20 = Vijayadashami (10)
-    } else if (day <= 25) {
-      masaIndex = 6; // Ashwina Shukla Paksha
-      isShukla = true;
-      paksha = 'Shukla';
-      tithiNumber = 10 + (day - 20); // Oct 25 = Sharad Purnima (15)
+    } else if (day <= 25 && isShukla) {
+      masaIndex = 6; // Ashwina Shukla Paksha (Sharannavaratri Days 1-10 & Sharad Purnima)
     } else {
       masaIndex = 6; // Ashwina Krishna Paksha
-      isShukla = false;
-      paksha = 'Krishna';
-      tithiNumber = day - 25; // Oct 26 = Krishna 1, Oct 31 = Krishna 6
     }
   } else if (year === 2026 && month === 11) {
-    if (day <= 9) {
-      masaIndex = 6; // Ashwina Krishna Paksha (Deepavali period!)
-      isShukla = false;
-      paksha = 'Krishna';
-      // Nov 8 = Dhanteras (Krishna 13), Nov 9 = Naraka Chaturdashi (Krishna 14) & Deepavali Lakshmi Puja Amavasya
-      tithiNumber = day === 8 ? 13 : 14;
+    if (day <= 9 && !isShukla) {
+      masaIndex = 6; // Ashwina Krishna Paksha (Deepavali period)
     } else {
       masaIndex = 7; // Kartika Shukla Paksha begins Nov 10 (Bali Padyami)
-      isShukla = true;
-      paksha = 'Shukla';
-      // Nov 10 = Pratipada (1) Bali Padyami, Nov 11 = Dvitiya (2) Bidigi (Yama Dvitiya / Bhai Dooj), Nov 12 = Tritiya (3) Tadigi
-      tithiNumber = day - 9;
-      if (tithiNumber > 15) {
-        isShukla = false;
-        paksha = 'Krishna';
-        tithiNumber = tithiNumber - 15;
-      }
     }
   }
 
@@ -528,9 +704,6 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
   };
   const tithiSanskrit = tithiNumber === 15 ? (isShukla ? 'ಪೌರ್ಣಮಾಸ್ಯಾಂ' : 'ಅಮಾವಾಸ್ಯಾಯಾಂ') : tithiMeta.sanskrit;
 
-  // Precise Astronomical Sidereal Positions (Lahiri Nirayana) for all years
-  const astro = calculateAstronomicalPositions(date);
-
   const rawNakshatraIndex = astro.nakshatraIndex;
   const nakshatraRecord = RASHI_NAKSHATRA_CHART[rawNakshatraIndex] || RASHI_NAKSHATRA_CHART[0];
   const pada = astro.pada;
@@ -544,7 +717,7 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
   const yogaIndex = astro.yogaIndex;
   const yoga = YOGA_NAMES[yogaIndex] || YOGA_NAMES[0];
 
-  const karanaIndex = (Math.floor(lunarPhase * 2) % 11 + 11) % 11;
+  const karanaIndex = Math.floor(elongation / 6) % 11;
   const karana = KARANA_NAMES[karanaIndex] || KARANA_NAMES[0];
 
   const moonRashiIndex = astro.chandraRashiIndex;
@@ -634,8 +807,8 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
   if (masaIndex === 5 && isShukla && tithiNumber === 4) {
     matchedFestivals.push(FESTIVALS_CATALOG.find(f => f.id === 'ganesha_chaturthi')!);
   }
-  // Krishna Janmashtami (Shravana/Bhadrapada Krishna 8)
-  if ((masaIndex === 4 || masaIndex === 5) && !isShukla && tithiNumber === 8) {
+  // Krishna Janmashtami (Shravana Krishna 8 in August / September)
+  if (masaIndex === 4 && !isShukla && tithiNumber === 8 && (month === 8 || month === 9)) {
     matchedFestivals.push(FESTIVALS_CATALOG.find(f => f.id === 'krishna_janmashtami')!);
   }
   // Maha Shivaratri (Magha/Phalguna Krishna 14)
@@ -1062,24 +1235,24 @@ export const VEDIC_EPHEMERIS_BENCHMARKS_2026: EphemerisReferenceEntry[] = [
     expectedFestivalId: 'navaratri_day2'
   },
   {
-    date: '2026-11-08',
-    label: 'Dhanteras / Dhantrayodashi (Yamadeepadaana)',
-    expectedMasa: 'Ashwina (Ashwayuja)',
-    expectedPaksha: 'Krishna',
-    expectedTithiNumber: 13,
-    expectedTithiNameEn: 'Trayodashi',
-    expectedTithiNameKn: 'ತ್ರಯೋದಶೀ',
-    expectedNakshatraSnippet: 'ಚಿತ್ತ',
-    expectedFestivalId: 'dhanteras'
-  },
-  {
-    date: '2026-11-09',
-    label: 'Naraka Chaturdashi & Deepavali Lakshmi Puja (Amavasya night)',
+    date: '2026-11-07',
+    label: 'Naraka Chaturdashi (Ashwina Krishna 14)',
     expectedMasa: 'Ashwina (Ashwayuja)',
     expectedPaksha: 'Krishna',
     expectedTithiNumber: 14,
     expectedTithiNameEn: 'Chaturdashi',
     expectedTithiNameKn: 'ಚತುರ್ದಶೀ',
+    expectedNakshatraSnippet: 'ಚಿತ್ತ',
+    expectedFestivalId: 'naraka_chaturdashi'
+  },
+  {
+    date: '2026-11-09',
+    label: 'Deepavali Maha Lakshmi Puja (Ashwina Amavasya)',
+    expectedMasa: 'Ashwina (Ashwayuja)',
+    expectedPaksha: 'Krishna',
+    expectedTithiNumber: 15,
+    expectedTithiNameEn: 'Amavasya',
+    expectedTithiNameKn: 'ಅಮಾವಾಸ್ಯೆ',
     expectedNakshatraSnippet: 'ಸ್ವಾತಿ',
     expectedFestivalId: 'deepavali'
   },
@@ -1153,7 +1326,7 @@ export function validatePanchangaAgainstEphemeris(
 
   benchmarks.forEach((bm) => {
     const [yStr, mStr, dStr] = bm.date.split('-');
-    const testDate = new Date(Number(yStr), Number(mStr) - 1, Number(dStr));
+    const testDate = new Date(Number(yStr), Number(mStr) - 1, Number(dStr), 6, 0, 0);
     const calculated = getPanchangaForDate(testDate, location);
 
     const issues: string[] = [];
@@ -1248,3 +1421,66 @@ export function verifyEphemerisTithiTransitions(): { passed: boolean; logs: stri
     logs: result.report
   };
 }
+
+export interface AstroDiagnosticInfo {
+  dateIso: string;
+  locationName: string;
+  julianDate: number;
+  T: number;
+  ayanamshaDeg: number;
+  sunSidDeg: number;
+  sunRashi: string;
+  moonSidDeg: number;
+  moonRashi: string;
+  elongationDeg: number;
+  paksha: 'Shukla' | 'Krishna';
+  isShukla: boolean;
+  rawTithiCalc: number;
+  tithiNumber: number;
+  tithiName: LocalizedString;
+  nakshatraIndex: number;
+  nakshatraName: LocalizedString;
+  pada: number;
+  padaDeg: number;
+  yogaIndex: number;
+  karanaIndex: number;
+  validationSuite: ReturnType<typeof validatePanchangaAgainstEphemeris>;
+}
+
+export function getAstroDiagnosticData(date: Date, location: CityLocation = CITIES[0]): AstroDiagnosticInfo {
+  const JD = 2440587.5 + date.getTime() / 86400000;
+  const T = (JD - 2451545.0) / 36525;
+  const astro = calculateAstronomicalPositions(date);
+  const panchanga = getPanchangaForDate(date, location);
+  const elong = (astro.moonSid - astro.sunSid + 360) % 360;
+  const isShukla = elong < 180;
+  const rawTithiCalc = isShukla ? elong / 12 : (elong - 180) / 12;
+
+  const suite = validatePanchangaAgainstEphemeris();
+
+  return {
+    dateIso: date.toISOString(),
+    locationName: location.name,
+    julianDate: Number(JD.toFixed(4)),
+    T: Number(T.toFixed(6)),
+    ayanamshaDeg: Number(astro.ayanamsha.toFixed(4)),
+    sunSidDeg: Number(astro.sunSid.toFixed(4)),
+    sunRashi: RASHIS[astro.suryaRashiIndex].en,
+    moonSidDeg: Number(astro.moonSid.toFixed(4)),
+    moonRashi: RASHIS[astro.chandraRashiIndex].en,
+    elongationDeg: Number(elong.toFixed(4)),
+    paksha: isShukla ? 'Shukla' : 'Krishna',
+    isShukla,
+    rawTithiCalc: Number(rawTithiCalc.toFixed(4)),
+    tithiNumber: panchanga.tithiNumber,
+    tithiName: panchanga.tithiName,
+    nakshatraIndex: astro.nakshatraIndex,
+    nakshatraName: panchanga.nakshatra,
+    pada: astro.pada,
+    padaDeg: Number((astro.moonSid % 13.333333).toFixed(4)),
+    yogaIndex: astro.yogaIndex,
+    karanaIndex: Math.floor(astro.elongation * 2 / 12) % 11,
+    validationSuite: suite
+  };
+}
+

@@ -24,6 +24,7 @@ import { HomeScreenWidgetModal } from './components/HomeScreenWidgetModal';
 import { HcmmAdminModal } from './components/HcmmAdminModal';
 import { BiometricAuthModal } from './components/BiometricAuthModal';
 import { CloudSyncModal } from './components/CloudSyncModal';
+import { AstroDiagnosticModal } from './components/AstroDiagnosticModal';
 
 export default function App() {
   // Localization: English default, selectable to Kannada and Hindi
@@ -40,7 +41,12 @@ export default function App() {
   const [selectedCity, setSelectedCity] = useState<CityLocation>(() => {
     const saved = localStorage.getItem('hcmm_city');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+      try { 
+        const parsed = JSON.parse(saved);
+        const canonical = CITIES.find(c => c.name.toLowerCase() === parsed.name?.toLowerCase());
+        if (canonical) return canonical;
+        return parsed;
+      } catch (e) { /* ignore */ }
     }
     return CITIES[0]; // Bengaluru default
   });
@@ -61,6 +67,18 @@ export default function App() {
   const [isBiometricLocked, setIsBiometricLocked] = useState<boolean>(() => {
     return localStorage.getItem('hcmm_bio_locked') === 'true';
   });
+
+  // Administrator Password (Protects alterations when clicking the HCMM logo)
+  const [userPassword, setUserPassword] = useState<string>(() => {
+    localStorage.removeItem('hcmm_app_locked'); // Ensure page is never locked
+    return localStorage.getItem('hcmm_user_password') || 'HCMM';
+  });
+
+  // Astro-Diagnostic real-time logs & modal state
+  const [isAstroDiagnosticActive, setIsAstroDiagnosticActive] = useState<boolean>(() => {
+    return localStorage.getItem('hcmm_astro_diag') === 'true';
+  });
+  const [showAstroDiagnosticModal, setShowAstroDiagnosticModal] = useState<boolean>(false);
 
   // HCMM custom logo URL
   const [hcmmLogoUrl, setHcmmLogoUrl] = useState<string>(() => {
@@ -131,6 +149,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('hcmm_bio_locked', isBiometricLocked ? 'true' : 'false');
   }, [isBiometricLocked]);
+
+  useEffect(() => {
+    localStorage.setItem('hcmm_user_password', userPassword);
+  }, [userPassword]);
+
+  useEffect(() => {
+    localStorage.setItem('hcmm_astro_diag', isAstroDiagnosticActive ? 'true' : 'false');
+  }, [isAstroDiagnosticActive]);
 
   // Daily browser notification: triggers once daily showing today's Tithi, Nakshatra, and key festival info based on selected city
   useEffect(() => {
@@ -209,6 +235,14 @@ export default function App() {
         onNavigate={setActiveView}
         mantrasList={mantrasList}
         onSelectFestivalFromSearch={(fest) => setSelectedFestival(fest)}
+        isAstroDiagnosticActive={isAstroDiagnosticActive}
+        onToggleAstroDiagnostic={() => {
+          const nextVal = !isAstroDiagnosticActive;
+          setIsAstroDiagnosticActive(nextVal);
+          if (nextVal) {
+            setShowAstroDiagnosticModal(true);
+          }
+        }}
       />
 
       {/* Main Content Area - Dynamically responsive for mobile and desktop windows */}
@@ -224,6 +258,8 @@ export default function App() {
             onOpenMantras={() => setActiveView('mantras')}
             onOpenSankalpa={() => setActiveView('sankalpa')}
             onOpenKundali={() => setActiveView('kundali')}
+            isAstroDiagnosticActive={isAstroDiagnosticActive}
+            onOpenAstroDiagnostic={() => setShowAstroDiagnosticModal(true)}
           />
         )}
 
@@ -391,12 +427,18 @@ export default function App() {
       {showHcmmAdmin && (
         <HcmmAdminModal
           currentLang={currentLang}
+          selectedCity={selectedCity}
           onClose={() => setShowHcmmAdmin(false)}
           hcmmLogoUrl={hcmmLogoUrl}
           onUpdateLogoUrl={setHcmmLogoUrl}
           booksList={booksList}
           onAddBook={handleAddBook}
           onDeleteBook={handleDeleteBook}
+          customEvents={customEvents}
+          onAddEvent={handleAddEvent}
+          onDeleteEvent={handleDeleteEvent}
+          userPassword={userPassword}
+          onUpdatePassword={setUserPassword}
           initialCodeView={openCodeDirectly}
         />
       )}
@@ -427,6 +469,16 @@ export default function App() {
           currentLang={currentLang}
           selectedCity={selectedCity}
           onClose={() => setShowWidgetModal(false)}
+        />
+      )}
+
+      {/* Astro-Diagnostic & Ephemeris Verification Modal */}
+      {showAstroDiagnosticModal && (
+        <AstroDiagnosticModal
+          currentLang={currentLang}
+          selectedDate={selectedDay ? new Date(selectedDay.gregorianDate) : new Date()}
+          selectedCity={selectedCity}
+          onClose={() => setShowAstroDiagnosticModal(false)}
         />
       )}
 

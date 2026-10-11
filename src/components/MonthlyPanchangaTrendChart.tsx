@@ -103,7 +103,11 @@ export const MonthlyPanchangaTrendChart: React.FC<MonthlyPanchangaTrendChartProp
       const nakData = getNakshatraIntensity(day);
 
       // Moon illumination percentage (0 to 100)
-      const moonIllumination = Math.round((day.moonPhaseDegree / 180) * 100);
+      const moonIllumination = Math.round(
+        day.paksha === 'Shukla'
+          ? (day.tithiNumber / 15) * 100
+          : ((15 - day.tithiNumber) / 15) * 100
+      );
 
       return {
         dayNum: day.day,
@@ -241,9 +245,9 @@ export const MonthlyPanchangaTrendChart: React.FC<MonthlyPanchangaTrendChartProp
               <AreaChart
                 data={chartData}
                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                onClick={(e) => {
+                onClick={(e: any) => {
                   if (e && e.activePayload && e.activePayload[0]) {
-                    const clicked = e.activePayload[0].payload.rawDay;
+                    const clicked = e.activePayload[0].payload?.rawDay;
                     if (clicked) onSelectDay(clicked);
                   }
                 }}

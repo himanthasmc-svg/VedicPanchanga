@@ -15,33 +15,47 @@ import {
   ExternalLink,
   Download,
   Compass,
+  Calendar,
+  Shield,
   Image as ImageIcon
 } from 'lucide-react';
-import { BookItem, Language } from '../types';
+import { BookItem, CityLocation, CustomEventItem, Language } from '../types';
 
 interface HcmmAdminModalProps {
   currentLang: Language;
+  selectedCity?: CityLocation;
   onClose: () => void;
   hcmmLogoUrl: string;
   onUpdateLogoUrl: (url: string) => void;
   booksList: BookItem[];
   onAddBook: (book: BookItem) => void;
   onDeleteBook: (id: string) => void;
+  customEvents?: CustomEventItem[];
+  onAddEvent?: (evt: CustomEventItem) => void;
+  onDeleteEvent?: (id: string) => void;
+  userPassword?: string;
+  onUpdatePassword?: (pass: string) => void;
   initialCodeView?: boolean;
 }
 
 export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
   currentLang,
+  selectedCity,
   onClose,
   hcmmLogoUrl,
   onUpdateLogoUrl,
   booksList,
   onAddBook,
   onDeleteBook,
+  customEvents = [],
+  onAddEvent,
+  onDeleteEvent,
+  userPassword = 'HCMM',
+  onUpdatePassword,
   initialCodeView = true
 }) => {
   const [passwordInput, setPasswordInput] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authError, setAuthError] = useState('');
 
   // Logo update state
@@ -54,8 +68,21 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
   const [bookCategory, setBookCategory] = useState('Sacred Scripture');
   const [bookDesc, setBookDesc] = useState('');
 
+  // Custom Event addition state
+  const [eventDate, setEventDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventCategory, setEventCategory] = useState<'pooja' | 'vrat' | 'shraddha' | 'auspicious' | 'personal'>('pooja');
+  const [eventDesc, setEventDesc] = useState('');
+
+  // Password change state
+  const [currentPassInput, setCurrentPassInput] = useState('');
+  const [newPassInput, setNewPassInput] = useState('');
+  const [confirmPassInput, setConfirmPassInput] = useState('');
+  const [passChangeSuccess, setPassChangeSuccess] = useState('');
+  const [passChangeError, setPassChangeError] = useState('');
+
   // Active sub tab inside admin: defaults to sourcecode for instant code access
-  const [adminTab, setAdminTab] = useState<'sourcecode' | 'logo' | 'books'>('sourcecode');
+  const [adminTab, setAdminTab] = useState<'sourcecode' | 'logo' | 'events' | 'books' | 'security'>('sourcecode');
   const [codeFormat, setCodeFormat] = useState<'standalone' | 'iframe'>('standalone');
   const [copiedCode, setCopiedCode] = useState(false);
 
@@ -156,13 +183,30 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
     <!-- Header Banner with Creator Logo -->
     <div class="banner">
       <div class="logo-container">
-        ${logoUrl ? `<img src="${logoUrl}" alt="Creator Logo" class="logo-img" />` : `<div class="logo-fallback">HCMM</div>`}
+        ${logoUrl ? `<img src="${logoUrl}" alt="Creator Logo" class="logo-img" onclick="openHcmmModal()" style="cursor:pointer;" title="Click HCMM logo to unlock alterations (Password: HCMM)" />` : `<div class="logo-fallback" onclick="openHcmmModal()" style="cursor:pointer;" title="Click HCMM logo to unlock alterations (Password: HCMM)">HCMM</div>`}
         <div>
           <div class="title">HCMM VEDIC PANCHANGA & KUNDALI</div>
           <div class="subtitle" id="vedicHeaderSubtitle">ಶ್ರೀ ಕ್ರೋಧಿ / ವಿಶ್ವಾವಸು ಸಂವತ್ಸರ • ದಕ್ಷಿಣಾಯನ / ಉತ್ತರಾಯಣ • ಶಾಲಿವಾಹನ ಶಕ (೧೯೦೦ - ಭವಿಷ್ಯ)</div>
         </div>
       </div>
       <div class="nav-controls">
+        <select id="langSelect" onchange="changeLanguage(this.value)" style="padding:6px 10px; border-radius:8px; font-weight:700; font-size:12px; border:1px solid rgba(255,255,255,0.4); background:white; color:#1c1917; cursor:pointer;" title="Select language">
+          <option value="kn">ಕನ್ನಡ (Kannada)</option>
+          <option value="hi">हिन्दी (Hindi)</option>
+          <option value="en">English</option>
+        </select>
+        <select id="citySelect" onchange="changeCity(this.value)" style="padding:6px 10px; border-radius:8px; font-weight:700; font-size:12px; border:1px solid rgba(255,255,255,0.4); background:white; color:#1c1917; cursor:pointer;">
+          <option value="Bengaluru">ಬೆಂಗಳೂರು (Bengaluru)</option>
+          <option value="Mysuru">ಮೈಸೂರು (Mysuru)</option>
+          <option value="Mangaluru">ಮಂಗಳೂರು (Mangaluru)</option>
+          <option value="Hubballi">ಹುಬ್ಬಳ್ಳಿ (Hubballi)</option>
+          <option value="New Delhi">ನವದೆಹಲಿ (New Delhi)</option>
+          <option value="Varanasi">ವಾರಾಣಸಿ / ಕಾಶಿ (Varanasi)</option>
+          <option value="Mumbai">ಮುಂಬೈ (Mumbai)</option>
+          <option value="Chennai">ಚೆನ್ನೈ (Chennai)</option>
+          <option value="Hyderabad">ಹೈದರಾಬಾದ್ (Hyderabad)</option>
+          <option value="Kolkata">ಕೋಲ್ಕತ್ತಾ (Kolkata)</option>
+        </select>
         <button class="btn" onclick="prevMonth()">◀ Prev</button>
         <span id="monthYearLabel" style="font-weight:800; font-size:15px; min-width:140px; text-align:center;">November 2026</span>
         <button class="btn" onclick="nextMonth()">Next ▶</button>
@@ -227,7 +271,7 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
 
     <!-- Vedic Sankalpa Preview Card with Dynamic Place Name -->
     <div class="sankalpa-box">
-      <div class="section-title">ವೇದೋಕ್ತ ಶುಭ ಸಂಕಲ್ಪ ಮಂತ್ರ (Vedic Shubha Sankalpa Stotra)</div>
+      <div class="section-title" id="sankalpaTitleText">ವೇದೋಕ್ತ ಶುಭ ಸಂಕಲ್ಪ ಮಂತ್ರ (Vedic Shubha Sankalpa Stotra)</div>
       <p id="sankalpaPreviewText">
         ಓಂ ನಮಃ ಪರಮಾತ್ಮನೇ, ಶ್ರೀ ಪುರಾಣಪುರುಷೋತ್ತಮಸ್ಯ ಶ್ರೀ ವಿಷ್ಣೋರಾಜ್ಞಯಾ ಪ್ರವರ್ತಮಾನಸ್ಯ ಆದ್ಯ ಶ್ರೀ ಬ್ರಹ್ಮಣೋ ದ್ವಿತೀಯ ಪರಾರ್ಧೇ ಶ್ರೀ ಶ್ವೇತವರಾಹಕಲ್ಪೇ ವೈವಸ್ವತ ಮನ್ವಂತರೇ ಅಷ್ಟಾವಿಂಶತಿತಮೇ ಕಲಿಯುಗೇ ಪ್ರಥಮ ಚರಣೇ ಜಂಬೂ ದ್ವೀಪೇ ಭಾರತ ವರ್ಷೇ ಭರತ ಖಂಡೇ ಆರ್ಯಾವರ್ತಾಂತರ್ಗತ ಬ್ರಹ್ಮಾವರ್ತೈಕ ದೇಶೇ 
         <span class="blue-highlight" id="skCity">(೧. ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ)</span> ಪುಣ್ಯ ಪ್ರದೇಶೇ, 
@@ -263,6 +307,126 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
 
     let currentYear = 2026;
     let currentMonth = 10; // November (0-indexed = 10)
+    let currentAppLang = 'kn';
+    let currentSelectedCity = 'Bengaluru';
+
+    const CITY_LOCALIZED_NAMES = {
+      'Bengaluru': { kn: 'ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'बेंगलुरु, कर्नाटक', en: 'Bengaluru, Karnataka' },
+      'Mysuru': { kn: 'ಮೈಸೂರು, ಕರ್ನಾಟಕ', hi: 'मैसूरु, कर्नाटक', en: 'Mysuru, Karnataka' },
+      'Mangaluru': { kn: 'ಮಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'मंगलुरु, कर्नाटक', en: 'Mangaluru, Karnataka' },
+      'Hubballi': { kn: 'ಹುಬ್ಬಳ್ಳಿ, ಕರ್ನಾಟಕ', hi: 'हुब्बल्ली, कर्नाटक', en: 'Hubballi, Karnataka' },
+      'New Delhi': { kn: 'ನವದೆಹಲಿ, ದೆಹಲಿ', hi: 'नई दिल्ली, दिल्ली', en: 'New Delhi, Delhi' },
+      'Varanasi': { kn: 'ವಾರಾಣಸಿ (ಕಾಶಿ), ಉತ್ತರ ಪ್ರದೇಶ', hi: 'वाराणसी (काशी), उत्तर प्रदेश', en: 'Varanasi, Uttar Pradesh' },
+      'Mumbai': { kn: 'ಮುಂಬೈ, ಮಹಾರಾಷ್ಟ್ರ', hi: 'मुंबई, महाराष्ट्र', en: 'Mumbai, Maharashtra' },
+      'Chennai': { kn: 'ಚೆನ್ನೈ, ತಮಿಳುನಾಡು', hi: 'चेन्नई, तमिलनाडु', en: 'Chennai, Tamil Nadu' },
+      'Hyderabad': { kn: 'ಹೈದರಾಬಾದ್, ತೆಲಂಗಾಣ', hi: 'हैदराबाद, तेलंगाना', en: 'Hyderabad, Telangana' },
+      'Kolkata': { kn: 'ಕೋಲ್ಕತ್ತಾ, ಪಶ್ಚಿಮ ಬಂಗಾಳ', hi: 'कोलकाता, पश्चिम बंगाल', en: 'Kolkata, West Bengal' },
+      'London': { kn: 'ಲಂಡನ್, ಯುನೈಟೆಡ್ ಕಿಂಗ್‌ಡಮ್', hi: 'लंदन, यूनाइटेड किंगडम', en: 'London, Greater London' },
+      'New York': { kn: 'ನ್ಯೂಯಾರ್ಕ್, ಯುಎಸ್ಎ', hi: 'न्यू यॉर्क, न्यूयॉर्क', en: 'New York, NY' }
+    };
+
+    const SANKALPA_TEMPLATES = {
+      kn: {
+        title: 'ವೇದೋಕ್ತ ಶುಭ ಸಂಕಲ್ಪ ಮಂತ್ರ (Vedic Shubha Sankalpa Stotra)',
+        part1: 'ಓಂ ನಮಃ ಪರಮಾತ್ಮನೇ, ಶ್ರೀ ಪುರಾಣಪುರುಷೋತ್ತಮಸ್ಯ ಶ್ರೀ ವಿಷ್ಣೋರಾಜ್ಞಯಾ ಪ್ರವರ್ತಮಾನಸ್ಯ ಆದ್ಯ ಶ್ರೀ ಬ್ರಹ್ಮಣೋ ದ್ವಿತೀಯ ಪರಾರ್ಧೇ ಶ್ರೀ ಶ್ವೇತವರಾಹಕಲ್ಪೇ ವೈವಸ್ವತ ಮನ್ವಂತರೇ ಅಷ್ಟಾವಿಂಶತಿತಮೇ ಕಲಿಯುಗೇ ಪ್ರಥಮ ಚರಣೇ ಜಂಬೂ ದ್ವೀಪೇ ಭಾರತ ವರ್ಷೇ ಭರತ ಖಂಡೇ ಆರ್ಯಾವರ್ತಾಂತರ್ಗತ ಬ್ರಹ್ಮಾವರ್ತೈಕ ದೇಶೇ ',
+        citySuffix: ' ಪುಣ್ಯ ಪ್ರದೇಶೇ, ',
+        samvatsara: '೨. ವಿಶ್ವಾವಸು',
+        samvatsaraSuffix: ' ನಾಮ ಸಂವತ್ಸರೇ, ',
+        ayana: '೩. ದಕ್ಷಿಣಾಯನ',
+        ayanaSuffix: ' ಅಯನೇ, ',
+        masa: '೪. ಕಾರ್ತಿಕ',
+        masaSuffix: ' ಮಾಸೇ, ',
+        paksha: '೫. ಶುಕ್ಲ',
+        pakshaSuffix: ' ಪಕ್ಷೇ, ',
+        tithi: '೬. ಬಿದಿಗೆ',
+        tithiSuffix: ' ತಿಥೌ, ',
+        vasara: '೭. ಬುಧ',
+        vasaraSuffix: ' ವಾಸರಾನ್ವಿತಾಯಾಂ, ',
+        nakshatra: '೮. ಅನೂರಾಧಾ',
+        nakshatraSuffix: ' ನಕ್ಷತ್ರೇ, ',
+        rashi: '೯. ತುಲಾ',
+        rashiSuffix: ' ರಾಶಿ ಸ್ಥಿತೇ ಭಾಸ್ಕರೇ ಅಸ್ಮಾಕಂ ಸರ್ವೇಷಾಂ ಸಹ ಕುಟುಂಬಾನಾಂ ಕ್ಷೇಮ ಸ್ಥೈರ್ಯ ವಿಜಯಾಯುರಾರೋಗ್ಯೈಶ್ವರ್ಯಾಭಿವೃದ್ಧರ್ಥಂ ಶ್ರೀ ಇಷ್ಟದೇವತಾ ಪ್ರೀತ್ಯರ್ಥಂ ಪೂಜನಂ ಕರಿಷ್ಯೇ.'
+      },
+      hi: {
+        title: 'वेदोक्त शुभ संकल्प मन्त्र (Vedic Shubha Sankalpa Stotra)',
+        part1: 'ॐ नमः परमात्मने, श्री पुराणपुरुषोत्तमस्य श्री विष्णोराज्ञया प्रवर्तमानस्य आद्य श्री ब्रह्मणो द्वितीय परार्धे श्री श्वेतवराहकल्पे वैवस्वत मन्वन्तरे अष्टाविंशतितमे कलियुगे प्रथम चरणे जम्बू द्वीपे भारत वर्षे भरत खण्डे आर्यावर्तान्तर्गत ब्रह्मावर्तैक देशे ',
+        citySuffix: ' पुण्य प्रदेशे, ',
+        samvatsara: '२. विश्वावसु',
+        samvatsaraSuffix: ' नाम संवत्सरे, ',
+        ayana: '३. दक्षिणायन',
+        ayanaSuffix: ' अयने, ',
+        masa: '४. कार्तिक',
+        masaSuffix: ' मासे, ',
+        paksha: '५. शुक्ल',
+        pakshaSuffix: ' पक्षे, ',
+        tithi: '६. द्वितीया',
+        tithiSuffix: ' तिथौ, ',
+        vasara: '७. बुध',
+        vasaraSuffix: ' वासरान्वितायां, ',
+        nakshatra: '८. अनुराधा',
+        nakshatraSuffix: ' नक्षत्रे, ',
+        rashi: '९. तुला',
+        rashiSuffix: ' राशि स्थिते भास्करे अस्माकं सर्वेषां सह कुटुंबानां क्षेम स्थैर्य विजय वीर्यायुरारोग्यैश्वर्याद्यभिवृद्ध्यर्थं श्री इष्टदेवता प्रीत्यर्थं पूजनं करिष्ये।'
+      },
+      en: {
+        title: 'Vedic Shubha Sankalpa Stotra',
+        part1: 'Om Namah Paramatmane, Sri Purana-Purushottamasya Sri Vishnor-Aajnaya Pravartamanasya Aadya Sri Brahmano Dvitiya Parardhe Sri Shweta-Varaha-Kalpe Vaivasvata Manvantare Ashtavimshatitame Kaliyuge Prathama Charane Jambu Dweepe Bharata Varshe Bharata Khande Aaryavartantargata Brahmavartaika Deshe ',
+        citySuffix: ' Punya Pradeshe, ',
+        samvatsara: '2. Vishvavasu',
+        samvatsaraSuffix: ' Nama Samvatsare, ',
+        ayana: '3. Dakshinayana',
+        ayanaSuffix: ' Ayane, ',
+        masa: '4. Kartika',
+        masaSuffix: ' Mase, ',
+        paksha: '5. Shukla',
+        pakshaSuffix: ' Pakshe, ',
+        tithi: '6. Dvitiya',
+        tithiSuffix: ' Tithau, ',
+        vasara: '7. Budha',
+        vasaraSuffix: ' Vasaranvitayam, ',
+        nakshatra: '8. Anuradha',
+        nakshatraSuffix: ' Nakshatre, ',
+        rashi: '9. Tula',
+        rashiSuffix: ' Rashi Sthite Bhaskare Asmakam Sarvesham Saha Kutumbanam Kshema Sthairya Vijaya Veeryayurarogyaishvaryadyabhivriddhyartham Sri Ishta Devata Preetyartham Pujanam Karishye.'
+      }
+    };
+
+    function updateSankalpaPlaceName() {
+      const dict = CITY_LOCALIZED_NAMES[currentSelectedCity] || { kn: currentSelectedCity, hi: currentSelectedCity, en: currentSelectedCity };
+      const locName = dict[currentAppLang] || dict.kn || currentSelectedCity;
+      const numPrefix = currentAppLang === 'kn' ? '೧' : currentAppLang === 'hi' ? '१' : '1';
+      const tmpl = SANKALPA_TEMPLATES[currentAppLang] || SANKALPA_TEMPLATES.kn;
+      
+      const titleEl = document.getElementById('sankalpaTitleText');
+      if (titleEl) titleEl.textContent = tmpl.title;
+
+      const previewEl = document.getElementById('sankalpaPreviewText');
+      if (previewEl) {
+        previewEl.innerHTML = \`
+          \${tmpl.part1}
+          <span class="blue-highlight" id="skCity">(\${numPrefix}. \${locName})</span>\${tmpl.citySuffix}
+          <span class="blue-highlight" id="skSamvatsara">(\${tmpl.samvatsara})</span>\${tmpl.samvatsaraSuffix}
+          <span class="blue-highlight" id="skAyana">(\${tmpl.ayana})</span>\${tmpl.ayanaSuffix}
+          <span class="blue-highlight" id="skMasa">(\${tmpl.masa})</span>\${tmpl.masaSuffix}
+          <span class="blue-highlight" id="skPaksha">(\${tmpl.paksha})</span>\${tmpl.pakshaSuffix}
+          <span class="blue-highlight" id="skTithi">(\${tmpl.tithi})</span>\${tmpl.tithiSuffix}
+          <span class="blue-highlight" id="skVasara">(\${tmpl.vasara})</span>\${tmpl.vasaraSuffix}
+          <span class="blue-highlight" id="skNakshatra">(\${tmpl.nakshatra})</span>\${tmpl.nakshatraSuffix}
+          <span class="blue-highlight" id="skRashi">(\${tmpl.rashi})</span>\${tmpl.rashiSuffix}
+        \`;
+      }
+    }
+
+    function changeCity(cityKey) {
+      currentSelectedCity = cityKey;
+      updateSankalpaPlaceName();
+    }
+
+    function changeLanguage(langKey) {
+      currentAppLang = langKey;
+      updateSankalpaPlaceName();
+      renderCalendar();
+    }
 
     const TITHI_NAMES = ['ಪಾಡ್ಯ (Prathama)', 'ಬಿದಿಗೆ (Dvitiya)', 'ತದಿಗೆ (Tritiya)', 'ಚೌತಿ (Chaturthi)', 'ಪಂಚಮಿ (Panchami)', 'ಷಷ್ಠಿ (Shashti)', 'ಸಪ್ತಮಿ (Saptami)', 'ಅಷ್ಟಮಿ (Ashtami)', 'ನವಮಿ (Navami)', 'ದಶಮಿ (Dashami)', 'ಏಕಾದಶಿ (Ekadashi)', 'ದ್ವಾದಶಿ (Dvadashi)', 'ತ್ರಯೋದಶಿ (Trayodashi)', 'ಚತುರ್ದಶಿ (Chaturdashi)', 'ಹುಣ್ಣಿಮೆ/ಅಮಾವಾಸ್ಯೆ'];
     const NAKSHATRAS = ['ಅಶ್ವಿನಿ', 'ಭರಣಿ', 'ಕೃತಿಕಾ', 'ರೋಹಿಣಿ', 'ಮೃಗಶಿರ', 'ಆರಿದ್ರ', 'ಪುನರ್ವಸು', 'ಪುಷ್ಯ', 'ಆಶ್ಲೇಷ', 'ಮಘ', 'ಹುಬ್ಬ', 'ಉತ್ತರ', 'ಹಸ್ತ', 'ಚಿತ್ತ', 'ಸ್ವಾತಿ', 'ವಿಶಾಖ', 'ಅನುರಾಧಾ', 'ಜ್ಯೇಷ್ಠ', 'ಮೂಲ', 'ಪೂರ್ವಾಷಾಢ', 'ಉತ್ತರಾಷಾಢ', 'ಶ್ರವಣ', 'ಧನಿಷ್ಠಾ', 'ಶತತಾರ', 'ಪೂರ್ವಭಾದ್ರ', 'ಉತ್ತರಭಾದ್ರ', 'ರೇವತಿ'];
@@ -347,12 +511,71 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
       document.getElementById('dayModal').style.display = 'none';
     }
 
+    function openHcmmModal() {
+      document.getElementById('hcmmAdminModal').style.display = 'flex';
+      document.getElementById('hcmmPassInput').value = '';
+      document.getElementById('hcmmAuthError').style.display = 'none';
+      document.getElementById('hcmmAuthScreen').style.display = 'block';
+      document.getElementById('hcmmAlterationScreen').style.display = 'none';
+    }
+
+    function closeHcmmModal() {
+      document.getElementById('hcmmAdminModal').style.display = 'none';
+    }
+
+    function verifyHcmmPassword() {
+      const pass = document.getElementById('hcmmPassInput').value.trim().toUpperCase();
+      if (pass === 'HCMM') {
+        document.getElementById('hcmmAuthScreen').style.display = 'none';
+        document.getElementById('hcmmAlterationScreen').style.display = 'block';
+      } else {
+        document.getElementById('hcmmAuthError').style.display = 'block';
+      }
+    }
+
+    function applyHcmmAlterations() {
+      const url = document.getElementById('logoUrlInput').value.trim();
+      if (url) {
+        const ph = document.getElementById('bannerLogoPlaceholder');
+        if (ph) ph.outerHTML = '<img src="' + url + '" id="bannerLogoPlaceholder" class="logo-img" onclick="openHcmmModal()" style="cursor:pointer;" title="Click HCMM logo to alter settings" />';
+      }
+      closeHcmmModal();
+    }
+
     window.onclick = function(e) {
       if (e.target === document.getElementById('dayModal')) closeModal();
+      if (e.target === document.getElementById('hcmmAdminModal')) closeHcmmModal();
     }
 
     renderCalendar();
+    updateSankalpaPlaceName();
   </script>
+
+  <!-- HCMM Admin Alteration Modal -->
+  <div class="modal" id="hcmmAdminModal">
+    <div class="modal-content" style="max-width:520px;">
+      <button class="close-btn" onclick="closeHcmmModal()">&times;</button>
+      <div id="hcmmAuthScreen" style="text-align:center; padding:12px 0;">
+        <div style="font-size:28px; margin-bottom:8px;">🔒</div>
+        <h3 style="font-family:'Cinzel', serif; color:#b45309; font-size:18px;">HCMM Alteration Access</h3>
+        <p style="font-size:12px; color:#57534e; margin:6px 0 14px;">The page is open for viewing. Enter password to alter logo or settings.</p>
+        <div id="hcmmAuthError" style="display:none; color:#dc2626; font-size:12px; font-weight:700; margin-bottom:10px;">Incorrect Password! (Default is HCMM)</div>
+        <input type="password" id="hcmmPassInput" placeholder="Password (HCMM)" style="padding:8px 12px; font-family:monospace; text-align:center; font-size:14px; border:1px solid #d6d3d1; border-radius:8px; outline:none;" />
+        <div style="margin-top:14px; display:flex; justify-content:center; gap:8px;">
+          <button class="btn btn-gold" onclick="verifyHcmmPassword()" style="color:#78350f;">Unlock</button>
+          <button class="btn" style="background:#f5f5f4; color:#292524; border-color:#d6d3d1;" onclick="closeHcmmModal()">Cancel</button>
+        </div>
+      </div>
+      <div id="hcmmAlterationScreen" style="display:none;">
+        <h3 style="font-family:'Cinzel', serif; color:#b45309; font-size:18px; margin-bottom:12px;">Alter Logo & Settings</h3>
+        <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:4px;">New Logo URL:</label>
+        <input type="text" id="logoUrlInput" placeholder="https://example.com/logo.png" style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #d6d3d1; border-radius:8px; margin-bottom:12px;" />
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button class="btn btn-gold" onclick="applyHcmmAlterations()">Save & Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>`;
 
@@ -437,73 +660,219 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
     setBookDesc('');
   };
 
+  const handleAddEventSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!eventTitle.trim() || !onAddEvent) return;
+    const newEvt: CustomEventItem = {
+      id: `evt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      date: eventDate,
+      title: eventTitle.trim(),
+      category: eventCategory,
+      description: eventDesc.trim() || 'Custom Vedic observance.'
+    };
+    onAddEvent(newEvt);
+    setEventTitle('');
+    setEventDesc('');
+  };
+
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassChangeError('');
+    setPassChangeSuccess('');
+    const activePass = (userPassword || localStorage.getItem('hcmm_user_password') || 'HCMM').trim().toUpperCase();
+    if (currentPassInput.trim().toUpperCase() !== activePass) {
+      setPassChangeError('Current password is incorrect.');
+      return;
+    }
+    if (!newPassInput.trim()) {
+      setPassChangeError('New password cannot be empty.');
+      return;
+    }
+    if (newPassInput.trim() !== confirmPassInput.trim()) {
+      setPassChangeError('New passwords do not match.');
+      return;
+    }
+    const updated = newPassInput.trim();
+    if (onUpdatePassword) onUpdatePassword(updated);
+    localStorage.setItem('hcmm_user_password', updated);
+    setPassChangeSuccess('Administrator password updated successfully!');
+    setCurrentPassInput('');
+    setNewPassInput('');
+    setConfirmPassInput('');
+  };
+
+  // Close on Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    const savedPass = (localStorage.getItem('hcmm_user_password') || 'HCMM').trim().toUpperCase();
+    const entered = passwordInput.trim().toUpperCase();
+    if (entered === 'HCMM' || entered === savedPass) {
+      setIsAuthenticated(true);
+      setPasswordInput('');
+    } else {
+      setAuthError('Incorrect Password! (Default is HCMM or your customized password)');
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+    <div 
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs animate-in fade-in duration-150"
+      onClick={onClose}
+    >
       <div 
-        className="relative w-full max-w-6xl xl:max-w-7xl rounded-2xl bg-white dark:bg-stone-900 shadow-2xl border border-amber-200/80 dark:border-stone-700 overflow-hidden my-6"
+        className="fixed top-16 sm:top-20 left-2 sm:left-6 right-2 sm:right-auto sm:max-w-4xl w-auto sm:w-[92vw] md:w-[860px] rounded-2xl bg-white dark:bg-stone-900 shadow-2xl border-2 border-amber-500/80 dark:border-stone-700 overflow-hidden max-h-[calc(100vh-90px)] flex flex-col z-50"
         onClick={(e) => e.stopPropagation()}
       >
         
-        {/* Header */}
-        <div className="p-5 bg-gradient-to-r from-stone-900 via-amber-950 to-stone-900 text-white flex items-center justify-between border-b border-amber-500/30">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-amber-500 text-stone-950 font-bold font-serif text-sm tracking-wider">
+        {/* Sticky Header with prominent, easy-to-click close button directly below logo */}
+        <div className="sticky top-0 z-30 p-3.5 sm:p-4 bg-gradient-to-r from-stone-900 via-amber-950 to-stone-900 text-white flex items-center justify-between border-b border-amber-500/40 shadow-md">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-amber-500 text-stone-950 font-bold font-serif text-xs tracking-wider shadow-sm">
               HCMM
             </div>
             <div>
-              <h2 className="font-serif font-bold text-lg text-amber-200">
+              <h2 className="font-serif font-bold text-sm sm:text-base text-amber-200 leading-tight">
                 Creator Portal • Full Program Source & Logo Workspace
               </h2>
-              <p className="text-xs text-stone-300">
+              <p className="text-[11px] text-stone-300 hidden sm:block">
                 Full HTML Code Export • Custom Logo Embedding • Gochar Guidance • Viewer Books
               </p>
             </div>
           </div>
 
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/20 text-white transition-colors">
-            <X className="w-5 h-5" />
+          <button 
+            onClick={onClose} 
+            className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shrink-0 transition-transform active:scale-95 cursor-pointer ring-1 ring-red-400"
+            title="Close Window (Esc)"
+          >
+            <X className="w-4 h-4 stroke-[2.5]" />
+            <span>Close (ಮುಚ್ಚಿ)</span>
           </button>
         </div>
 
-        {/* Workspace Content */}
-        <div className="p-6 space-y-6">
+        {/* If not authenticated: show password verification */}
+        {!isAuthenticated ? (
+          <div className="p-6 sm:p-10 flex flex-col items-center justify-center text-center space-y-4 my-auto overflow-y-auto">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="font-serif font-bold text-lg sm:text-xl text-stone-900 dark:text-stone-100">
+                HCMM Admin • Alteration Access
+              </h3>
+              <p className="text-xs text-stone-500 mt-1 max-w-md">
+                Viewing the web page is open and free. Enter your administrator password only to alter the logo, customize celebrations/events, edit books, or change settings.
+              </p>
+            </div>
+
+            {authError && (
+              <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-semibold">
+                {authError}
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordSubmit} className="w-full max-w-xs space-y-3">
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Enter password (HCMM)"
+                className="w-full px-4 py-2.5 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 font-mono text-center text-sm font-bold tracking-widest text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+              >
+                Unlock Alteration Access
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2 px-4 rounded-xl border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 font-semibold text-xs transition-all flex items-center justify-center gap-1.5"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Cancel & Close</span>
+              </button>
+            </form>
+
+            <span className="text-[11px] text-stone-400">
+              Default password: <strong className="text-amber-600">HCMM</strong>
+            </span>
+          </div>
+        ) : (
+          /* Workspace Content */
+          <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1">
           
           {/* Sub-Tabs */}
-          <div className="flex items-center gap-2 border-b border-stone-200 dark:border-stone-800 pb-3 text-xs font-bold">
+          <div className="flex items-center gap-1.5 border-b border-stone-200 dark:border-stone-800 pb-3 text-xs font-bold overflow-x-auto scrollbar-none">
             <button
               onClick={() => setAdminTab('sourcecode')}
-              className={`px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
                 adminTab === 'sourcecode'
                   ? 'bg-amber-600 text-white shadow-xs'
                   : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
               }`}
             >
-              <FileCode className="w-4 h-4" />
-              <span>Full Program HTML Source Code</span>
+              <FileCode className="w-3.5 h-3.5" />
+              <span>Full HTML Source</span>
             </button>
 
             <button
               onClick={() => setAdminTab('logo')}
-              className={`px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
                 adminTab === 'logo'
                   ? 'bg-amber-600 text-white shadow-xs'
                   : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
               }`}
             >
-              <ImageIcon className="w-4 h-4" />
-              <span>Custom Logo Workspace</span>
+              <ImageIcon className="w-3.5 h-3.5" />
+              <span>Alter Logo</span>
+            </button>
+
+            <button
+              onClick={() => setAdminTab('events')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
+                adminTab === 'events'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Alter Celebrations ({customEvents.length})</span>
             </button>
 
             <button
               onClick={() => setAdminTab('books')}
-              className={`px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
                 adminTab === 'books'
                   ? 'bg-amber-600 text-white shadow-xs'
                   : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
               }`}
             >
-              <BookOpen className="w-4 h-4" />
-              <span>Viewer Books & References</span>
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Alter Books ({booksList.length})</span>
+            </button>
+
+            <button
+              onClick={() => setAdminTab('security')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
+                adminTab === 'security'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Admin Password</span>
             </button>
           </div>
 
@@ -838,7 +1207,232 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
             </div>
           )}
 
+          {/* TAB 4: CUSTOM EVENTS & CELEBRATIONS */}
+          {adminTab === 'events' && (
+            <div className="space-y-5 text-xs">
+              <form onSubmit={handleAddEventSubmit} className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-800/40 space-y-3">
+                <h4 className="font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wider text-xs flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-amber-600" />
+                  <span>+ Add Custom Event, Vrata, Celebration or Tithi Observance</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mb-1">
+                      Event Date
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mb-1">
+                      Event Title
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Satyanarayana Pooja, Vardhanti..."
+                      value={eventTitle}
+                      onChange={(e) => setEventTitle(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={eventCategory}
+                      onChange={(e) => setEventCategory(e.target.value as any)}
+                      className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100"
+                    >
+                      <option value="pooja">Pooja (ಪೂಜೆ)</option>
+                      <option value="vrat">Vrat / Fasting (ವ್ರತ / ಉಪವಾಸ)</option>
+                      <option value="shraddha">Shraddha / Tithi (ಶ್ರಾದ್ಧ / ಪುಣ್ಯತಿಥಿ)</option>
+                      <option value="auspicious">Auspicious Occasion (ಶುಭ ಕಾರ್ಯ)</option>
+                      <option value="personal">Personal / Family (ವೈಯಕ್ತಿಕ)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mb-1">
+                    Notes / Description
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Details, sankalpa intentions, or muhurta notes..."
+                    value={eventDesc}
+                    onChange={(e) => setEventDesc(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100"
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold transition-colors shadow-2xs"
+                  >
+                    Save Celebration to Calendar
+                  </button>
+                </div>
+              </form>
+
+              {/* Existing Events List */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
+                  Active Custom Celebrations ({customEvents.length})
+                </h4>
+
+                {customEvents.length === 0 ? (
+                  <p className="text-stone-500 italic py-2">
+                    No custom celebrations recorded yet. Add your personal celebrations, family vratas, or special rituals above.
+                  </p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                    {customEvents.map((evt) => (
+                      <div
+                        key={evt.id}
+                        className="p-3 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-800/60 flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div>
+                          <div className="font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                            <span>{evt.title}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border border-amber-300 font-mono">
+                              {evt.date}
+                            </span>
+                            <span className="text-[10px] text-stone-400 uppercase">
+                              {evt.category}
+                            </span>
+                          </div>
+                          <p className="text-stone-500 text-[11px] mt-0.5">
+                            {evt.description}
+                          </p>
+                        </div>
+
+                        {onDeleteEvent && (
+                          <button
+                            onClick={() => onDeleteEvent(evt.id)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors"
+                            title="Delete this event"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: SECURITY & CHANGE ADMIN PASSWORD */}
+          {adminTab === 'security' && (
+            <div className="space-y-4 max-w-md mx-auto text-xs py-2">
+              <div className="p-4 rounded-xl border border-amber-300 dark:border-stone-700 bg-amber-50/40 dark:bg-stone-800/40 space-y-1">
+                <h4 className="font-bold text-stone-900 dark:text-stone-100 text-sm flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-amber-600" />
+                  <span>HCMM Administrator Password</span>
+                </h4>
+                <p className="text-stone-600 dark:text-stone-400 text-[11.5px]">
+                  Viewing and browsing the Panchanga web page is open and never requires a password. This password only protects altering items (logo, celebrations, books, and code export) when clicking the HCMM logo.
+                </p>
+              </div>
+
+              {passChangeSuccess && (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{passChangeSuccess}</span>
+                </div>
+              )}
+
+              {passChangeError && (
+                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-semibold">
+                  {passChangeError}
+                </div>
+              )}
+
+              <form onSubmit={handlePasswordChange} className="space-y-3">
+                <div>
+                  <label className="block font-bold text-stone-700 dark:text-stone-300 mb-1">
+                    Current Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter current password (default: HCMM)"
+                    value={currentPassInput}
+                    onChange={(e) => setCurrentPassInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-stone-700 dark:text-stone-300 mb-1">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter new password"
+                    value={newPassInput}
+                    onChange={(e) => setNewPassInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-stone-700 dark:text-stone-300 mb-1">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Re-enter new password"
+                    value={confirmPassInput}
+                    onChange={(e) => setConfirmPassInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-mono"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold transition-colors shadow-sm"
+                >
+                  Update Admin Password
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Sticky Modal Footer with Lock Alterations & Close Buttons */}
+          <div className="sticky bottom-0 z-20 bg-stone-100 dark:bg-stone-900 border-t border-stone-200 dark:border-stone-800 p-3 sm:p-4 flex items-center justify-between text-xs">
+            <button
+              onClick={() => setIsAuthenticated(false)}
+              className="px-3.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 font-semibold flex items-center gap-1.5 transition-colors"
+              title="Lock alteration access now"
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-600" />
+              <span>Lock Alterations</span>
+            </button>
+
+            <button
+              onClick={onClose}
+              className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs"
+            >
+              Close (ಮುಚ್ಚಿ)
+            </button>
+          </div>
         </div>
+        )}
 
       </div>
     </div>

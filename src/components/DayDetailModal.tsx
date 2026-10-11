@@ -220,15 +220,27 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
     }
   };
 
+  // Close on Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150"
+      onClick={onClose}
+    >
       <div 
-        className="relative w-full max-w-3xl rounded-2xl bg-white dark:bg-stone-900 shadow-2xl border border-amber-200/80 dark:border-stone-700 overflow-hidden my-8 max-h-[90vh] flex flex-col"
+        className="relative w-full max-w-3xl rounded-2xl bg-white dark:bg-stone-900 shadow-2xl border border-amber-200/80 dark:border-stone-700 overflow-hidden my-auto max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         
         {/* Header Bar */}
-        <div className="p-6 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white relative">
+        <div className="p-4 sm:p-6 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white relative">
           <div className="flex items-start justify-between">
             <div>
               <div className="text-amber-200 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
@@ -253,9 +265,11 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+              className="px-3 py-1.5 rounded-xl bg-black/30 hover:bg-black/50 text-white font-bold text-xs flex items-center gap-1.5 transition-all ring-1 ring-white/40 shrink-0 cursor-pointer"
+              title="Close Window (Esc)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 stroke-[2.5]" />
+              <span>Close</span>
             </button>
           </div>
         </div>

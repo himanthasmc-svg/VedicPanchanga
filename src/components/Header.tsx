@@ -18,7 +18,8 @@ import {
   FileCode,
   Compass,
   Clock,
-  Bell
+  Bell,
+  Activity
 } from 'lucide-react';
 import { CityLocation, Festival, Language, MantraItem } from '../types';
 import { CITIES } from '../utils/panchanga';
@@ -47,6 +48,8 @@ interface HeaderProps {
   onNavigate: (view: 'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta') => void;
   mantrasList: MantraItem[];
   onSelectFestivalFromSearch: (fest: Festival) => void;
+  isAstroDiagnosticActive?: boolean;
+  onToggleAstroDiagnostic?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -66,7 +69,9 @@ export const Header: React.FC<HeaderProps> = ({
   activeView,
   onNavigate,
   mantrasList,
-  onSelectFestivalFromSearch
+  onSelectFestivalFromSearch,
+  isAstroDiagnosticActive = false,
+  onToggleAstroDiagnostic
 }) => {
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -482,6 +487,20 @@ export const Header: React.FC<HeaderProps> = ({
               title="Cross-Device Cloud Sync & Backup"
             >
               <Cloud className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            </button>
+
+            {/* Astro-Diagnostic Toggle */}
+            <button
+              onClick={onToggleAstroDiagnostic}
+              className={`p-2 rounded-lg border transition-colors shadow-2xs flex items-center gap-1 text-xs font-bold ${
+                isAstroDiagnosticActive
+                  ? 'border-amber-500 bg-amber-500/20 text-amber-800 dark:text-amber-200 ring-2 ring-amber-400'
+                  : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:border-amber-400'
+              }`}
+              title="Astro-Diagnostic & Ephemeris Verification (ಖಗೋಳ ನಿಖರತೆ ಪರಿಶೀಲನೆ)"
+            >
+              <Activity className={`w-4 h-4 text-amber-600 ${isAstroDiagnosticActive ? 'animate-pulse' : ''}`} />
+              <span className="hidden xl:inline text-[11px]">Diagnostic</span>
             </button>
 
             {/* Biometric Privacy */}

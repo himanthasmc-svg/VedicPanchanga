@@ -26,7 +26,7 @@ import {
   SANKALPA_MANTRA_MULTILINGUAL,
   SANKALPA_MANTRA_PARTS 
 } from '../utils/pdfData';
-import { getPanchangaForDate, getLocalizedPlaceName, CITIES } from '../utils/panchanga';
+import { getPanchangaForDate, getLocalizedPlaceName, lookupLocalizedPlaceName, CITIES } from '../utils/panchanga';
 
 interface SankalpaVidhiPageProps {
   currentLang: Language;
@@ -51,17 +51,36 @@ export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
   // Selected date for Sankalpa calculation
   const [selectedDateStr, setSelectedDateStr] = useState<string>(todayStr);
   const [customCityName, setCustomCityName] = useState<string>('');
-  const [deityName, setDeityName] = useState<string>('ಶ್ರೀ ಇಷ್ಟದೇವತಾ / ಶ್ರೀ ದುರ್ಗಾ / ಶ್ರೀ ಪರಮೇಶ್ವರ');
-  const [granthaName, setGranthaName] = useState<string>('ಶ್ರೀ ದೇವೀ ಮಾಹಾತ್ಮ್ಯೆ / ಶ್ರೀ ರುದ್ರ ಪಾರಾಯಣ');
+  const DEFAULT_DEITY: Record<Language, string> = {
+    kn: 'ಶ್ರೀ ಇಷ್ಟದೇವತಾ / ಶ್ರೀ ದುರ್ಗಾ / ಶ್ರೀ ಪರಮೇಶ್ವರ',
+    hi: 'श्री इष्टदेवता / श्री दुर्गा / श्री परमेश्वर',
+    en: 'Sri Ishta Devata / Sri Durga / Sri Parameshwara'
+  };
+
+  const DEFAULT_GRANTHA: Record<Language, string> = {
+    kn: 'ಶ್ರೀ ದೇವೀ ಮಾಹಾತ್ಮ್ಯೆ / ಶ್ರೀ ರುದ್ರ ಪಾರಾಯಣ',
+    hi: 'श्री देवी माहात्म्ये / श्री रुद्र पारायण',
+    en: 'Sri Devi Mahatmye / Sri Rudra Parayana'
+  };
+
+  const [deityName, setDeityName] = useState<string>(() => DEFAULT_DEITY[currentLang] || DEFAULT_DEITY.kn);
+  const [granthaName, setGranthaName] = useState<string>(() => DEFAULT_GRANTHA[currentLang] || DEFAULT_GRANTHA.kn);
 
   // Active view tab for the PDF reference sections
   const [activeTab, setActiveTab] = useState<'stotra' | 'vidhana' | 'samvatsara' | 'nakshatra' | 'sankhya' | 'peetha'>('stotra');
   const [stotraLang, setStotraLang] = useState<Language>(currentLang);
   const [copiedStotra, setCopiedStotra] = useState(false);
 
+  const handleSwitchStotraLang = (lang: Language) => {
+    setStotraLang(lang);
+    setCustomCityName('');
+    setDeityName(DEFAULT_DEITY[lang]);
+    setGranthaName(DEFAULT_GRANTHA[lang]);
+  };
+
   // Sync stotraLang with currentLang when currentLang changes
   useEffect(() => {
-    setStotraLang(currentLang);
+    handleSwitchStotraLang(currentLang);
   }, [currentLang]);
 
   // Calculate day-dependent Hindu Panchanga elements automatically for selected date!
@@ -71,10 +90,12 @@ export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
     return getPanchangaForDate(d, selectedCity);
   }, [selectedDateStr, selectedCity]);
 
-  // Localized Place Name in the active stotra language
+  // Localized Place Name in the active stotra language using localized dictionary lookup
   const resolvedCityName = useMemo(() => {
-    if (customCityName.trim()) return customCityName.trim();
-    return getLocalizedPlaceName(selectedCity, stotraLang);
+    if (customCityName.trim()) {
+      return lookupLocalizedPlaceName(customCityName.trim(), stotraLang);
+    }
+    return lookupLocalizedPlaceName(selectedCity, stotraLang);
   }, [customCityName, selectedCity, stotraLang]);
 
   // Localized Dashed numbers 1 through 9 exact mapping from PDF:
@@ -208,13 +229,13 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
                 ))}
               </select>
 
-              {/* Optional Custom Place Override */}
+              {/* Optional Custom Place Override with Dictionary Lookup */}
               <input
                 type="text"
                 value={customCityName}
                 onChange={(e) => setCustomCityName(e.target.value)}
-                placeholder={getLocalizedPlaceName(selectedCity, stotraLang)}
-                title="Custom village / place override (leave blank to use auto localized city)"
+                placeholder={lookupLocalizedPlaceName(selectedCity, stotraLang)}
+                title="Enter any place or city to translate into the chosen language (e.g., Udupi, Kashi, Gokarna, Dharmasthala, Mysore, Tirupati)"
                 className="px-2 py-1 text-xs font-bold rounded-md bg-white text-stone-900 border border-stone-300 focus:outline-hidden w-28 sm:w-36"
               />
               {customCityName && (
@@ -229,12 +250,18 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
               )}
             </div>
 
+            {/* Live Dictionary Lookup Indicator */}
+            <div className="flex items-center gap-1.5 bg-black/25 px-2.5 py-1 rounded-lg border border-white/10 text-[11px] text-amber-200">
+              <span className="font-bold text-white">📍 {stotraLang === 'kn' ? 'ನಿಘಂಟು ಅನುವಾದ:' : stotraLang === 'hi' ? 'शब्दकोश अनुवाद:' : 'Translated Place:'}</span>
+              <span className="font-mono font-bold text-amber-300 underline decoration-amber-400">{resolvedCityName}</span>
+            </div>
+
             {/* Language Dropdown Selector in Header */}
             <div className="flex items-center gap-1.5 bg-white/20 px-2.5 py-1.5 rounded-lg border border-white/20">
               <Languages className="w-4 h-4 text-amber-300" />
               <select
                 value={stotraLang}
-                onChange={(e) => setStotraLang(e.target.value as Language)}
+                onChange={(e) => handleSwitchStotraLang(e.target.value as Language)}
                 className="bg-transparent text-white font-bold text-xs focus:outline-hidden cursor-pointer"
                 title="Select language for Sankalpa Mantra and Instructions"
               >
@@ -371,7 +398,7 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
               </span>
               <button
                 type="button"
-                onClick={() => setStotraLang('kn')}
+                onClick={() => handleSwitchStotraLang('kn')}
                 className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
                   stotraLang === 'kn'
                     ? 'bg-red-600 text-white shadow-xs'
@@ -382,7 +409,7 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
               </button>
               <button
                 type="button"
-                onClick={() => setStotraLang('hi')}
+                onClick={() => handleSwitchStotraLang('hi')}
                 className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
                   stotraLang === 'hi'
                     ? 'bg-red-600 text-white shadow-xs'
@@ -393,7 +420,7 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
               </button>
               <button
                 type="button"
-                onClick={() => setStotraLang('en')}
+                onClick={() => handleSwitchStotraLang('en')}
                 className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
                   stotraLang === 'en'
                     ? 'bg-red-600 text-white shadow-xs'
@@ -557,7 +584,7 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
               <tr>
                 <td className="p-2.5 text-center font-bold">{stotraLang === 'kn' ? '೧' : stotraLang === 'hi' ? '१' : '1'}</td>
                 <td className="p-2.5 font-semibold">
-                  {stotraLang === 'kn' ? 'ವ್ರತ ಮಾಡುವ ಊರು (Current City/Region)' : stotraLang === 'hi' ? 'स्थान / नगर (Current City/Region)' : 'Place / City (Current City/Region)'}
+                  {stotraLang === 'kn' ? 'ವ್ರತ ಮಾಡುವ ಊರು (ನಿಘಂಟು ಅನುವಾದಿತ ಸ್ಥಳ)' : stotraLang === 'hi' ? 'स्थान / नगर (शब्दकोश अनुवादित स्थल)' : 'Place / City (Dictionary Translated Location)'}
                 </td>
                 <td className="p-2.5 text-blue-600 dark:text-blue-400 font-bold">{dashed1_City}</td>
               </tr>

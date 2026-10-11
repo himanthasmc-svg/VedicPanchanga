@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import esbuild from 'esbuild';
 
 /**
  * Bundles the built Vite production output into a single, 100% self-contained HTML file in public/
@@ -37,21 +38,48 @@ function bundleSingleHtml() {
     return match;
   });
 
-  // Find and inline all JS module scripts
+  // Bundle and inline JS
+  // Find all entry scripts
   const scriptRegex = /<script[^>]+type="module"[^>]+src="([^"]+)"[^>]*><\/script>/g;
-  htmlContent = htmlContent.replace(scriptRegex, (match, src) => {
-    const cleanSrc = src.startsWith('/') ? src.slice(1) : src;
-    const jsPath = path.join(distDir, cleanSrc);
-    if (fs.existsSync(jsPath)) {
-      const jsContent = fs.readFileSync(jsPath, 'utf-8');
-      return `<script type="module">/* Inlined JS: ${cleanSrc} */\n${jsContent}</script>`;
+  const scriptMatches = [...htmlContent.matchAll(scriptRegex)];
+  
+  if (scriptMatches.length > 0) {
+    const entrySrc = scriptMatches[0][1];
+    const cleanSrc = entrySrc.startsWith('/') ? entrySrc.slice(1) : entrySrc;
+    const entryJsPath = path.join(distDir, cleanSrc);
+    
+    if (fs.existsSync(entryJsPath)) {
+      // Use esbuild to merge all dynamic chunks into a 100% self-contained ESM script with NO external import statements
+      const bundled = esbuild.buildSync({
+        entryPoints: [entryJsPath],
+        bundle: true,
+        write: false,
+        format: 'esm',
+        minify: true,
+        target: 'es2020'
+      });
+      
+      const bundledJs = bundled.outputFiles[0].text;
+      
+      // Remove all module script tags and replace with single inlined bundle
+      htmlContent = htmlContent.replace(scriptRegex, '');
+      htmlContent = htmlContent.replace(
+        '</body>',
+        `<script type="module">\n/* 100% Inlined Self-Contained React & Panchanga Bundle */\n${bundledJs}\n</script>\n</body>`
+      );
     }
-    return match;
-  });
+  }
+
+  // Also remove modulepreload tags since everything is inlined
+  htmlContent = htmlContent.replace(/<link[^>]+rel="modulepreload"[^>]*>/g, '');
 
   const outputPath = path.join(publicDir, 'hcmm-react-singlefile.html');
   fs.writeFileSync(outputPath, htmlContent, 'utf-8');
-  console.log(`Successfully generated single-file bundle at: ${outputPath}`);
+
+  const distOutputPath = path.join(distDir, 'index-singlefile.html');
+  fs.writeFileSync(distOutputPath, htmlContent, 'utf-8');
+
+  console.log(`Successfully generated 100% self-contained single-file bundle at: ${outputPath}`);
 }
 
 bundleSingleHtml();

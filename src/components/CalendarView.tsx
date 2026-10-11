@@ -23,6 +23,7 @@ import {
   formatJustNumber, 
   formatNumberWithEnglishBracket, 
   getPanchangaForDate, 
+  getLocalizedPlaceName,
   toIndicNumeral 
 } from '../utils/panchanga';
 import { FESTIVALS_CATALOG } from '../utils/festivals';
@@ -30,6 +31,16 @@ import { GocharTransitsView } from './GocharTransitsView';
 import { DashboardWidget } from './DashboardWidget';
 import { MoonPhaseIcon } from './MoonPhaseIcon';
 import { MoonPhaseCalendarWidget } from './MoonPhaseCalendarWidget';
+import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid 
+} from 'recharts';
+import { Activity, TrendingUp } from 'lucide-react';
 
 interface CalendarViewProps {
   currentLang: Language;
@@ -39,6 +50,8 @@ interface CalendarViewProps {
   onOpenMantras: () => void;
   onOpenSankalpa: () => void;
   onOpenKundali: () => void;
+  isAstroDiagnosticActive?: boolean;
+  onOpenAstroDiagnostic?: () => void;
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
@@ -48,11 +61,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onSelectFestival,
   onOpenMantras,
   onOpenSankalpa,
-  onOpenKundali
+  onOpenKundali,
+  isAstroDiagnosticActive = false,
+  onOpenAstroDiagnostic
 }) => {
   const today = new Date();
   const [selectedYear, setSelectedYear] = useState<number>(today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth()); // 0-11
+  const [showTrendChart, setShowTrendChart] = useState<boolean>(false);
+  const [trendMetric, setTrendMetric] = useState<'tithi' | 'nakshatra'>('tithi');
 
   // Year range from 1900 to 2100+
   const years = useMemo(() => {
@@ -125,6 +142,31 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     });
     return Array.from(map.values());
   }, [monthDays]);
+
+  const monthlyTrendData = useMemo(() => {
+    return monthDays.map((d) => {
+      let tithiIntensity = 50;
+      if (d.paksha === 'Shukla') {
+        tithiIntensity = Math.round((d.tithiNumber / 15) * 100);
+      } else {
+        tithiIntensity = Math.round(((15 - d.tithiNumber) / 15) * 100);
+      }
+
+      const nakIndex = (d.nakshatraIndex - 1 + 27) % 27;
+      const auspiciousNakshatras = [0, 3, 4, 7, 12, 13, 14, 16, 21, 23, 25, 26];
+      const nakshatraEnergy = auspiciousNakshatras.includes(nakIndex) ? 88 + (nakIndex % 10) : 60 + (nakIndex % 15);
+
+      return {
+        day: d.day,
+        dateLabel: `${d.day} ${monthNames[selectedMonth][currentLang]}`,
+        tithiName: d.tithiName[currentLang],
+        nakshatraName: d.nakshatra[currentLang],
+        paksha: d.paksha,
+        tithiIntensity,
+        nakshatraEnergy
+      };
+    });
+  }, [monthDays, selectedMonth, currentLang, monthNames]);
 
   const handlePrevMonth = () => {
     if (selectedMonth === 0) {
@@ -229,7 +271,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               </span>
               <span>•</span>
               <span className="font-mono text-amber-200 bg-black/20 px-2 py-0.5 rounded">
-                📍 {selectedCity.name}: 🌅 {currentMonthPanchangaSample.sunrise} • 🌇 {currentMonthPanchangaSample.sunset}
+                📍 {getLocalizedPlaceName(selectedCity, currentLang)}: 🌅 {currentMonthPanchangaSample.sunrise} • 🌇 {currentMonthPanchangaSample.sunset}
               </span>
             </div>
           </div>
@@ -343,9 +385,136 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <Moon className="w-4 h-4" />
               <span>{currentLang === 'kn' ? 'ಚಂದ್ರ ದರ್ಶನ' : currentLang === 'hi' ? 'चन्द्र दर्शन' : 'Moon Phase'}</span>
             </button>
+
+            {/* NEW FEATURE: Recharts Monthly Trend Line Toggle */}
+            <button
+              onClick={() => setShowTrendChart(!showTrendChart)}
+              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-md flex items-center gap-1.5 ml-1 backdrop-blur-xs ${
+                showTrendChart ? 'bg-amber-500 text-stone-950 font-bold' : 'bg-white/20 hover:bg-white/30 text-white'
+              }`}
+              title="Monthly trend line for Tithi and Nakshatra influence intensity (Recharts)"
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span>{currentLang === 'kn' ? 'ಮಾಸಿಕ ರೇಖಾಚಿತ್ರ' : currentLang === 'hi' ? 'मासिक प्रभाव रेखा' : 'Cosmic Trends'}</span>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Astro-Diagnostic Banner when enabled */}
+      {isAstroDiagnosticActive && (
+        <div className="p-4 rounded-2xl bg-stone-900 text-white border-2 border-amber-500/60 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Activity className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-amber-300 font-mono text-xs uppercase tracking-wider">Astro-Diagnostic Mode Active</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Live Ephemeris</span>
+              </div>
+              <p className="text-xs text-stone-300 mt-0.5">
+                Real-time Moon-Sun elongation, astronomical Tithi, Paksha, and Nakshatra logs are displayed beneath every calendar cell.
+              </p>
+            </div>
+          </div>
+
+          {onOpenAstroDiagnostic && (
+            <button
+              onClick={onOpenAstroDiagnostic}
+              className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-colors shrink-0"
+            >
+              Open Full Diagnostic Suite
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Recharts Monthly Trend Line Component */}
+      {showTrendChart && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-stone-900 border border-amber-300 dark:border-stone-800 shadow-xl space-y-4 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest font-mono">
+                <TrendingUp className="w-4 h-4" />
+                <span>RECHARTS DATA VISUALIZATION • MONTHLY INTENSITY FLOW</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-serif font-bold text-stone-900 dark:text-stone-100 mt-0.5">
+                {currentLang === 'kn' 
+                  ? `${monthNames[selectedMonth][currentLang]} ಮಾಸದ ತಿಥಿ ಮತ್ತು ನಕ್ಷತ್ರ ಪ್ರಭಾವ ರೇಖಾಚಿತ್ರ` 
+                  : `${monthNames[selectedMonth][currentLang]} Monthly Tithi & Nakshatra Influence Intensity`}
+              </h3>
+            </div>
+
+            <div className="inline-flex rounded-xl border border-stone-200 dark:border-stone-700 p-1 bg-stone-100 dark:bg-stone-800 text-xs font-bold">
+              <button
+                onClick={() => setTrendMetric('tithi')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  trendMetric === 'tithi'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                }`}
+              >
+                {currentLang === 'kn' ? 'ತಿಥಿ ಪ್ರಭಾವ (Lunar Curve)' : 'Tithi Intensity'}
+              </button>
+              <button
+                onClick={() => setTrendMetric('nakshatra')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  trendMetric === 'nakshatra'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                }`}
+              >
+                {currentLang === 'kn' ? 'ನಕ್ಷತ್ರ ತಾರಾಬಲ (Nakshatra Energy)' : 'Nakshatra Energy'}
+              </button>
+            </div>
+          </div>
+
+          <div className="h-56 sm:h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlyTrendData} margin={{ top: 10, right: 15, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="tithiGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05}/>
+                  </linearGradient>
+                  <linearGradient id="nakshatraGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.05}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
+                <Tooltip 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="p-3 bg-stone-900 text-white text-xs rounded-xl shadow-xl border border-amber-500/30 space-y-1">
+                          <p className="font-bold text-amber-300 font-serif">{data.dateLabel}</p>
+                          <p className="text-stone-300">ತಿಥಿ: <strong className="text-white">{data.tithiName}</strong> ({data.paksha})</p>
+                          <p className="text-stone-300">ನಕ್ಷತ್ರ: <strong className="text-white">{data.nakshatraName}</strong></p>
+                          <p className="text-amber-400 font-mono font-bold">
+                            {trendMetric === 'tithi' ? `Lunar Intensity: ${data.tithiIntensity}%` : `Nakshatra Energy: ${data.nakshatraEnergy}%`}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey={trendMetric === 'tithi' ? 'tithiIntensity' : 'nakshatraEnergy'} 
+                  stroke={trendMetric === 'tithi' ? '#f59e0b' : '#8b5cf6'} 
+                  strokeWidth={2.5}
+                  fillOpacity={1} 
+                  fill={`url(#${trendMetric === 'tithi' ? 'tithiGrad' : 'nakshatraGrad'})`} 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* NEW FEATURE: Live Dynamic Dashboard Widget (Tithi, Nakshatra, Yoga) */}
       {showDashboardWidget && (
@@ -504,6 +673,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         <span className="truncate">{fest.name[currentLang]}</span>
                       </button>
                     ))}
+                  </div>
+                )}
+
+                {/* Real-time Tithi & Paksha calculation logs when Astro-Diagnostic is active */}
+                {isAstroDiagnosticActive && (
+                  <div className="mt-1 px-1 py-0.5 rounded bg-stone-900/95 text-amber-300 font-mono text-[7px] sm:text-[8px] leading-tight border border-amber-500/40 shadow-xs">
+                    <span className="font-bold text-yellow-300">{panchangDay.paksha === 'Shukla' ? 'Shukla' : 'Krishna'}</span> T{panchangDay.tithiNumber}
+                    <div className="truncate text-stone-300">N{panchangDay.nakshatraIndex} P{panchangDay.pada}</div>
                   </div>
                 )}
 
@@ -695,7 +872,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       : `${currentMonthName} ${selectedYear} - Monthly Overview`}
                   </h3>
                   <p className="text-xs text-amber-100 mt-0.5">
-                    {samvatsaraName} ಸಂವತ್ಸರ • {masaName} ಮಾಸ • 📍 {selectedCity.name}
+                    {samvatsaraName} ಸಂವತ್ಸರ • {masaName} ಮಾಸ • 📍 {getLocalizedPlaceName(selectedCity, currentLang)}
                   </p>
                 </div>
               </div>
@@ -942,7 +1119,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </p>
           </div>
           <div className="text-right text-xs">
-            <p className="font-bold">📍 {selectedCity.name}, {selectedCity.state}</p>
+            <p className="font-bold">📍 {getLocalizedPlaceName(selectedCity, currentLang)}</p>
             <p className="text-[11px] text-stone-600">ಶಾಲಿವಾಹನ ಶಕ: {currentMonthPanchangaSample.hinduYearSaka}</p>
           </div>
         </div>

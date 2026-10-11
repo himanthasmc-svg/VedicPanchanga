@@ -112,13 +112,18 @@
     <!-- Header Banner with Full Natural Logo View -->
     <div class="banner">
       <div class="logo-container">
-        <div class="logo-fallback" id="bannerLogoPlaceholder">HCMM</div>
+        <div class="logo-fallback" id="bannerLogoPlaceholder" onclick="openHcmmModal()" style="cursor:pointer; transition:transform 0.15s;" title="Click HCMM logo to unlock altering logo or settings (Password Protected)">HCMM</div>
         <div>
           <div class="title">HCMM VEDIC PANCHANGA, KUNDALI & GOCHAR</div>
           <div class="subtitle" id="vedicHeaderSubtitle">ಶ್ರೀ ಕ್ರೋಧಿ / ವಿಶ್ವಾವಸು ಸಂವತ್ಸರ • ದಕ್ಷಿಣಾಯನ / ಉತ್ತರಾಯಣ • ಶಾಲಿವಾಹನ ಶಕ (೧೯೦೦ - ಭವಿಷ್ಯ)</div>
         </div>
       </div>
       <div class="nav-controls">
+        <select id="langSelect" onchange="changeLanguage(this.value)" style="padding:7px 12px; border-radius:8px; font-weight:700; font-size:12px; border:1px solid rgba(255,255,255,0.4); background:white; color:#1c1917; cursor:pointer;" title="Select language">
+          <option value="kn">ಕನ್ನಡ (Kannada)</option>
+          <option value="hi">हिन्दी (Hindi)</option>
+          <option value="en">English</option>
+        </select>
         <select id="citySelect" onchange="changeCity(this.value)" style="padding:7px 12px; border-radius:8px; font-weight:700; font-size:12px; border:1px solid rgba(255,255,255,0.4); background:white; color:#1c1917; cursor:pointer;">
           <option value="Bengaluru">ಬೆಂಗಳೂರು (Bengaluru)</option>
           <option value="Mysuru">ಮೈಸೂರು (Mysuru)</option>
@@ -127,6 +132,9 @@
           <option value="New Delhi">ನವದೆಹಲಿ (New Delhi)</option>
           <option value="Varanasi">ವಾರಾಣಸಿ / ಕಾಶಿ (Varanasi)</option>
           <option value="Mumbai">ಮುಂಬೈ (Mumbai)</option>
+          <option value="Chennai">ಚೆನ್ನೈ (Chennai)</option>
+          <option value="Hyderabad">ಹೈದರಾಬಾದ್ (Hyderabad)</option>
+          <option value="Kolkata">ಕೋಲ್ಕತ್ತಾ (Kolkata)</option>
         </select>
         <button class="btn" onclick="prevMonth()">◀ Prev</button>
         <span id="monthYearLabel" style="font-weight:800; font-size:15px; min-width:140px; text-align:center;">November 2026</span>
@@ -339,6 +347,50 @@
     </div>
   </div>
 
+  <!-- HCMM Admin Alteration Modal (Opens ONLY when clicking HCMM logo, asks password to alter anything) -->
+  <div class="modal" id="hcmmAdminModal">
+    <div class="modal-content" style="max-width:540px;">
+      <button class="close-btn" onclick="closeHcmmModal()">&times;</button>
+      
+      <!-- Password Prompt Screen -->
+      <div id="hcmmAuthScreen" style="text-align:center; padding:10px 0;">
+        <div style="width:50px; height:50px; background:#fef3c7; border:2px solid #fde68a; border-radius:14px; display:inline-flex; align-items:center; justify-content:center; font-size:24px; color:#b45309; margin-bottom:12px;">🔒</div>
+        <h2 style="font-family:'Cinzel', serif; color:#b45309; font-size:18px;">HCMM Alteration Access</h2>
+        <p style="font-size:12px; color:#57534e; margin:6px 0 16px;">
+          The web page is open and free to view. Enter your HCMM password to alter logo, header, or custom celebrations.
+        </p>
+        <div id="hcmmAuthError" style="display:none; color:#dc2626; font-size:12px; font-weight:700; margin-bottom:10px;">Incorrect Password! (Default is HCMM)</div>
+        <input type="password" id="hcmmPassInput" placeholder="Enter password (HCMM)" style="width:240px; padding:10px 14px; font-family:monospace; font-size:14px; text-align:center; border:1px solid #d6d3d1; border-radius:10px; font-weight:bold; letter-spacing:2px; outline:none;" />
+        <div style="margin-top:14px; display:flex; justify-content:center; gap:8px;">
+          <button class="btn btn-gold" onclick="verifyHcmmPassword()" style="color:#78350f;">Unlock Alterations</button>
+          <button class="btn" style="background:#f5f5f4; color:#292524; border-color:#d6d3d1;" onclick="closeHcmmModal()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Unlocked Alterations Screen -->
+      <div id="hcmmAlterationScreen" style="display:none;">
+        <h2 style="font-family:'Cinzel', serif; color:#b45309; font-size:18px; margin-bottom:14px;">HCMM Alteration Workspace</h2>
+        
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:12px; font-weight:bold; color:#44403c; margin-bottom:4px;">Alter Logo (URL or Device File):</label>
+          <input type="text" id="logoUrlInput" placeholder="Paste image URL..." style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #d6d3d1; border-radius:8px; margin-bottom:6px;" />
+          <input type="file" accept="image/*" id="logoFileInput" onchange="handleStandaloneLogoUpload(event)" style="font-size:11px;" />
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:12px; font-weight:bold; color:#44403c; margin-bottom:4px;">Alter Header Title / Subtitle:</label>
+          <input type="text" id="headerSubtitleInput" placeholder="Custom header subtitle..." style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #d6d3d1; border-radius:8px;" />
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e7e5e4; padding-top:14px;">
+          <button class="btn" style="background:#fee2e2; color:#991b1b; border-color:#fca5a5;" onclick="lockHcmmAlterations()">Lock Alterations</button>
+          <button class="btn btn-gold" onclick="applyHcmmAlterations()">Save & Apply</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <script>
     // Live Clock Ticker
     function updateClock() {
@@ -354,19 +406,125 @@
     const TITHI_NAMES = ['ಪಾಡ್ಯ (Prathama)', 'ಬಿದಿಗೆ (Dvitiya)', 'ತದಿಗೆ (Tritiya)', 'ಚೌತಿ (Chaturthi)', 'ಪಂಚಮಿ (Panchami)', 'ಷಷ್ಠಿ (Shashti)', 'ಸಪ್ತಮಿ (Saptami)', 'ಅಷ್ಟಮಿ (Ashtami)', 'ನವಮಿ (Navami)', 'ದಶಮಿ (Dashami)', 'ಏಕಾದಶಿ (Ekadashi)', 'ದ್ವಾದಶಿ (Dvadashi)', 'ತ್ರಯೋದಶಿ (Trayodashi)', 'ಚತುರ್ದಶಿ (Chaturdashi)', 'ಹುಣ್ಣಿಮೆ/ಅಮಾವಾಸ್ಯೆ'];
     const NAKSHATRAS = ['ಅಶ್ವಿನಿ', 'ಭರಣಿ', 'ಕೃತಿಕಾ', 'ರೋಹಿಣಿ', 'ಮೃಗಶಿರ', 'ಆರಿದ್ರ', 'ಪುನರ್ವಸು', 'ಪುಷ್ಯ', 'ಆಶ್ಲೇಷ', 'ಮಘ', 'ಹುಬ್ಬ', 'ಉತ್ತರ', 'ಹಸ್ತ', 'ಚಿತ್ತ', 'ಸ್ವಾತಿ', 'ವಿಶಾಖ', 'ಅನುರಾಧಾ', 'ಜ್ಯೇಷ್ಠ', 'ಮೂಲ', 'ಪೂರ್ವಾಷಾಢ', 'ಉತ್ತರಾಷಾಢ', 'ಶ್ರವಣ', 'ಧನಿಷ್ಠಾ', 'ಶತತಾರ', 'ಪೂರ್ವಭಾದ್ರ', 'ಉತ್ತರಭಾದ್ರ', 'ರೇವತಿ'];
 
-    const CITY_NAMES_KN = {
-      'Bengaluru': 'ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ',
-      'Mysuru': 'ಮೈಸೂರು, ಕರ್ನಾಟಕ',
-      'Mangaluru': 'ಮಂಗಳೂರು, ಕರ್ನಾಟಕ',
-      'Hubballi': 'ಹುಬ್ಬಳ್ಳಿ, ಕರ್ನಾಟಕ',
-      'New Delhi': 'ನವದೆಹಲಿ, ದೆಹಲಿ',
-      'Varanasi': 'ವಾರಾಣಸಿ (ಕಾಶಿ), ಉತ್ತರ ಪ್ರದೇಶ',
-      'Mumbai': 'ಮುಂಬೈ, ಮಹಾರಾಷ್ಟ್ರ'
+    let currentAppLang = 'kn';
+    let currentSelectedCity = 'Bengaluru';
+
+    const CITY_LOCALIZED_NAMES = {
+      'Bengaluru': { kn: 'ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'बेंगलुरु, कर्नाटक', en: 'Bengaluru, Karnataka' },
+      'Mysuru': { kn: 'ಮೈಸೂರು, ಕರ್ನಾಟಕ', hi: 'मैसूरु, कर्नाटक', en: 'Mysuru, Karnataka' },
+      'Mangaluru': { kn: 'ಮಂಗಳೂರು, ಕರ್ನಾಟಕ', hi: 'मंगलुरु, कर्नाटक', en: 'Mangaluru, Karnataka' },
+      'Hubballi': { kn: 'ಹುಬ್ಬಳ್ಳಿ, ಕರ್ನಾಟಕ', hi: 'हुब्बल्ली, कर्नाटक', en: 'Hubballi, Karnataka' },
+      'New Delhi': { kn: 'ನವದೆಹಲಿ, ದೆಹಲಿ', hi: 'नई दिल्ली, दिल्ली', en: 'New Delhi, Delhi' },
+      'Varanasi': { kn: 'ವಾರಾಣಸಿ (ಕಾಶಿ), ಉತ್ತರ ಪ್ರದೇಶ', hi: 'वाराणसी (काशी), उत्तर प्रदेश', en: 'Varanasi, Uttar Pradesh' },
+      'Mumbai': { kn: 'ಮುಂಬೈ, ಮಹಾರಾಷ್ಟ್ರ', hi: 'मुंबई, महाराष्ट्र', en: 'Mumbai, Maharashtra' },
+      'Chennai': { kn: 'ಚೆನ್ನೈ, ತಮಿಳುನಾಡು', hi: 'चेन्नई, तमिलनाडु', en: 'Chennai, Tamil Nadu' },
+      'Hyderabad': { kn: 'ಹೈದರಾಬಾದ್, ತೆಲಂಗಾಣ', hi: 'हैदराबाद, तेलंगाना', en: 'Hyderabad, Telangana' },
+      'Kolkata': { kn: 'ಕೋಲ್ಕತ್ತಾ, ಪಶ್ಚಿಮ ಬಂಗಾಳ', hi: 'कोलकाता, पश्चिम बंगाल', en: 'Kolkata, West Bengal' },
+      'London': { kn: 'ಲಂಡನ್, ಯುನೈಟೆಡ್ ಕಿಂಗ್‌ಡಮ್', hi: 'लंदन, यूनाइटेड किंगडम', en: 'London, Greater London' },
+      'New York': { kn: 'ನ್ಯೂಯಾರ್ಕ್, ಯುಎಸ್ಎ', hi: 'न्यू यॉर्क, न्यूयॉर्क', en: 'New York, NY' }
     };
 
+    const SANKALPA_TEMPLATES = {
+      kn: {
+        title: 'ವೇದೋಕ್ತ ಶುಭ ಸಂಕಲ್ಪ ಮಂತ್ರ (Vedic Shubha Sankalpa Stotra)',
+        part1: 'ಓಂ ನಮಃ ಪರಮಾತ್ಮನೇ, ಶ್ರೀ ಪುರಾಣಪುರುಷೋತ್ತಮಸ್ಯ ಶ್ರೀ ವಿಷ್ಣೋರಾಜ್ಞಯಾ ಪ್ರವರ್ತಮಾನಸ್ಯ ಆದ್ಯ ಶ್ರೀ ಬ್ರಹ್ಮಣೋ ದ್ವಿತೀಯ ಪರಾರ್ಧೇ ಶ್ರೀ ಶ್ವೇತವರಾಹಕಲ್ಪೇ ವೈವಸ್ವತ ಮನ್ವಂತರೇ ಅಷ್ಟಾವಿಂಶತಿತಮೇ ಕಲಿಯುಗೇ ಪ್ರಥಮ ಚರಣೇ ಜಂಬೂ ದ್ವೀಪೇ ಭಾರತ ವರ್ಷೇ ಭರತ ಖಂಡೇ ಆರ್ಯಾವರ್ತಾಂತರ್ಗತ ಬ್ರಹ್ಮಾವರ್ತೈಕ ದೇಶೇ ',
+        citySuffix: ' ಪುಣ್ಯ ಪ್ರದೇಶೇ, ',
+        samvatsara: '೨. ವಿಶ್ವಾವಸು',
+        samvatsaraSuffix: ' ನಾಮ ಸಂವತ್ಸರೇ, ',
+        ayana: '೩. ದಕ್ಷಿಣಾಯನ',
+        ayanaSuffix: ' ಅಯನೇ, ',
+        masa: '೪. ಕಾರ್ತಿಕ',
+        masaSuffix: ' ಮಾಸೇ, ',
+        paksha: '೫. ಶುಕ್ಲ',
+        pakshaSuffix: ' ಪಕ್ಷೇ, ',
+        tithi: '೬. ಬಿದಿಗೆ',
+        tithiSuffix: ' ತಿಥೌ, ',
+        vasara: '೭. ಬುಧ',
+        vasaraSuffix: ' ವಾಸರಾನ್ವಿತಾಯಾಂ, ',
+        nakshatra: '೮. ಅನೂರಾಧಾ',
+        nakshatraSuffix: ' ನಕ್ಷತ್ರೇ, ',
+        rashi: '೯. ತುಲಾ',
+        rashiSuffix: ' ರಾಶಿ ಸ್ಥಿತೇ ಭಾಸ್ಕರೇ ಅಸ್ಮಾಕಂ ಸರ್ವೇಷಾಂ ಸಹ ಕುಟುಂಬಾನಾಂ ಕ್ಷೇಮ ಸ್ಥೈರ್ಯ ವಿಜಯಾಯುರಾರೋಗ್ಯೈಶ್ವರ್ಯಾಭಿವೃದ್ಧರ್ಥಂ ಶ್ರೀ ಇಷ್ಟದೇವತಾ ಪ್ರೀತ್ಯರ್ಥಂ ಪೂಜನಂ ಕರಿಷ್ಯೇ.'
+      },
+      hi: {
+        title: 'वेदोक्त शुभ संकल्प मन्त्र (Vedic Shubha Sankalpa Stotra)',
+        part1: 'ॐ नमः परमात्मने, श्री पुराणपुरुषोत्तमस्य श्री विष्णोराज्ञया प्रवर्तमानस्य आद्य श्री ब्रह्मणो द्वितीय परार्धे श्री श्वेतवराहकल्पे वैवस्वत मन्वन्तरे अष्टाविंशतितमे कलियुगे प्रथम चरणे जम्बू द्वीपे भारत वर्षे भरत खण्डे आर्यावर्तान्तर्गत ब्रह्मावर्तैक देशे ',
+        citySuffix: ' पुण्य प्रदेशे, ',
+        samvatsara: '२. विश्वावसु',
+        samvatsaraSuffix: ' नाम संवत्सरे, ',
+        ayana: '३. दक्षिणायन',
+        ayanaSuffix: ' अयने, ',
+        masa: '४. कार्तिक',
+        masaSuffix: ' मासे, ',
+        paksha: '५. शुक्ल',
+        pakshaSuffix: ' पक्षे, ',
+        tithi: '६. द्वितीया',
+        tithiSuffix: ' तिथौ, ',
+        vasara: '७. बुध',
+        vasaraSuffix: ' वासरान्वितायां, ',
+        nakshatra: '८. अनुराधा',
+        nakshatraSuffix: ' नक्षत्रे, ',
+        rashi: '९. तुला',
+        rashiSuffix: ' राशि स्थिते भास्करे अस्माकं सर्वेषां सह कुटुंबानां क्षेम स्थैर्य विजय वीर्यायुरारोग्यैश्वर्याद्यभिवृद्ध्यर्थं श्री इष्टदेवता प्रीत्यर्थं पूजनं करिष्ये।'
+      },
+      en: {
+        title: 'Vedic Shubha Sankalpa Stotra',
+        part1: 'Om Namah Paramatmane, Sri Purana-Purushottamasya Sri Vishnor-Aajnaya Pravartamanasya Aadya Sri Brahmano Dvitiya Parardhe Sri Shweta-Varaha-Kalpe Vaivasvata Manvantare Ashtavimshatitame Kaliyuge Prathama Charane Jambu Dweepe Bharata Varshe Bharata Khande Aaryavartantargata Brahmavartaika Deshe ',
+        citySuffix: ' Punya Pradeshe, ',
+        samvatsara: '2. Vishvavasu',
+        samvatsaraSuffix: ' Nama Samvatsare, ',
+        ayana: '3. Dakshinayana',
+        ayanaSuffix: ' Ayane, ',
+        masa: '4. Kartika',
+        masaSuffix: ' Mase, ',
+        paksha: '5. Shukla',
+        pakshaSuffix: ' Pakshe, ',
+        tithi: '6. Dvitiya',
+        tithiSuffix: ' Tithau, ',
+        vasara: '7. Budha',
+        vasaraSuffix: ' Vasaranvitayam, ',
+        nakshatra: '8. Anuradha',
+        nakshatraSuffix: ' Nakshatre, ',
+        rashi: '9. Tula',
+        rashiSuffix: ' Rashi Sthite Bhaskare Asmakam Sarvesham Saha Kutumbanam Kshema Sthairya Vijaya Veeryayurarogyaishvaryadyabhivriddhyartham Sri Ishta Devata Preetyartham Pujanam Karishye.'
+      }
+    };
+
+    function updateSankalpaPlaceName() {
+      const dict = CITY_LOCALIZED_NAMES[currentSelectedCity] || { kn: currentSelectedCity, hi: currentSelectedCity, en: currentSelectedCity };
+      const locName = dict[currentAppLang] || dict.kn || currentSelectedCity;
+      const numPrefix = currentAppLang === 'kn' ? '೧' : currentAppLang === 'hi' ? '१' : '1';
+      const tmpl = SANKALPA_TEMPLATES[currentAppLang] || SANKALPA_TEMPLATES.kn;
+      
+      const titleEl = document.getElementById('sankalpaTitleText');
+      if (titleEl) titleEl.textContent = tmpl.title;
+
+      const previewEl = document.getElementById('sankalpaPreviewText');
+      if (previewEl) {
+        previewEl.innerHTML = `
+          \${tmpl.part1}
+          <span class="blue-highlight" id="skCity">(\${numPrefix}. \${locName})</span>\${tmpl.citySuffix}
+          <span class="blue-highlight" id="skSamvatsara">(\${tmpl.samvatsara})</span>\${tmpl.samvatsaraSuffix}
+          <span class="blue-highlight" id="skAyana">(\${tmpl.ayana})</span>\${tmpl.ayanaSuffix}
+          <span class="blue-highlight" id="skMasa">(\${tmpl.masa})</span>\${tmpl.masaSuffix}
+          <span class="blue-highlight" id="skPaksha">(\${tmpl.paksha})</span>\${tmpl.pakshaSuffix}
+          <span class="blue-highlight" id="skTithi">(\${tmpl.tithi})</span>\${tmpl.tithiSuffix}
+          <span class="blue-highlight" id="skVasara">(\${tmpl.vasara})</span>\${tmpl.vasaraSuffix}
+          <span class="blue-highlight" id="skNakshatra">(\${tmpl.nakshatra})</span>\${tmpl.nakshatraSuffix}
+          <span class="blue-highlight" id="skRashi">(\${tmpl.rashi})</span>\${tmpl.rashiSuffix}
+        `;
+      }
+    }
+
     function changeCity(cityKey) {
-      const knName = CITY_NAMES_KN[cityKey] || cityKey;
-      document.getElementById('skCity').textContent = `(೧. ${knName})`;
+      currentSelectedCity = cityKey;
+      updateSankalpaPlaceName();
+    }
+
+    function changeLanguage(langKey) {
+      currentAppLang = langKey;
+      updateSankalpaPlaceName();
+      renderCalendar();
     }
 
     function renderCalendar() {
@@ -558,8 +716,65 @@
       `).join('');
     }
 
+    // HCMM Admin & Alteration Modal Functions
+    let uploadedLogoData = '';
+    function openHcmmModal() {
+      document.getElementById('hcmmAdminModal').style.display = 'flex';
+      document.getElementById('hcmmPassInput').value = '';
+      document.getElementById('hcmmAuthError').style.display = 'none';
+      document.getElementById('hcmmAuthScreen').style.display = 'block';
+      document.getElementById('hcmmAlterationScreen').style.display = 'none';
+    }
+
+    function closeHcmmModal() {
+      document.getElementById('hcmmAdminModal').style.display = 'none';
+    }
+
+    function verifyHcmmPassword() {
+      const pass = document.getElementById('hcmmPassInput').value.trim().toUpperCase();
+      const stored = (localStorage.getItem('hcmm_full_pwd') || 'HCMM').trim().toUpperCase();
+      if (pass === 'HCMM' || pass === stored) {
+        document.getElementById('hcmmAuthScreen').style.display = 'none';
+        document.getElementById('hcmmAlterationScreen').style.display = 'block';
+        document.getElementById('hcmmAuthError').style.display = 'none';
+      } else {
+        document.getElementById('hcmmAuthError').style.display = 'block';
+      }
+    }
+
+    function handleStandaloneLogoUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          uploadedLogoData = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function applyHcmmAlterations() {
+      const url = document.getElementById('logoUrlInput').value.trim() || uploadedLogoData;
+      if (url) {
+        const logoPh = document.getElementById('bannerLogoPlaceholder');
+        logoPh.outerHTML = `<img src="${url}" id="bannerLogoPlaceholder" class="logo-img" onclick="openHcmmModal()" style="cursor:pointer;" title="Click HCMM logo to alter settings" />`;
+      }
+      const sub = document.getElementById('headerSubtitleInput').value.trim();
+      if (sub) {
+        document.getElementById('vedicHeaderSubtitle').textContent = sub;
+      }
+      closeHcmmModal();
+    }
+
+    function lockHcmmAlterations() {
+      document.getElementById('hcmmAlterationScreen').style.display = 'none';
+      document.getElementById('hcmmAuthScreen').style.display = 'block';
+      document.getElementById('hcmmPassInput').value = '';
+    }
+
     renderCalendar();
     renderMuhurtaCards();
+    updateSankalpaPlaceName();
   </script>
 </body>
 </html>
