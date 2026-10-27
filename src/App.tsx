@@ -25,6 +25,10 @@ import { HcmmAdminModal } from './components/HcmmAdminModal';
 import { BiometricAuthModal } from './components/BiometricAuthModal';
 import { CloudSyncModal } from './components/CloudSyncModal';
 import { AstroDiagnosticModal } from './components/AstroDiagnosticModal';
+import { GoogleMapLocationModal } from './components/GoogleMapLocationModal';
+import { MasterUnlockModal } from './components/MasterUnlockModal';
+import { VimshottariDashaCalculator } from './components/VimshottariDashaCalculator';
+import { findClosestCity } from './utils/worldPlaces';
 
 export default function App() {
   // Localization: English default, selectable to Kannada and Hindi
@@ -51,8 +55,8 @@ export default function App() {
     return CITIES[0]; // Bengaluru default
   });
 
-  // Active Main View: calendar | mantras | sankalpa | kundali | gochar | muhurta
-  const [activeView, setActiveView] = useState<'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta'>('calendar');
+  // Active Main View: calendar | mantras | sankalpa | kundali | gochar | muhurta | dasha
+  const [activeView, setActiveView] = useState<'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha'>('calendar');
 
   // Modals state
   const [selectedDay, setSelectedDay] = useState<PanchangaDay | null>(null);
@@ -62,6 +66,7 @@ export default function App() {
   const [showCloudSync, setShowCloudSync] = useState<boolean>(false);
   const [showWidgetModal, setShowWidgetModal] = useState<boolean>(false);
   const [openCodeDirectly, setOpenCodeDirectly] = useState<boolean>(false);
+  const [showGoogleMapModal, setShowGoogleMapModal] = useState<boolean>(false);
 
   // Biometric Lock status
   const [isBiometricLocked, setIsBiometricLocked] = useState<boolean>(() => {
@@ -70,9 +75,16 @@ export default function App() {
 
   // Administrator Password (Protects alterations when clicking the HCMM logo)
   const [userPassword, setUserPassword] = useState<string>(() => {
-    localStorage.removeItem('hcmm_app_locked'); // Ensure page is never locked
     return localStorage.getItem('hcmm_user_password') || 'HCMM';
   });
+
+  // Global Administrative Lock Mode across modules (Sankalpa, Kundali, Gochar)
+  const [isGlobalLocked, setIsGlobalLocked] = useState<boolean>(() => {
+    const saved = localStorage.getItem('hcmm_global_locked');
+    return saved !== null ? saved === 'true' : true; // Locked by default until authenticated
+  });
+  const [showGlobalUnlockModal, setShowGlobalUnlockModal] = useState<boolean>(false);
+  const [lockedModuleName, setLockedModuleName] = useState<string>('');
 
   // Astro-Diagnostic real-time logs & modal state
   const [isAstroDiagnosticActive, setIsAstroDiagnosticActive] = useState<boolean>(() => {
@@ -89,7 +101,19 @@ export default function App() {
   const [mantrasList, setMantrasList] = useState<MantraItem[]>(() => {
     const saved = localStorage.getItem('hcmm_mantras');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Merge all predefined blog items from INITIAL_MANTRAS to ensure they exist
+          const existingUrls = new Set(parsed.map((m: any) => m.url));
+          const missingBlogItems = INITIAL_MANTRAS.filter(m => !existingUrls.has(m.url));
+          const cleaned = parsed.map((m: any) => ({
+            ...m,
+            imageUrl: typeof m.imageUrl === 'string' && m.imageUrl.includes('images.unsplash.com') ? '' : (m.imageUrl || '')
+          }));
+          return [...missingBlogItems, ...cleaned];
+        }
+      } catch (e) { /* ignore */ }
     }
     return INITIAL_MANTRAS;
   });
@@ -116,6 +140,81 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('hcmm_lang', currentLang);
   }, [currentLang]);
+
+  // Auto-detect GPS location on startup if enabled
+  useEffect(() => {
+    const autoDetect = localStorage.getItem('hcmm_auto_detect_location') === 'true';
+    if (autoDetect && typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const closest = findClosestCity(lat, lng);
+          const autoCity: CityLocation = {
+            name: `GPS Location (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`,
+            nameLocalized: {
+              en: `GPS Location (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`,
+              kn: `ಜಿಪಿಎಸ್ ಸ್ಥಳ (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`,
+              hi: `जीपीएस स्थान (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`
+            },
+            state: closest.state || 'Local Region',
+            country: closest.country || 'India',
+            lat,
+            lng,
+            timezone: closest.timezone || 'Asia/Kolkata'
+          };
+          setSelectedCity(autoCity);
+          localStorage.setItem('hcmm_city', JSON.stringify(autoCity));
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+  }, []);
+
+  // Initial and periodic sync with full-stack backend so logo and added mantras are visible on all systems over the internet
+  useEffect(() => {
+    const fetchGlobalSync = async () => {
+      try {
+        const res = await fetch('/api/sync');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.logoUrl) {
+            setHcmmLogoUrl(data.logoUrl);
+            localStorage.setItem('hcmm_logo_url', data.logoUrl);
+          }
+          if (Array.isArray(data.mantrasList) && data.mantrasList.length > 0) {
+            setMantrasList(prev => {
+              const existingIds = new Set(data.mantrasList.map((m: any) => m.id));
+              const nonDuplicatedDefaults = prev.filter(m => !existingIds.has(m.id));
+              return [...data.mantrasList, ...nonDuplicatedDefaults];
+            });
+          } else {
+            // Populate server store with current mantras so backend stays in sync
+            fetch('/api/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ mantrasList })
+            }).catch(() => {});
+          }
+          if (Array.isArray(data.booksList) && data.booksList.length > 0) {
+            setBooksList(prev => {
+              const existingIds = new Set(data.booksList.map((b: any) => b.id));
+              const nonDuplicatedDefaults = prev.filter(b => !existingIds.has(b.id));
+              return [...data.booksList, ...nonDuplicatedDefaults];
+            });
+          }
+          if (Array.isArray(data.customEvents) && data.customEvents.length > 0) {
+            setCustomEvents(data.customEvents);
+          }
+        }
+      } catch (err) {
+        // Standalone or offline fallback: local state is already loaded from localStorage
+      }
+    };
+
+    fetchGlobalSync();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('hcmm_theme', isDarkMode ? 'dark' : 'light');
@@ -158,6 +257,33 @@ export default function App() {
     localStorage.setItem('hcmm_astro_diag', isAstroDiagnosticActive ? 'true' : 'false');
   }, [isAstroDiagnosticActive]);
 
+  useEffect(() => {
+    localStorage.setItem('hcmm_global_locked', isGlobalLocked ? 'true' : 'false');
+  }, [isGlobalLocked]);
+
+  useEffect(() => {
+    localStorage.setItem('hcmm_mantras', JSON.stringify(mantrasList));
+  }, [mantrasList]);
+
+  // Request Unlock across modules
+  const handleRequestUnlock = (moduleName?: string) => {
+    if (!isGlobalLocked) return;
+    setLockedModuleName(moduleName || 'Administrative Section');
+    setShowGlobalUnlockModal(true);
+  };
+
+  const handleToggleGlobalLock = () => {
+    if (isGlobalLocked) {
+      setLockedModuleName('All Modules (Sankalpa, Kundali, Gochar)');
+      setShowGlobalUnlockModal(true);
+    } else {
+      setIsGlobalLocked(true);
+      localStorage.setItem('hcmm_global_locked', 'true');
+      localStorage.removeItem('hcmm_astro_unlocked');
+      localStorage.removeItem('hcmm_remedies_unlocked');
+    }
+  };
+
   // Daily browser notification: triggers once daily showing today's Tithi, Nakshatra, and key festival info based on selected city
   useEffect(() => {
     checkAndTriggerDailyNotification(selectedCity, currentLang);
@@ -175,11 +301,36 @@ export default function App() {
 
   // Mantras management
   const handleAddMantra = (mantra: MantraItem) => {
-    setMantrasList(prev => [mantra, ...prev]);
+    setMantrasList(prev => {
+      const idx = prev.findIndex(m => m.id === mantra.id || (mantra.url && m.url === mantra.url));
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = mantra;
+        return copy;
+      }
+      return [mantra, ...prev];
+    });
+    // Sync to backend so available online anywhere
+    fetch('/api/mantras', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mantra })
+    }).catch(() => {});
   };
 
   const handleDeleteMantra = (id: string) => {
     setMantrasList(prev => prev.filter(m => m.id !== id));
+    fetch(`/api/mantras/${id}`, { method: 'DELETE' }).catch(() => {});
+  };
+
+  const handleUpdateLogoUrl = (newUrl: string) => {
+    setHcmmLogoUrl(newUrl);
+    localStorage.setItem('hcmm_logo_url', newUrl);
+    fetch('/api/logo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ logoUrl: newUrl })
+    }).catch(() => {});
   };
 
   // Books management
@@ -231,6 +382,7 @@ export default function App() {
           setOpenCodeDirectly(true);
           setShowHcmmAdmin(true);
         }}
+        onOpenGoogleMapModal={() => setShowGoogleMapModal(true)}
         activeView={activeView}
         onNavigate={setActiveView}
         mantrasList={mantrasList}
@@ -243,6 +395,8 @@ export default function App() {
             setShowAstroDiagnosticModal(true);
           }
         }}
+        isGlobalLocked={isGlobalLocked}
+        onToggleGlobalLock={handleToggleGlobalLock}
       />
 
       {/* Main Content Area - Dynamically responsive for mobile and desktop windows */}
@@ -260,6 +414,7 @@ export default function App() {
             onOpenKundali={() => setActiveView('kundali')}
             isAstroDiagnosticActive={isAstroDiagnosticActive}
             onOpenAstroDiagnostic={() => setShowAstroDiagnosticModal(true)}
+            onOpenGoogleMap={() => setShowGoogleMapModal(true)}
           />
         )}
 
@@ -276,6 +431,7 @@ export default function App() {
             mantrasList={mantrasList}
             onAddMantra={handleAddMantra}
             onDeleteMantra={handleDeleteMantra}
+            onSetMantrasList={setMantrasList}
             booksList={booksList}
             onOpenCodeCopyModal={() => {
               setOpenCodeDirectly(true);
@@ -284,13 +440,16 @@ export default function App() {
           />
         )}
 
-        {/* VIEW 3: Sankalpa Vidhi Page with auto-filled blue values & PDF export */}
+        {/* VIEW 3: Sankalpa Vidhi Page with Visarjana Muhurta Calculator & auto-filled blue values */}
         {activeView === 'sankalpa' && (
           <SankalpaVidhiPage
             currentLang={currentLang}
             selectedCity={selectedCity}
             onSelectCity={setSelectedCity}
             onBackToCalendar={() => setActiveView('calendar')}
+            onOpenGoogleMap={() => setShowGoogleMapModal(true)}
+            isGlobalLocked={isGlobalLocked}
+            onRequestUnlock={handleRequestUnlock}
           />
         )}
 
@@ -301,28 +460,29 @@ export default function App() {
             selectedCity={selectedCity}
             onSelectCity={setSelectedCity}
             onBackToCalendar={() => setActiveView('calendar')}
+            userPassword={userPassword}
+            onOpenAdmin={() => {
+              setOpenCodeDirectly(false);
+              setShowHcmmAdmin(true);
+            }}
           />
         )}
 
-        {/* VIEW 5: Gochar (Planetary Transits) Dedicated Page */}
+        {/* VIEW 5: Gochar (Planetary Transits) under Locked Vedic Remedies & Advanced Jyotisha */}
         {activeView === 'gochar' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setActiveView('calendar')}
-                className="px-3.5 py-1.5 rounded-xl border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold text-xs transition-colors flex items-center gap-1.5"
-              >
-                ← {currentLang === 'kn' ? 'ಕ್ಯಾಲೆಂಡರ್‌ಗೆ ಹಿಂತಿರುಗಿ' : currentLang === 'hi' ? 'कैलेंडर पर वापस' : 'Back to Calendar'}
-              </button>
-            </div>
-            <GocharTransitsView
-              currentLang={currentLang}
-              selectedCity={selectedCity}
-              onSelectCity={setSelectedCity}
-              onOpenKundali={() => setActiveView('kundali')}
-              isWidget={false}
-            />
-          </div>
+          <LagnaKundaliPage
+            currentLang={currentLang}
+            selectedCity={selectedCity}
+            onSelectCity={setSelectedCity}
+            onBackToCalendar={() => setActiveView('calendar')}
+            userPassword={userPassword}
+            onOpenAdmin={() => {
+              setOpenCodeDirectly(false);
+              setShowHcmmAdmin(true);
+            }}
+            initialSectionTab="remedies"
+            initialRemediesSubTab="transits"
+          />
         )}
 
         {/* VIEW 6: Muhurta Finder Page */}
@@ -350,6 +510,15 @@ export default function App() {
           </div>
         )}
 
+        {/* VIEW 7: Vimshottari Dasha Calculator (Maha Dasha, Antardasha & Pratyantardasha) */}
+        {activeView === 'dasha' && (
+          <VimshottariDashaCalculator
+            currentLang={currentLang}
+            onBackToCalendar={() => setActiveView('calendar')}
+            onNavigateToKundali={() => setActiveView('kundali')}
+          />
+        )}
+
       </main>
 
       {/* Application Footer */}
@@ -365,18 +534,24 @@ export default function App() {
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Offline Ready</span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <button 
               onClick={() => setActiveView('sankalpa')} 
               className="hover:text-amber-600 transition-colors"
             >
-              Sankalpa Vidhi
+              Sankalpa and Sthaapana
             </button>
             <button 
               onClick={() => setActiveView('kundali')} 
               className="hover:text-amber-600 transition-colors"
             >
               Lagna Kundali
+            </button>
+            <button 
+              onClick={() => setActiveView('dasha')} 
+              className="hover:text-amber-600 transition-colors font-medium text-amber-700 dark:text-amber-400"
+            >
+              Vimshottari Dasha
             </button>
             <button 
               onClick={() => setActiveView('gochar')} 
@@ -421,6 +596,7 @@ export default function App() {
           customEvents={customEvents}
           onAddEvent={handleAddEvent}
           onDeleteEvent={handleDeleteEvent}
+          onOpenDasha={() => setActiveView('dasha')}
         />
       )}
 
@@ -430,7 +606,10 @@ export default function App() {
           selectedCity={selectedCity}
           onClose={() => setShowHcmmAdmin(false)}
           hcmmLogoUrl={hcmmLogoUrl}
-          onUpdateLogoUrl={setHcmmLogoUrl}
+          onUpdateLogoUrl={handleUpdateLogoUrl}
+          mantrasList={mantrasList}
+          onAddMantra={handleAddMantra}
+          onDeleteMantra={handleDeleteMantra}
           booksList={booksList}
           onAddBook={handleAddBook}
           onDeleteBook={handleDeleteBook}
@@ -481,6 +660,36 @@ export default function App() {
           onClose={() => setShowAstroDiagnosticModal(false)}
         />
       )}
+
+      {/* Google Maps & Auto GPS Location Picker Modal */}
+      <GoogleMapLocationModal
+        isOpen={showGoogleMapModal}
+        onClose={() => setShowGoogleMapModal(false)}
+        currentLang={currentLang}
+        selectedCity={selectedCity}
+        onSelectCity={(newCity) => {
+          setSelectedCity(newCity);
+          localStorage.setItem('hcmm_city', JSON.stringify(newCity));
+        }}
+      />
+
+      {/* Global Master Administrative Unlock Modal */}
+      <MasterUnlockModal
+        isOpen={showGlobalUnlockModal}
+        onClose={() => setShowGlobalUnlockModal(false)}
+        onUnlockSuccess={() => {
+          setIsGlobalLocked(false);
+          localStorage.setItem('hcmm_global_locked', 'false');
+          localStorage.setItem('hcmm_astro_unlocked', 'true');
+          localStorage.setItem('hcmm_remedies_unlocked', 'true');
+          setShowGlobalUnlockModal(false);
+        }}
+        currentLang={currentLang}
+        selectedCity={selectedCity}
+        todayPanchanga={todayPanchanga}
+        userPassword={userPassword}
+        moduleName={lockedModuleName}
+      />
 
     </div>
   );

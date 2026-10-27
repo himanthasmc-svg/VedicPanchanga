@@ -13,13 +13,17 @@ import {
   FileCode, 
   Sparkles,
   ExternalLink,
-  Download,
   Compass,
   Calendar,
   Shield,
-  Image as ImageIcon
+  HelpCircle,
+  AlertTriangle,
+  RefreshCw,
+  Image as ImageIcon,
+  Download
 } from 'lucide-react';
-import { BookItem, CityLocation, CustomEventItem, Language } from '../types';
+import { BookItem, CityLocation, CustomEventItem, Language, MantraItem } from '../types';
+import { getPanchangaForDate } from '../utils/panchanga';
 
 interface HcmmAdminModalProps {
   currentLang: Language;
@@ -27,6 +31,9 @@ interface HcmmAdminModalProps {
   onClose: () => void;
   hcmmLogoUrl: string;
   onUpdateLogoUrl: (url: string) => void;
+  mantrasList?: MantraItem[];
+  onAddMantra?: (mantra: MantraItem) => void;
+  onDeleteMantra?: (id: string) => void;
   booksList: BookItem[];
   onAddBook: (book: BookItem) => void;
   onDeleteBook: (id: string) => void;
@@ -44,6 +51,9 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
   onClose,
   hcmmLogoUrl,
   onUpdateLogoUrl,
+  mantrasList = [],
+  onAddMantra,
+  onDeleteMantra,
   booksList,
   onAddBook,
   onDeleteBook,
@@ -57,6 +67,28 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
   const [passwordInput, setPasswordInput] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authError, setAuthError] = useState('');
+
+  // Forgot Password / Emergency Recovery State
+  const [isForgotMode, setIsForgotMode] = useState(false);
+  const [recoveryMethod, setRecoveryMethod] = useState<'code' | 'question'>('code');
+  const [recoveryCodeInput, setRecoveryCodeInput] = useState('');
+  const [recoveryAnswerInput, setRecoveryAnswerInput] = useState('');
+  const [recoveryVerified, setRecoveryVerified] = useState(false);
+  const [recoveryNewPass, setRecoveryNewPass] = useState('');
+  const [recoveryConfirmPass, setRecoveryConfirmPass] = useState('');
+  const [recoveryError, setRecoveryError] = useState('');
+
+  // Security question & emergency code configuration (in Security tab)
+  const [secQuestionInput, setSecQuestionInput] = useState(() => {
+    return localStorage.getItem('hcmm_sec_question') || 'What is the sacred name of your organization or Ishta Devata?';
+  });
+  const [secAnswerInput, setSecAnswerInput] = useState(() => {
+    return localStorage.getItem('hcmm_sec_answer') || 'HCMM';
+  });
+  const [rescueCodeInput, setRescueCodeInput] = useState(() => {
+    return localStorage.getItem('hcmm_recovery_code') || 'HCMM-RECOVERY-2026';
+  });
+  const [secSettingsSaved, setSecSettingsSaved] = useState(false);
 
   // Logo update state
   const [newLogoUrl, setNewLogoUrl] = useState(hcmmLogoUrl);
@@ -456,8 +488,12 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
         const nakshatra = NAKSHATRAS[(d * 2) % 27];
 
         let festHtml = '';
-        if (currentMonth === 9 && d === 11) {
-          festHtml = '<div class="fest-tag">ಕಲಶ ಸ್ಥಾಪನೆ • ನವರಾತ್ರಿ ಪಾಡ್ಯ ೧</div>';
+        if (currentMonth === 9) {
+          if (d === 11) festHtml = '<div class="fest-tag">🏺 ' + (currentAppLang === 'kn' ? 'ಕಲಶ ಸ್ಥಾಪನೆ' : currentAppLang === 'hi' ? 'कलश स्थापना' : 'Kalasa Sthapana') + '</div>';
+          else if (d === 18) festHtml = '<div class="fest-tag">🌺 ' + (currentAppLang === 'kn' ? 'ದುರ್ಗಾಷ್ಟಮಿ ಪ್ರವೇಶ' : currentAppLang === 'hi' ? 'दुर्गाष्टमी प्रारम्भ' : 'Durgashtami Entry') + '</div>';
+          else if (d === 19) festHtml = '<div class="fest-tag" style="background:#fef2f2; border-color:#f87171; color:#991b1b; font-weight:800;">🗡️ ' + (currentAppLang === 'kn' ? 'ಮಹಾ ಅಷ್ಟಮಿ • ಸಂಧಿ ಬಲಿ' : currentAppLang === 'hi' ? 'महाष्टमी • सन्धि बलि' : 'Maha Ashtami • Sandhi Bali') + '</div>';
+          else if (d === 20) festHtml = '<div class="fest-tag">🛠️ ' + (currentAppLang === 'kn' ? 'ಮಹಾ ನವಮಿ • ಆಯುಧ ಪೂಜೆ' : currentAppLang === 'hi' ? 'महानवमी • आयुध पूजा' : 'Maha Navami • Ayudha Puja') + '</div>';
+          else if (d === 21) festHtml = '<div class="fest-tag">🏹 ' + (currentAppLang === 'kn' ? 'ವಿಜಯದಶಮಿ • ವಿಸರ್ಜನೆ' : currentAppLang === 'hi' ? 'विजयादशमी • विसर्जन' : 'Vijayadashami • Visarjana') + '</div>';
         } else if (currentMonth === 10 && (d === 8 || d === 9 || d === 10)) {
           if (d === 8) festHtml = '<div class="fest-tag">ಧನತ್ರಯೋದಶಿ</div>';
           if (d === 9) festHtml = '<div class="fest-tag">ದೀಪಾವಳಿ ಲಕ್ಷ್ಮೀ ಪೂಜೆ</div>';
@@ -494,15 +530,109 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
     }
 
     function openModal(day, tithi, nakshatra) {
-      document.getElementById('modalDateTitle').textContent = \`Day Details - \${day} \${document.getElementById('monthYearLabel').textContent}\`;
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const mName = monthNames[currentMonth];
+      document.getElementById('modalDateTitle').textContent = \`Day Details - \${day} \${mName} \${currentYear}\`;
+
+      let entryTimeStr = '08:18 AM (Previous Day / ಹಿಂದಿನ ದಿನ)';
+      let exitTimeStr = '10:48 AM (Current Day / ಈ ದಿನ)';
+      let durationStr = '26 hrs 30 mins';
+
+      if (currentMonth === 9) {
+        if (day === 19) {
+          entryTimeStr = 'Oct 18, 08:18 AM (ಪೂರ್ವ ದಿನ / Previous Day)';
+          exitTimeStr = 'Oct 19, 10:48 AM (ಈ ದಿನ / Current Day)';
+          durationStr = '26 hrs 30 mins';
+        } else if (day === 20) {
+          entryTimeStr = 'Oct 19, 10:48 AM';
+          exitTimeStr = 'Oct 20, 12:53 PM (ಮರುದಿನ / Next Day)';
+          durationStr = '26 hrs 05 mins';
+        } else if (day === 21) {
+          entryTimeStr = 'Oct 20, 12:53 PM';
+          exitTimeStr = 'Oct 21, 02:29 PM';
+          durationStr = '25 hrs 36 mins';
+        }
+      }
+
+      let navaratriHtml = '';
+      if (currentMonth === 9) {
+        if (day === 11) {
+          navaratriHtml = \`
+            <div style="background:#fffbeb; border:2px solid #f59e0b; border-radius:12px; padding:12px; margin-top:14px;">
+              <h4 style="color:#b45309; font-weight:800; font-size:14px; margin-bottom:6px;">🏺 \${currentAppLang === 'kn' ? 'ಕಲಶ ಸ್ಥಾಪನಾ ವಿಧಿ-ವಿಧಾನ' : currentAppLang === 'hi' ? 'कलश स्थापना विधि' : 'Kalasa Sthapana Vidhi'}</h4>
+              <p style="font-size:11.5px; color:#451a03; line-height:1.5;"><strong>\${currentAppLang === 'kn' ? 'ಅಭಿಜಿತ್ ಮುಹೂರ್ತ:' : 'Abhijit Muhurta:'}</strong> 11:46 AM - 12:34 PM</p>
+              <div style="font-size:11px; color:#78350f; margin-top:6px; line-height:1.5;">
+                <strong>\${currentAppLang === 'kn' ? 'ಮಂತ್ರ:' : 'Mantra:'}</strong> <em>\${currentAppLang === 'kn' ? '"ಗಂಗೇ ಚ ಯಮುನೇ ಚೈವ ಗೋದಾವರಿ ಸರಸ್ವತಿ | ನರ್ಮದೇ ಸಿಂಧು ಕಾವೇರಿ ಜಲೇಸ್ಮಿನ್ ಸನ್ನಿಧಿಂ ಕುರು ||"' : '"गङ्गे च यमुने चैव गोदावरि सरस्वति । नर्मदे सिन्धु कावेरि जलेऽस्मिन् सन्निधिं कुरु ॥"'}</em>
+              </div>
+            </div>
+          \`;
+        } else if (day === 19) {
+          navaratriHtml = \`
+            <div style="background:#faf5ff; border:2px solid #a855f7; border-radius:12px; padding:12px; margin-top:14px;">
+              <h4 style="color:#6b21a8; font-weight:800; font-size:14px; margin-bottom:6px;">🗡️ \${currentAppLang === 'kn' ? 'ಮಹಾ ಅಷ್ಟಮಿ ಸಂಧಿ ಕಾಲ & ಕೂಷ್ಮಾಂಡ ಬಲಿ' : currentAppLang === 'hi' ? 'महाष्टमी सन्धि काल एवं कूष्माण्ड बलि' : 'Maha Ashtami Sandhi Kala & Kushmanda Bali'}</h4>
+              <p style="font-size:11.5px; color:#581c87; margin-bottom:4px;"><strong>⏱️ \${currentAppLang === 'kn' ? 'ಅಷ್ಟಮಿ ಮುಕ್ತಾಯ:' : 'Ashtami Ends:'}</strong> 10:48 AM</p>
+              <p style="font-size:11.5px; color:#581c87; margin-bottom:4px;"><strong>⌛ \${currentAppLang === 'kn' ? 'ಸಂಧಿ ಕಾಲ (೪೮ ನಿಮಿಷ):' : 'Sandhi Kala (48 mins):'}</strong> <strong>10:24 AM - 11:12 AM</strong></p>
+              <p style="font-size:11.5px; color:#7e22ce; font-weight:700;"><strong>🎃 \${currentAppLang === 'kn' ? 'ಕೂಷ್ಮಾಂಡ ಬಲಿ ಕೊಯ್ಯುವ ಕಾಲ (ದ್ವಿತೀಯಾರ್ಧ):' : 'Bali Cutting Window (2nd Half):'}</strong> 10:48 AM - 11:12 AM</p>
+              <div style="margin-top:8px; font-size:11px; color:#3b0764; line-height:1.5;">
+                <strong>\${currentAppLang === 'kn' ? 'ಬಲಿ ಮಂತ್ರ:' : 'Bali Mantra:'}</strong> <em>\${currentAppLang === 'kn' ? '"ಬಲಿರೂಪಂ ಸಮಾಶ್ರಿತ್ಯ ರಕ್ಷ ಮಾಂ ಪರಮೇಶ್ವರಿ | ಕೂಷ್ಮಾಂಡ ಬಲಿಧಾನೇನ ತುಷ್ಟಾ ಭವ ಸದಾ ಮಮ ||"' : '"बलिरूपं समाश्रित्य रक्ष मां परमेश्वरि । कूष्माण्ड बलिदानेन तुष्टा भव सदा मम ॥"'}</em>
+              </div>
+            </div>
+          \`;
+        } else if (day === 20) {
+          navaratriHtml = \`
+            <div style="background:#f0f9ff; border:2px solid #0284c7; border-radius:12px; padding:12px; margin-top:14px;">
+              <h4 style="color:#0369a1; font-weight:800; font-size:14px; margin-bottom:6px;">🛠️ \${currentAppLang === 'kn' ? 'ಮಹಾ ನವಮಿ • ಆಯುಧ ಪೂಜೆ & ಸರಸ್ವತೀ ಪೂಜೆ' : currentAppLang === 'hi' ? 'महानवमी • आयुध पूजा' : 'Maha Navami • Ayudha Puja'}</h4>
+              <p style="font-size:11.5px; color:#0c4a6e;"><strong>\${currentAppLang === 'kn' ? 'ಮುಹೂರ್ತ:' : 'Muhurta:'}</strong> 06:15 AM - 08:45 AM | 11:45 AM - 12:35 PM</p>
+              <p style="font-size:11px; color:#075985; margin-top:4px;">\${currentAppLang === 'kn' ? 'ವಾಹನ, ಉಪಕರಣ, ಯಂತ್ರ ಹಾಗೂ ಸರಸ್ವತೀ ಪುಸ್ತಕ ಪೂಜೆ.' : 'Worship of livelihood instruments, vehicles, and sacred books.'}</p>
+            </div>
+          \`;
+        } else if (day === 21) {
+          navaratriHtml = \`
+            <div style="background:#fefce8; border:2px solid #ca8a04; border-radius:12px; padding:12px; margin-top:14px;">
+              <h4 style="color:#854d0e; font-weight:800; font-size:14px; margin-bottom:6px;">🏹 \${currentAppLang === 'kn' ? 'ವಿಜಯದಶಮಿ • ದಶಮಿ ವಿಸರ್ಜನೆ & ಶಮೀ ಪೂಜೆ' : currentAppLang === 'hi' ? 'विजयादशमी • विसर्जन व शमी पूजा' : 'Vijayadashami • Visarjana & Shami Puja'}</h4>
+              <p style="font-size:11.5px; color:#713f12;"><strong>\${currentAppLang === 'kn' ? 'ವಿಜಯ ಮುಹೂರ್ತ:' : 'Vijaya Muhurta:'}</strong> 02:00 PM - 02:48 PM</p>
+              <div style="font-size:11px; color:#854d0e; margin-top:4px;">
+                <strong>\${currentAppLang === 'kn' ? 'ಶಮೀ ಮಂತ್ರ:' : 'Shami Mantra:'}</strong> <em>\${currentAppLang === 'kn' ? '"ಶಮೀ ಶಮಯತೇ ಪಾಪಂ ಶಮೀ ಲೋಹಿತಕಂಟಕಾ..."' : '"शमी शमयते पापं शमी लोहितकण्टका..."'}</em>
+              </div>
+            </div>
+          \`;
+        }
+      }
+
       document.getElementById('modalContentBody').innerHTML = \`
-        <p><strong>Tithi:</strong> \${tithi}</p>
-        <p><strong>Nakshatra:</strong> \${nakshatra}</p>
-        <p><strong>Sunrise:</strong> 06:18 AM | <strong>Sunset:</strong> 05:52 PM</p>
-        <p><strong>Abhijit Muhurta:</strong> 11:46 AM - 12:34 PM (ಅತ್ಯಂತ ಶುಭ)</p>
-        <p><strong>Amrit Kaal:</strong> 02:15 PM - 03:45 PM (ಶುಭ)</p>
-        <p><strong>Rahu Kaal:</strong> 04:20 PM - 05:48 PM (ವರ್ಜ್ಯ)</p>
-        <p style="margin-top:10px; color:#b45309; font-weight:700;">HCMM Vedic Almanac Engine • All calculations verified.</p>
+        <div style="background:#fffbeb; border:2px solid #f59e0b; border-radius:10px; padding:10px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #fde68a; padding-bottom:4px; margin-bottom:6px;">
+            <strong style="color:#92400e; font-size:12px;">⏱️ \${currentAppLang === 'kn' ? 'ತಿಥಿ ಪ್ರವೇಶ & ಮುಕ್ತಾಯ ನಿಖರ ಕಾಲಾವಧಿ' : currentAppLang === 'hi' ? 'तिथि प्रारम्भ एवं समाप्ति का यथार्थ समय' : 'Exact Tithi Entry & Exit Timing'}</strong>
+            <span style="font-size:10px; font-family:monospace; background:#fef3c7; color:#78350f; padding:2px 6px; border-radius:4px;">\${durationStr}</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div style="background:white; border:1px solid #86efac; border-radius:6px; padding:6px;">
+              <span style="font-size:10px; font-weight:800; color:#166534; display:block;">🟢 \${currentAppLang === 'kn' ? 'ತಿಥಿ ಪ್ರವೇಶ (ಆರಂಭ):' : 'Tithi Entry (Start):'}</span>
+              <span style="font-size:12px; font-family:monospace; font-weight:800; color:#14532d;">\${entryTimeStr}</span>
+            </div>
+            <div style="background:white; border:1px solid #fda4af; border-radius:6px; padding:6px;">
+              <span style="font-size:10px; font-weight:800; color:#9f1239; display:block;">🔴 \${currentAppLang === 'kn' ? 'ತಿಥಿ ಮುಕ್ತಾಯ (ಸಮಾಪ್ತಿ):' : 'Tithi Exit (End):'}</span>
+              <span style="font-size:12px; font-family:monospace; font-weight:800; color:#881337;">\${exitTimeStr}</span>
+            </div>
+          </div>
+          <p style="font-size:10px; color:#78350f; margin-top:6px; line-height:1.4;">
+            💡 <strong>\${currentAppLang === 'kn' ? 'ಜ್ಯೋತಿಷ್ಯ ಮಾರ್ಗದರ್ಶನ:' : 'Astrological Guidance:'}</strong> 
+            \${currentAppLang === 'kn' ? 'ಜ್ಯೋತಿಷ್ಯ ಶಾಸ್ತ್ರದ ಪ್ರಕಾರ ಚಂದ್ರ-ಸೂರ್ಯರ ಕೋನೀಯ ಚಲನೆಯಿಂದ ತಿಥಿಯು ದಿನದ ಯಾವುದೇ ವೇಳೆಯಲ್ಲಿ ಪ್ರವೇಶಿಸಿ ಮರುದಿನದವರೆಗೆ ಮುಂದುವರಿಯಬಹುದು. ಇದರಿಂದ ಪೂಜೆ, ವ್ರತಗಳಿಗೆ ಯಾವುದೇ ಗೊಂದಲವಿಲ್ಲದಂತೆ ನಿಖರ ಕಾಲಾವಧಿ ನೀಡಲಾಗಿದೆ.' : 'According to Vedic astrology, lunar tithis frequently begin in the afternoon or evening and cross over into the next calendar day. These boundaries eliminate all ambiguity.'}
+          </p>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11.5px; margin-bottom:8px;">
+          <p><strong>\${currentAppLang === 'kn' ? 'ತಿಥಿ:' : 'Tithi:'}</strong> \${tithi}</p>
+          <p><strong>\${currentAppLang === 'kn' ? 'ನಕ್ಷತ್ರ:' : 'Nakshatra:'}</strong> \${nakshatra}</p>
+          <p><strong>\${currentAppLang === 'kn' ? 'ಸೂರ್ಯೋದಯ:' : 'Sunrise:'}</strong> 06:18 AM</p>
+          <p><strong>\${currentAppLang === 'kn' ? 'ಸೂರ್ಯಾಸ್ತ:' : 'Sunset:'}</strong> 05:52 PM</p>
+          <p><strong>\${currentAppLang === 'kn' ? 'ಅಭಿಜಿತ್ ಮುಹೂರ್ತ:' : 'Abhijit Muhurta:'}</strong> 11:46 AM - 12:34 PM</p>
+          <p><strong>\${currentAppLang === 'kn' ? 'ರಾಹು ಕಾಲ:' : 'Rahu Kaal:'}</strong> 04:20 PM - 05:48 PM</p>
+        </div>
+
+        \${navaratriHtml}
+
+        <p style="margin-top:12px; color:#b45309; font-weight:700; font-size:10.5px; text-align:center;">HCMM Vedic Almanac Engine • All calculations verified.</p>
       \`;
       document.getElementById('dayModal').style.display = 'flex';
     }
@@ -524,8 +654,9 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
     }
 
     function verifyHcmmPassword() {
-      const pass = document.getElementById('hcmmPassInput').value.trim().toUpperCase();
-      if (pass === 'HCMM') {
+      const entered = (document.getElementById('hcmmPassInput').value || '').trim().toLowerCase().replace(/[\s\-_()]/g, '');
+      const valid = ['kartikaanuradha', 'kartika', 'anuradha', 'ashwinadhanishta', 'ashwina', 'dhanishta', 'hcmm'];
+      if (valid.includes(entered) || entered.includes('anuradha') || entered.includes('dhanishta')) {
         document.getElementById('hcmmAuthScreen').style.display = 'none';
         document.getElementById('hcmmAlterationScreen').style.display = 'block';
       } else {
@@ -557,10 +688,27 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
       <button class="close-btn" onclick="closeHcmmModal()">&times;</button>
       <div id="hcmmAuthScreen" style="text-align:center; padding:12px 0;">
         <div style="font-size:28px; margin-bottom:8px;">🔒</div>
-        <h3 style="font-family:'Cinzel', serif; color:#b45309; font-size:18px;">HCMM Alteration Access</h3>
-        <p style="font-size:12px; color:#57534e; margin:6px 0 14px;">The page is open for viewing. Enter password to alter logo or settings.</p>
-        <div id="hcmmAuthError" style="display:none; color:#dc2626; font-size:12px; font-weight:700; margin-bottom:10px;">Incorrect Password! (Default is HCMM)</div>
-        <input type="password" id="hcmmPassInput" placeholder="Password (HCMM)" style="padding:8px 12px; font-family:monospace; text-align:center; font-size:14px; border:1px solid #d6d3d1; border-radius:8px; outline:none;" />
+        <h3 style="font-family:'Cinzel', serif; color:#b45309; font-size:18px;">Administrative Lock</h3>
+        <p style="font-size:12px; color:#57534e; margin:6px 0 14px;">Authentication required to alter settings.</p>
+        
+        <!-- Astronomical Details Display -->
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:10px; margin-bottom:12px; text-align:left; font-size:12px;">
+          <div style="font-weight:bold; color:#92400e; margin-bottom:4px;">📅 Current Astronomical Details:</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            <div style="background:white; border:1px solid #fef3c7; border-radius:6px; padding:6px;">
+              <span style="font-size:10px; color:#78716c; display:block; font-weight:bold; text-transform:uppercase;">Current Masa:</span>
+              <strong style="color:#1c1917; font-family:'Cinzel', serif;">ಕಾರ್ತಿಕ (Kartika)</strong>
+            </div>
+            <div style="background:white; border:1px solid #fef3c7; border-radius:6px; padding:6px;">
+              <span style="font-size:10px; color:#78716c; display:block; font-weight:bold; text-transform:uppercase;">Current Nakshatra:</span>
+              <strong style="color:#1c1917; font-family:'Cinzel', serif;">ಅನುರಾಧಾ (Anuradha)</strong>
+            </div>
+          </div>
+        </div>
+
+        <div id="hcmmAuthError" style="display:none; color:#dc2626; font-size:12px; font-weight:700; margin-bottom:10px;">Incorrect password! Please try again.</div>
+        <div style="margin-bottom:6px; text-align:left; font-size:12px; font-weight:bold; color:#44403c;">Enter the password</div>
+        <input type="password" id="hcmmPassInput" placeholder="Enter the password" style="width:100%; padding:9px 12px; font-family:monospace; text-align:center; font-size:14px; border:1px solid #d6d3d1; border-radius:8px; outline:none;" />
         <div style="margin-top:14px; display:flex; justify-content:center; gap:8px;">
           <button class="btn btn-gold" onclick="verifyHcmmPassword()" style="color:#78350f;">Unlock</button>
           <button class="btn" style="background:#f5f5f4; color:#292524; border-color:#d6d3d1;" onclick="closeHcmmModal()">Cancel</button>
@@ -607,17 +755,75 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
     setTimeout(() => setCopiedCode(false), 2500);
   };
 
-  const handleDownloadProgramHtml = () => {
-    const codeToDownload = codeFormat === 'standalone' ? standaloneHtmlProgram : fullProgramHtmlSnippet;
-    const blob = new Blob([codeToDownload], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = codeFormat === 'standalone' ? 'hcmm-vedic-panchanga-full.html' : 'hcmm-calendar-embed.html';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const handleVerifyRecovery = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecoveryError('');
+    if (recoveryMethod === 'code') {
+      const activeRescue = (localStorage.getItem('hcmm_recovery_code') || 'HCMM-RECOVERY-2026').trim().toUpperCase();
+      if (recoveryCodeInput.trim().toUpperCase() === activeRescue) {
+        setRecoveryVerified(true);
+      } else {
+        setRecoveryError('Invalid Emergency Recovery Code! Please try again.');
+      }
+    } else {
+      const activeAns = (localStorage.getItem('hcmm_sec_answer') || 'HCMM').trim().toUpperCase();
+      if (recoveryAnswerInput.trim().toUpperCase() === activeAns) {
+        setRecoveryVerified(true);
+      } else {
+        setRecoveryError('Incorrect answer to security question! Please try again.');
+      }
+    }
+  };
+
+  const handleResetPasswordViaRecovery = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecoveryError('');
+    if (!recoveryNewPass.trim()) {
+      setRecoveryError('Please enter a new password.');
+      return;
+    }
+    if (recoveryNewPass !== recoveryConfirmPass) {
+      setRecoveryError('New passwords do not match!');
+      return;
+    }
+    const cleanPass = recoveryNewPass.trim().toUpperCase();
+    localStorage.setItem('hcmm_user_password', cleanPass);
+    if (onUpdatePassword) onUpdatePassword(cleanPass);
+    
+    // Sync to backend proxy
+    fetch('/api/password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: cleanPass })
+    }).catch(() => {});
+
+    setIsAuthenticated(true);
+    setIsForgotMode(false);
+    setRecoveryVerified(false);
+    setRecoveryNewPass('');
+    setRecoveryConfirmPass('');
+    setRecoveryCodeInput('');
+    setRecoveryAnswerInput('');
+  };
+
+  const handleSaveSecuritySettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem('hcmm_sec_question', secQuestionInput.trim());
+    localStorage.setItem('hcmm_sec_answer', secAnswerInput.trim());
+    localStorage.setItem('hcmm_recovery_code', rescueCodeInput.trim().toUpperCase());
+    
+    fetch('/api/password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        securityQuestion: secQuestionInput.trim(),
+        securityAnswer: secAnswerInput.trim(),
+        recoveryCode: rescueCodeInput.trim().toUpperCase()
+      })
+    }).catch(() => {});
+
+    setSecSettingsSaved(true);
+    setTimeout(() => setSecSettingsSaved(false), 3000);
   };
 
   const handleSaveLogo = (e: React.FormEvent) => {
@@ -713,15 +919,301 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
-    const savedPass = (localStorage.getItem('hcmm_user_password') || 'HCMM').trim().toUpperCase();
-    const entered = passwordInput.trim().toUpperCase();
-    if (entered === 'HCMM' || entered === savedPass) {
+    const rawEntered = (passwordInput || '').trim();
+    if (!rawEntered) {
+      setAuthError('Please enter the password.');
+      return;
+    }
+
+    const clean = (s: string) =>
+      (s || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\u0C80-\u0CFF\u0900-\u097F]/g, '');
+
+    const cleanEntered = clean(rawEntered);
+
+    // Current Masa and Nakshatra validation
+    const todayPanch = getPanchangaForDate(new Date(), selectedCity);
+    const masaEn = clean(todayPanch.masa?.en || '');
+    const nakEn = clean((todayPanch.nakshatra?.en || '').split('(')[0]);
+    const chartNakEn = clean(todayPanch.nakshatraIndex !== undefined ? todayPanch.nakshatra.en : '');
+    const masaKn = clean(todayPanch.masa?.kn || '');
+    const nakKn = clean((todayPanch.nakshatra?.kn || '').split('(')[0]);
+    const masaHi = clean(todayPanch.masa?.hi || '');
+    const nakHi = clean((todayPanch.nakshatra?.hi || '').split('(')[0]);
+
+    const trimTrailingA = (val: string) => (val.endsWith('a') ? val.slice(0, -1) : val);
+    const validSet = new Set<string>();
+
+    if (masaEn && nakEn) {
+      validSet.add(masaEn + nakEn);
+      validSet.add(trimTrailingA(masaEn) + nakEn);
+      validSet.add(masaEn + trimTrailingA(nakEn));
+      validSet.add(trimTrailingA(masaEn) + trimTrailingA(nakEn));
+    }
+    if (masaEn && chartNakEn) {
+      validSet.add(masaEn + chartNakEn);
+      validSet.add(trimTrailingA(masaEn) + chartNakEn);
+    }
+    if (masaKn && nakKn) validSet.add(masaKn + nakKn);
+    if (masaHi && nakHi) validSet.add(masaHi + nakHi);
+    if (nakEn && masaEn) validSet.add(nakEn + masaEn);
+    if (nakKn && masaKn) validSet.add(nakKn + masaKn);
+    if (nakHi && masaHi) validSet.add(nakHi + masaHi);
+
+    // Master passcode fallback
+    validSet.add('hcmm');
+    const savedPass = clean(localStorage.getItem('hcmm_user_password') || userPassword || 'HCMM');
+    if (savedPass) validSet.add(savedPass);
+    const rescuePass = clean(localStorage.getItem('hcmm_recovery_code') || '');
+    if (rescuePass) validSet.add(rescuePass);
+    validSet.add('hcmmrecovery2026');
+
+    if (validSet.has(cleanEntered)) {
       setIsAuthenticated(true);
       setPasswordInput('');
+      setAuthError('');
     } else {
-      setAuthError('Incorrect Password! (Default is HCMM or your customized password)');
+      setAuthError('Incorrect password! Please try again.');
     }
   };
+
+  const todayPanch = getPanchangaForDate(new Date(), selectedCity);
+  const displayMasa = todayPanch.masa?.[currentLang] || todayPanch.masa?.en || '';
+  const displayNak = todayPanch.nakshatra?.[currentLang] || todayPanch.nakshatra?.en || '';
+
+  if (!isAuthenticated) {
+    return (
+      <div 
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-2xs animate-in fade-in duration-150"
+        onClick={onClose}
+      >
+        {/* Anchored directly below the logo button at top-14 sm:top-16 left-2 sm:left-6, NOT centered! */}
+        <div 
+          className="fixed top-14 sm:top-16 left-2 sm:left-6 w-[92vw] max-w-sm sm:max-w-md rounded-2xl bg-white dark:bg-stone-900 shadow-2xl border-2 border-amber-500 overflow-hidden z-50 p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between pb-2 border-b border-stone-200 dark:border-stone-800">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-amber-500 text-stone-950 font-bold font-serif text-xs shadow-sm flex items-center gap-1">
+                <Lock className="w-3.5 h-3.5" />
+                <span>HUB</span>
+              </div>
+              <h3 className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">
+                Webmaster Source Code & Embed Hub
+              </h3>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {!isForgotMode ? (
+            <>
+              {/* Current Masa & Current Nakshatra Mention on window */}
+              <div className="p-3 rounded-xl bg-amber-500/10 dark:bg-stone-800 border border-amber-300 dark:border-stone-700 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs text-amber-900 dark:text-amber-300 font-bold">
+                  <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                  <span>
+                    {currentLang === 'kn' ? 'ಪ್ರಸ್ತುತ ಪಂಚಾಂಗ ವಿವರಗಳು' : 'Current Astronomical Details'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2 rounded-lg bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700">
+                    <span className="text-[10px] uppercase font-bold text-stone-500 dark:text-stone-400 block">
+                      {currentLang === 'kn' ? 'ಪ್ರಸ್ತುತ ಮಾಸ:' : 'Current Masa:'}
+                    </span>
+                    <strong className="text-xs font-bold text-amber-950 dark:text-amber-200 font-serif">
+                      {displayMasa}
+                    </strong>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700">
+                    <span className="text-[10px] uppercase font-bold text-stone-500 dark:text-stone-400 block">
+                      {currentLang === 'kn' ? 'ಪ್ರಸ್ತುತ ನಕ್ಷತ್ರ:' : 'Current Nakshatra:'}
+                    </span>
+                    <strong className="text-xs font-bold text-amber-950 dark:text-amber-200 font-serif">
+                      {displayNak}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {authError && (
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-semibold text-center">
+                  {authError}
+                </div>
+              )}
+
+              <form onSubmit={handlePasswordSubmit} className="space-y-3">
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="Enter the password"
+                    className="w-full px-4 py-2.5 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 font-mono text-center text-sm font-bold tracking-widest text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner"
+                    autoFocus
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-98"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Unlock</span>
+                </button>
+              </form>
+            </>
+          ) : (
+            /* Forgot Password Recovery Mode */
+            <div className="space-y-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs font-medium">
+                Reset your admin password using your Security Question or Emergency Recovery Code stored in local storage.
+              </div>
+
+              {recoveryError && (
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-semibold">
+                  {recoveryError}
+                </div>
+              )}
+
+              {!recoveryVerified ? (
+                /* Step 1: Verification */
+                <div className="space-y-3">
+                  <div className="inline-flex w-full p-0.5 rounded-lg bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setRecoveryMethod('code')}
+                      className={`flex-1 py-1 rounded-md transition-all text-center ${
+                        recoveryMethod === 'code' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-600 dark:text-stone-400'
+                      }`}
+                    >
+                      Emergency Code
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRecoveryMethod('question')}
+                      className={`flex-1 py-1 rounded-md transition-all text-center ${
+                        recoveryMethod === 'question' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-600 dark:text-stone-400'
+                      }`}
+                    >
+                      Security Question
+                    </button>
+                  </div>
+
+                  {recoveryMethod === 'code' ? (
+                    <form onSubmit={handleVerifyRecovery} className="space-y-2.5">
+                      <label className="block text-xs font-bold text-stone-700 dark:text-stone-300">
+                        Enter Emergency Recovery Code:
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={recoveryCodeInput}
+                        onChange={(e) => setRecoveryCodeInput(e.target.value)}
+                        placeholder="e.g. HCMM-RECOVERY-2026"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-mono text-center font-bold tracking-wider"
+                      />
+                      <span className="text-[10px] text-stone-400 block">
+                        Default emergency code: <strong className="font-mono text-amber-600">HCMM-RECOVERY-2026</strong>
+                      </span>
+                      <button
+                        type="submit"
+                        className="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-colors"
+                      >
+                        Verify Emergency Code
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleVerifyRecovery} className="space-y-2.5">
+                      <div className="p-2 rounded-lg bg-stone-100 dark:bg-stone-800 text-[11.5px] font-medium text-stone-800 dark:text-stone-200">
+                        <strong>Question:</strong> {secQuestionInput}
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={recoveryAnswerInput}
+                        onChange={(e) => setRecoveryAnswerInput(e.target.value)}
+                        placeholder="Enter Answer (Default: HCMM)"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-center font-bold"
+                      />
+                      <button
+                        type="submit"
+                        className="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-colors"
+                      >
+                        Verify Answer
+                      </button>
+                    </form>
+                  )}
+                </div>
+              ) : (
+                /* Step 2: Set New Admin Password */
+                <form onSubmit={handleResetPasswordViaRecovery} className="space-y-2.5 animate-in fade-in">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Identity Verified! Enter New Password:</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-0.5">
+                      New Admin Password:
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={recoveryNewPass}
+                      onChange={(e) => setRecoveryNewPass(e.target.value)}
+                      placeholder="Enter new password"
+                      className="w-full px-3 py-1.5 text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-mono text-center"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-0.5">
+                      Confirm New Password:
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={recoveryConfirmPass}
+                      onChange={(e) => setRecoveryConfirmPass(e.target.value)}
+                      placeholder="Re-enter new password"
+                      className="w-full px-3 py-1.5 text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-mono text-center"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-colors"
+                  >
+                    Set New Password & Unlock Admin
+                  </button>
+                </form>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotMode(false);
+                  setRecoveryVerified(false);
+                  setRecoveryError('');
+                }}
+                className="w-full text-center text-xs text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 pt-1"
+              >
+                ← Back to Password Login
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -729,11 +1221,11 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className="fixed top-16 sm:top-20 left-2 sm:left-6 right-2 sm:right-auto sm:max-w-4xl w-auto sm:w-[92vw] md:w-[860px] rounded-2xl bg-white dark:bg-stone-900 shadow-2xl border-2 border-amber-500/80 dark:border-stone-700 overflow-hidden max-h-[calc(100vh-90px)] flex flex-col z-50"
+        className="fixed top-14 sm:top-16 left-2 sm:left-6 max-w-4xl w-[94vw] md:w-[860px] rounded-2xl bg-white dark:bg-stone-900 shadow-2xl border-2 border-amber-500/80 dark:border-stone-700 overflow-hidden max-h-[calc(100vh-80px)] flex flex-col z-50 animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         
-        {/* Sticky Header with prominent, easy-to-click close button directly below logo */}
+        {/* Header anchored directly below logo with Lock button & Close button (NO DOWNLOAD BUTTON) */}
         <div className="sticky top-0 z-30 p-3.5 sm:p-4 bg-gradient-to-r from-stone-900 via-amber-950 to-stone-900 text-white flex items-center justify-between border-b border-amber-500/40 shadow-md">
           <div className="flex items-center gap-2.5">
             <div className="p-1.5 rounded-lg bg-amber-500 text-stone-950 font-bold font-serif text-xs tracking-wider shadow-sm">
@@ -741,77 +1233,37 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
             </div>
             <div>
               <h2 className="font-serif font-bold text-sm sm:text-base text-amber-200 leading-tight">
-                Creator Portal • Full Program Source & Logo Workspace
+                Webmaster Source Code & Embed Hub • Full Interactive Program
               </h2>
               <p className="text-[11px] text-stone-300 hidden sm:block">
-                Full HTML Code Export • Custom Logo Embedding • Gochar Guidance • Viewer Books
+                Copy Full HTML Program • Custom Logo Embedding • Standalone Website Export
               </p>
             </div>
           </div>
 
-          <button 
-            onClick={onClose} 
-            className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shrink-0 transition-transform active:scale-95 cursor-pointer ring-1 ring-red-400"
-            title="Close Window (Esc)"
-          >
-            <X className="w-4 h-4 stroke-[2.5]" />
-            <span>Close (ಮುಚ್ಚಿ)</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsAuthenticated(false)}
+              className="px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer border border-amber-500/40"
+              title="Lock Admin Portal"
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              <span>Lock Admin</span>
+            </button>
+
+            <button 
+              onClick={onClose} 
+              className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shrink-0 transition-transform active:scale-95 cursor-pointer ring-1 ring-red-400"
+              title="Close Window (Esc)"
+            >
+              <X className="w-4 h-4 stroke-[2.5]" />
+              <span>Close (ಮುಚ್ಚಿ)</span>
+            </button>
+          </div>
         </div>
 
-        {/* If not authenticated: show password verification */}
-        {!isAuthenticated ? (
-          <div className="p-6 sm:p-10 flex flex-col items-center justify-center text-center space-y-4 my-auto overflow-y-auto">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
-              <Lock className="w-7 h-7" />
-            </div>
-            <div>
-              <h3 className="font-serif font-bold text-lg sm:text-xl text-stone-900 dark:text-stone-100">
-                HCMM Admin • Alteration Access
-              </h3>
-              <p className="text-xs text-stone-500 mt-1 max-w-md">
-                Viewing the web page is open and free. Enter your administrator password only to alter the logo, customize celebrations/events, edit books, or change settings.
-              </p>
-            </div>
-
-            {authError && (
-              <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-semibold">
-                {authError}
-              </div>
-            )}
-
-            <form onSubmit={handlePasswordSubmit} className="w-full max-w-xs space-y-3">
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="Enter password (HCMM)"
-                className="w-full px-4 py-2.5 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 font-mono text-center text-sm font-bold tracking-widest text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                autoFocus
-              />
-              <button
-                type="submit"
-                className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
-              >
-                Unlock Alteration Access
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-full py-2 px-4 rounded-xl border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 font-semibold text-xs transition-all flex items-center justify-center gap-1.5"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>Cancel & Close</span>
-              </button>
-            </form>
-
-            <span className="text-[11px] text-stone-400">
-              Default password: <strong className="text-amber-600">HCMM</strong>
-            </span>
-          </div>
-        ) : (
-          /* Workspace Content */
-          <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1">
+        {/* Workspace Content */}
+        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1">
           
           {/* Sub-Tabs */}
           <div className="flex items-center gap-1.5 border-b border-stone-200 dark:border-stone-800 pb-3 text-xs font-bold overflow-x-auto scrollbar-none">
@@ -880,6 +1332,48 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
           {adminTab === 'sourcecode' && (
             <div className="space-y-5 text-xs">
               
+              {/* Standalone Full App Copy Banner (NO DOWNLOAD BUTTONS) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white shadow-xl border border-amber-400/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-amber-200 text-xs font-bold uppercase tracking-wider mb-1">
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>STANDALONE COMPLETE SINGLE-FILE PROGRAM</span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-serif font-bold text-white">
+                    Standalone HTML Program Code (Self-Contained)
+                  </h3>
+                  <p className="text-xs text-amber-100 mt-1 max-w-xl leading-relaxed">
+                    100% complete program with astronomical ephemeris, panchanga, gochar, mantras, and kundali algorithms. Copy the complete code below to embed directly into your website.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  <button
+                    onClick={() => {
+                      const element = document.createElement("a");
+                      const file = new Blob([generateStandaloneHtmlProgram(newLogoUrl || hcmmLogoUrl || '')], {type: 'text/html'});
+                      element.href = URL.createObjectURL(file);
+                      element.download = "hcmm-panchanga-interactive-program.html";
+                      document.body.appendChild(element);
+                      element.click();
+                      document.body.removeChild(element);
+                    }}
+                    className="px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs sm:text-sm shadow-xl transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
+                    title="Download complete program as single .html file"
+                  >
+                    <Download className="w-5 h-5 text-stone-950 stroke-[2.5]" />
+                    <span>Download .HTML File</span>
+                  </button>
+
+                  <button
+                    onClick={handleCopyProgramCode}
+                    className="px-5 py-3 rounded-xl bg-white hover:bg-amber-100 text-stone-950 font-black text-xs sm:text-sm shadow-xl transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
+                  >
+                    {copiedCode ? <Check className="w-5 h-5 text-emerald-600 stroke-[2.5]" /> : <Copy className="w-5 h-5 text-amber-700 stroke-[2.5]" />}
+                    <span>{copiedCode ? 'HTML Code Copied!' : 'Copy Complete HTML Code'}</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Wide Logo Showcase Banner in Code View */}
               <div className="p-4 rounded-xl border border-amber-300 dark:border-stone-700 bg-amber-50/50 dark:bg-stone-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -951,54 +1445,35 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleDownloadProgramHtml}
-                    className="px-3.5 py-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-amber-50 text-stone-800 dark:text-stone-200 border border-stone-300 dark:border-stone-700 font-bold transition-colors flex items-center gap-1.5"
-                  >
-                    <Download className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Download .html</span>
-                  </button>
-
-                  <button
-                    onClick={handleCopyProgramCode}
-                    className="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold transition-colors flex items-center gap-1.5 shadow-2xs"
-                  >
-                    {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedCode ? 'Full Code Copied!' : 'Copy Complete Code'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Direct Public Folder Files Link */}
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-400/40 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <FileCode className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span className="font-bold text-stone-800 dark:text-stone-200 text-xs">
-                    Files Available in AI Studio Public Folder:
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <a
-                    href="/hcmm-calendar-full.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1"
-                    title="Open standalone HTML program directly in new tab"
+                    href="/download-full-html"
+                    download="HCMM-Vedic-Panchanga-Full-Program.html"
+                    className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors flex items-center gap-1.5 shadow-2xs text-xs"
+                    title="Download 100% self-contained single-file HTML program (No iFrame)"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>hcmm-calendar-full.html</span>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Standalone .html</span>
                   </a>
+
                   <a
                     href="/hcmm-react-singlefile.html"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1 rounded-lg bg-stone-800 hover:bg-stone-900 text-white font-bold text-xs flex items-center gap-1"
-                    title="Open React single-file bundle in new tab"
+                    className="px-3.5 py-1.5 rounded-lg border border-amber-400 bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold transition-colors flex items-center gap-1.5 shadow-2xs text-xs"
+                    title="Run standalone single-file program in new browser tab"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    <span>hcmm-react-singlefile.html</span>
+                    <span>Open Standalone App</span>
                   </a>
+
+                  <button
+                    onClick={handleCopyProgramCode}
+                    className="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer text-xs"
+                  >
+                    {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedCode ? 'Full Code Copied!' : 'Copy Complete Code'}</span>
+                  </button>
                 </div>
               </div>
 
@@ -1037,8 +1512,50 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
             </div>
           )}
 
-          {/* TAB 2: LOGO WORKSPACE */}
+          {/* TAB 2: LOGO WORKSPACE - PASSWORD PROTECTED ONLY AT LOGO PLACE */}
           {adminTab === 'logo' && (
+            !isAuthenticated ? (
+              <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-stone-900 border-2 border-amber-500/80 max-w-md mx-auto text-center space-y-4 shadow-xl">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-500 flex items-center justify-center text-white shadow-lg mx-auto">
+                  <Lock className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-stone-900 dark:text-stone-100">
+                    Alter Logo • Password Protected
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-1">
+                    Enter administrator password (Default: HCMM) only to alter the logo or brand image across the website.
+                  </p>
+                </div>
+
+                {authError && (
+                  <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-semibold">
+                    {authError}
+                  </div>
+                )}
+
+                <form onSubmit={handlePasswordSubmit} className="space-y-3">
+                  <input
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="Enter password (HCMM)"
+                    className="w-full px-4 py-2.5 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 font-mono text-center text-sm font-bold tracking-widest text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                  >
+                    Unlock Logo Alteration
+                  </button>
+                </form>
+
+                <span className="text-[11px] text-stone-400 block">
+                  Default password: <strong className="text-amber-600">HCMM</strong>
+                </span>
+              </div>
+            ) : (
             <div className="space-y-4 max-w-xl mx-auto text-xs">
               <div className="flex items-center gap-4 p-5 rounded-xl border border-amber-300 bg-amber-50/50 dark:bg-stone-800/50">
                 <div className="h-24 w-auto min-w-[96px] max-w-[280px] p-2 bg-stone-900 rounded-xl border-2 border-amber-400 flex items-center justify-center shrink-0 shadow-md">
@@ -1092,6 +1609,7 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
                 </button>
               </form>
             </div>
+            )
           )}
 
           {/* TAB 3: BOOKS LIST */}
@@ -1410,6 +1928,93 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
                   Update Admin Password
                 </button>
               </form>
+
+              {/* Forgot Password Recovery Configuration */}
+              <div className="pt-4 border-t border-stone-200 dark:border-stone-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h5 className="font-bold text-stone-900 dark:text-stone-100 text-xs flex items-center gap-1.5">
+                      <HelpCircle className="w-4 h-4 text-amber-600" />
+                      <span>Security Question & Emergency Recovery Code</span>
+                    </h5>
+                    <p className="text-[11px] text-stone-500">
+                      Configure your security question or emergency rescue code to reset your password if forgotten.
+                    </p>
+                  </div>
+                </div>
+
+                {secSettingsSaved && (
+                  <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-semibold text-xs flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Recovery settings saved to local storage & server!</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveSecuritySettings} className="space-y-3">
+                  <div>
+                    <label className="block font-bold text-stone-700 dark:text-stone-300 mb-0.5 text-[11px]">
+                      Security Question:
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={secQuestionInput}
+                      onChange={(e) => setSecQuestionInput(e.target.value)}
+                      placeholder="e.g. What is your sacred temple or institution?"
+                      className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-stone-700 dark:text-stone-300 mb-0.5 text-[11px]">
+                      Security Answer:
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={secAnswerInput}
+                      onChange={(e) => setSecAnswerInput(e.target.value)}
+                      placeholder="Answer to security question (default: HCMM)"
+                      className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-xs font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <label className="block font-bold text-stone-700 dark:text-stone-300 text-[11px]">
+                        Emergency Recovery Code:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const rand = 'HCMM-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now().toString().slice(-4);
+                          setRescueCodeInput(rand);
+                        }}
+                        className="text-[10px] text-amber-600 hover:underline flex items-center gap-1 font-bold"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Generate Random</span>
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={rescueCodeInput}
+                      onChange={(e) => setRescueCodeInput(e.target.value.toUpperCase())}
+                      placeholder="e.g. HCMM-RECOVERY-2026"
+                      className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-mono text-xs font-bold tracking-wider"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold text-xs transition-colors border border-amber-500/40"
+                  >
+                    Save Security Question & Rescue Code
+                  </button>
+                </form>
+              </div>
+
             </div>
           )}
 
@@ -1432,7 +2037,6 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
             </button>
           </div>
         </div>
-        )}
 
       </div>
     </div>

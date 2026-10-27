@@ -99,7 +99,58 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
   const INAUSPICIOUS_YOGAS = [
     'Vishkambha', 'Atiganda', 'Shoola', 'Ganda', 'Vyaghata', 'Vajra', 'Vyatipata', 'Parigha', 'Vaidhriti'
   ];
-  const isYogaAuspicious = !INAUSPICIOUS_YOGAS.includes(todayPanchanga.yoga.en);
+  // Real-time elapsed progress calculations
+  const nowMs = currentTime.getTime();
+
+  const tithiProgress = useMemo(() => {
+    if (!todayPanchanga.tithiTiming?.startDateTime || !todayPanchanga.tithiTiming?.endDateTime) {
+      return { percent: 50, remainingText: '', elapsedText: '' };
+    }
+    const start = new Date(todayPanchanga.tithiTiming.startDateTime).getTime();
+    const end = new Date(todayPanchanga.tithiTiming.endDateTime).getTime();
+    const total = Math.max(1, end - start);
+    const elapsed = Math.min(Math.max(0, nowMs - start), total);
+    const percent = Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
+    const remMins = Math.max(0, Math.round((end - nowMs) / 60000));
+    const elapMins = Math.max(0, Math.round(elapsed / 60000));
+    const remHrs = Math.floor(remMins / 60);
+    const remRMins = remMins % 60;
+    const elapHrs = Math.floor(elapMins / 60);
+    const elapRMins = elapMins % 60;
+
+    return {
+      percent,
+      remainingText: currentLang === 'kn' ? `${remHrs}ಗಂ ${remRMins}ನಿಮಿಷ ಬಾಕಿ` : `${remHrs}h ${remRMins}m left`,
+      elapsedText: currentLang === 'kn' ? `${elapHrs}ಗಂ ${elapRMins}ನಿಮಿಷ ಸಂದಿದೆ` : `${elapHrs}h ${elapRMins}m elapsed`
+    };
+  }, [todayPanchanga.tithiTiming, nowMs, currentLang]);
+
+  const padaProgress = useMemo(() => {
+    if (!todayPanchanga.padaTiming?.startDateTime || !todayPanchanga.padaTiming?.endDateTime) {
+      return { percent: 50, remainingText: '', elapsedText: '' };
+    }
+    const start = new Date(todayPanchanga.padaTiming.startDateTime).getTime();
+    const end = new Date(todayPanchanga.padaTiming.endDateTime).getTime();
+    const total = Math.max(1, end - start);
+    const elapsed = Math.min(Math.max(0, nowMs - start), total);
+    const percent = Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
+    const remMins = Math.max(0, Math.round((end - nowMs) / 60000));
+    const elapMins = Math.max(0, Math.round(elapsed / 60000));
+    const remHrs = Math.floor(remMins / 60);
+    const remRMins = remMins % 60;
+
+    return {
+      percent,
+      remainingText: currentLang === 'kn' ? `${remMins} ನಿಮಿಷ ಬಾಕಿ (${remHrs}ಗಂ ${remRMins}ನಿ)` : `${remMins}m left (${remHrs}h ${remRMins}m)`,
+      elapsedText: currentLang === 'kn' ? `${elapMins} ನಿಮಿಷ ಸಂದಿದೆ` : `${elapMins}m elapsed`
+    };
+  }, [todayPanchanga.padaTiming, nowMs, currentLang]);
+
+  const isYogaAuspicious = useMemo(() => {
+    const inauspiciousYogas = ['Vishkambha', 'Atiganda', 'Shula', 'Ganda', 'Vyaghata', 'Vajra', 'Vyatipata', 'Parigha', 'Vaidhriti'];
+    const engYoga = todayPanchanga.yoga.en || '';
+    return !inauspiciousYogas.some(y => engYoga.toLowerCase().includes(y.toLowerCase()));
+  }, [todayPanchanga.yoga]);
 
   // Localized Labels
   const labels = {
@@ -192,6 +243,50 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
                 {todayPanchanga.paksha === 'Shukla' ? labels.shukla : labels.krishna} • {todayPanchanga.tithiNumber}/15
               </p>
             </div>
+
+            {/* Tithi Start & End Timestamps Box with Visual Progress Bar (Requested in Red Rectangle) */}
+            {todayPanchanga.tithiTiming && (
+              <div className="mt-2.5 p-2 rounded-xl bg-amber-500/10 dark:bg-stone-900 border border-amber-300 dark:border-amber-700/70 space-y-1.5 shadow-2xs">
+                <div className="grid grid-cols-2 gap-1.5 text-[10.5px] font-mono leading-tight">
+                  <div className="text-left bg-white/80 dark:bg-stone-850 p-1.5 rounded-lg border border-amber-200 dark:border-stone-750">
+                    <span className="text-[9px] font-bold uppercase text-emerald-700 dark:text-emerald-400 block flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                      <span>{currentLang === 'kn' ? 'ಆರಂಭ:' : 'Starts:'}</span>
+                    </span>
+                    <span className="font-bold text-stone-900 dark:text-stone-100 text-[11px] block mt-0.5">
+                      {todayPanchanga.tithiTiming.startTimeFormatted[currentLang]}
+                    </span>
+                  </div>
+
+                  <div className="text-right bg-white/80 dark:bg-stone-850 p-1.5 rounded-lg border border-amber-200 dark:border-stone-750">
+                    <span className="text-[9px] font-bold uppercase text-rose-700 dark:text-rose-400 block">
+                      {currentLang === 'kn' ? 'ಮುಕ್ತಾಯ:' : 'Ends:'}
+                    </span>
+                    <span className="font-bold text-stone-900 dark:text-stone-100 text-[11px] block mt-0.5">
+                      {todayPanchanga.tithiTiming.endTimeFormatted[currentLang]}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Visual Progress Bar */}
+                <div className="space-y-1 px-0.5">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-stone-600 dark:text-stone-300">
+                    <span className="font-bold text-amber-700 dark:text-amber-400">
+                      {tithiProgress.percent}% {currentLang === 'kn' ? 'ಸಂದಿದೆ' : 'elapsed'}
+                    </span>
+                    <span className="text-[9.5px]">
+                      ⏱️ {tithiProgress.remainingText}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden relative">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-rose-500 rounded-full transition-all duration-500"
+                      style={{ width: `${tithiProgress.percent}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-3 pt-2.5 border-t border-stone-100 dark:border-stone-750 flex items-center justify-between text-xs text-stone-500 dark:text-stone-400">
@@ -230,6 +325,50 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
                 <span>{todayPanchanga.chandraRashiLord[currentLang]}</span>
               </p>
             </div>
+
+            {/* Pada Start & End Timestamps Box with Visual Progress Bar (Requested in Green Rectangle) */}
+            {todayPanchanga.padaTiming && (
+              <div className="mt-2.5 p-2 rounded-xl bg-emerald-500/10 dark:bg-stone-900 border border-emerald-300 dark:border-emerald-700/70 space-y-1.5 shadow-2xs">
+                <div className="grid grid-cols-2 gap-1.5 text-[10.5px] font-mono leading-tight">
+                  <div className="text-left bg-white/80 dark:bg-stone-850 p-1.5 rounded-lg border border-emerald-200 dark:border-stone-750">
+                    <span className="text-[9px] font-bold uppercase text-emerald-700 dark:text-emerald-400 block flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                      <span>{currentLang === 'kn' ? 'ಪಾದ ಆರಂಭ:' : 'Starts:'}</span>
+                    </span>
+                    <span className="font-bold text-stone-900 dark:text-stone-100 text-[11px] block mt-0.5">
+                      {todayPanchanga.padaTiming.startDateFormatted[currentLang]}
+                    </span>
+                  </div>
+
+                  <div className="text-right bg-white/80 dark:bg-stone-850 p-1.5 rounded-lg border border-emerald-200 dark:border-stone-750">
+                    <span className="text-[9px] font-bold uppercase text-rose-700 dark:text-rose-400 block">
+                      {currentLang === 'kn' ? 'ಪಾದ ಮುಕ್ತಾಯ:' : 'Ends:'}
+                    </span>
+                    <span className="font-bold text-stone-900 dark:text-stone-100 text-[11px] block mt-0.5">
+                      {todayPanchanga.padaTiming.endDateFormatted[currentLang]}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Visual Progress Bar */}
+                <div className="space-y-1 px-0.5">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-stone-600 dark:text-stone-300">
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                      {padaProgress.percent}% {currentLang === 'kn' ? 'ಸಂದಿದೆ' : 'elapsed'}
+                    </span>
+                    <span className="text-[9.5px]">
+                      ⏱️ {padaProgress.remainingText}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden relative">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 rounded-full transition-all duration-500"
+                      style={{ width: `${padaProgress.percent}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-3 pt-2.5 border-t border-stone-100 dark:border-stone-750 flex items-center justify-between text-xs text-stone-500 dark:text-stone-400">

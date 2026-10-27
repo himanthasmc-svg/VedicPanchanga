@@ -33,7 +33,7 @@ export const FestivalModal: React.FC<FestivalModalProps> = ({
   currentLang,
   onClose
 }) => {
-  const [activeTab, setActiveTab] = useState<'celebration' | 'story' | 'samagri' | 'timings' | 'vidhi' | 'mantras' | 'navaratri-vidhana'>('celebration');
+  const [activeTab, setActiveTab] = useState<'celebration' | 'story' | 'samagri' | 'timings' | 'vidhi' | 'mantras' | 'navaratri-vidhana' | 'color'>('celebration');
   const [copiedMantraIndex, setCopiedMantraIndex] = useState<number | null>(null);
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
 
@@ -200,6 +200,25 @@ export const FestivalModal: React.FC<FestivalModalProps> = ({
               <Scroll className="w-3.5 h-3.5" />
               <span>{currentLang === 'kn' ? 'ಮಂತ್ರಗಳು' : currentLang === 'hi' ? 'मन्त्र' : 'Mantras'}</span>
             </button>
+
+            {festival.isNavaratri && festival.navaratriColor && (
+              <button
+                onClick={() => setActiveTab('color')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap font-bold ${
+                  activeTab === 'color'
+                    ? 'bg-amber-300 text-stone-950 shadow-md ring-2 ring-white'
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
+              >
+                <span 
+                  className="w-3 h-3 rounded-full border border-white shrink-0 shadow-xs" 
+                  style={{ backgroundColor: festival.navaratriColor.hex }} 
+                />
+                <span>
+                  {currentLang === 'kn' ? 'ದಿನದ ಬಣ್ಣ (Color)' : currentLang === 'hi' ? 'आज का रंग (Color)' : 'Day Color'}
+                </span>
+              </button>
+            )}
 
             {festival.isNavaratri && (
               <button
@@ -631,6 +650,82 @@ export const FestivalModal: React.FC<FestivalModalProps> = ({
                 ಶ್ರೀ ದೇವಿಯು ನಿರಾಕಾರ ಮತ್ತು ನಿರಂಬರಳಾಗಿದ್ದರೂ, ನಾವು ಪೂಜೆ ಮಾಡುವಾಗ ದೇವಿಯ ಮೂರ್ತಿಗಳಲ್ಲಿ ಆರಾಧಿಸುವುದು ಸುಲಭ. ನಂತರ ಆ ದಿವ್ಯ ಚೈತನ್ಯವೇ ಬ್ರಹ್ಮವೆಂದು ಅರಿತು ಜಾಗೃತರಾಗುವುದು ಶ್ರೇಷ್ಠ.
               </div>
 
+            </div>
+          )}
+
+          {/* Tab 8: Navaratri Day Color */}
+          {activeTab === 'color' && festival.navaratriColor && (
+            <div className="space-y-4">
+              <div 
+                className="p-6 rounded-2xl border-2 shadow-lg text-white space-y-3 relative overflow-hidden"
+                style={{
+                  background: `linear-gradient(135deg, ${festival.navaratriColor.hex}, #1c1917)`,
+                  borderColor: festival.navaratriColor.hex
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-12 h-12 rounded-2xl shadow-xl border-2 border-white flex items-center justify-center shrink-0 text-xl font-bold"
+                    style={{ backgroundColor: festival.navaratriColor.hex }}
+                  >
+                    ✨
+                  </div>
+                  <div>
+                    <span className="text-xs uppercase tracking-widest font-mono text-white/80 font-bold block">
+                      {currentLang === 'kn' ? 'ನವರಾತ್ರಿ ದಿನದ ಪವಿತ್ರ ಬಣ್ಣ' : currentLang === 'hi' ? 'नवरात्रि का पावन रंग' : 'Sacred Navaratri Color of the Day'}
+                    </span>
+                    <h3 className="text-2xl font-serif font-bold text-white tracking-tight">
+                      {festival.navaratriColor.colorName[currentLang]}
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-black/40 backdrop-blur-xs border border-white/20 text-xs sm:text-sm text-stone-100 leading-relaxed">
+                  <strong className="block text-amber-300 mb-1 font-sans">
+                    {currentLang === 'kn' ? 'ಬಣ್ಣದ ಧಾರ್ಮಿಕ ಮತ್ತು ಆಧ್ಯಾತ್ಮಿಕ ಮಹತ್ವ:' : currentLang === 'hi' ? 'रंग का आध्यात्मिक एवं धार्मिक महत्व:' : 'Spiritual & Cosmic Significance:'}
+                  </strong>
+                  {festival.navaratriColor.significance[currentLang]}
+                </div>
+              </div>
+
+              {/* All 9 / 10 Navaratri Colors Guide */}
+              <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-800 space-y-3">
+                <h4 className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>
+                    {currentLang === 'kn' ? 'ನವರಾತ್ರಿಯ ೯ ದಿನಗಳ ಬಣ್ಣಗಳ ಪಟ್ಟಿ (Navaratri 9 Colors Sequence)' : currentLang === 'hi' ? 'नवरात्रि के ९ दिनों के रंगों की क्रमबद्ध सूची' : 'Nine Sacred Colors of Navaratri'}
+                  </span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                  {[
+                    { day: 'Day 1 (ಶೈಲಪುತ್ರಿ)', color: 'ಹಳದಿ (Yellow)', hex: '#eab308' },
+                    { day: 'Day 2 (ಬ್ರಹ್ಮಚಾರಿಣಿ)', color: 'ಹಸಿರು (Green)', hex: '#16a34a' },
+                    { day: 'Day 3 (ಚಂದ್ರಘಂಟಾ)', color: 'ಬೂದು (Grey)', hex: '#64748b' },
+                    { day: 'Day 4 (ಕೂಷ್ಮಾಂಡಾ)', color: 'ಕಿತ್ತಳೆ (Orange)', hex: '#ea580c' },
+                    { day: 'Day 5 (ಸ್ಕಂದಮಾತಾ)', color: 'ಬಿಳಿ (White)', hex: '#f8fafc' },
+                    { day: 'Day 6 (ಕಾತ್ಯಾಯನಿ)', color: 'ಕೆಂಪು (Red)', hex: '#dc2626' },
+                    { day: 'Day 7 (ಕಾಳರಾತ್ರಿ)', color: 'ನೀಲಿ (Royal Blue)', hex: '#1d4ed8' },
+                    { day: 'Day 8 (ಮಹಾಗೌರಿ)', color: 'ಗುಲಾಬಿ (Pink)', hex: '#db2777' },
+                    { day: 'Day 9 (ಸಿದ್ಧಿದಾತ್ರಿ)', color: 'ನೇರಳೆ (Purple)', hex: '#7c3aed' },
+                    { day: 'Day 10 (ವಿಜಯದಶಮಿ)', color: 'ಸ್ವರ್ಣ ಹಳದಿ (Gold)', hex: '#d97706' },
+                  ].map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`p-2.5 rounded-lg border flex items-center gap-2 ${
+                        item.hex.toLowerCase() === festival.navaratriColor?.hex.toLowerCase()
+                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-400 font-bold'
+                          : 'border-stone-200 dark:border-stone-700 bg-stone-50/50 dark:bg-stone-900/40'
+                      }`}
+                    >
+                      <span className="w-4 h-4 rounded-full border border-stone-300 shrink-0 shadow-xs" style={{ backgroundColor: item.hex }} />
+                      <div className="truncate">
+                        <div className="text-[11px] text-stone-800 dark:text-stone-200">{item.day}</div>
+                        <div className="text-[10px] text-stone-500 font-medium">{item.color}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

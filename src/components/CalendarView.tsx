@@ -16,7 +16,11 @@ import {
   Bell,
   Printer,
   Download,
-  X
+  X,
+  Volume2,
+  Copy,
+  RefreshCw,
+  Check
 } from 'lucide-react';
 import { CityLocation, Festival, Language, PanchangaDay } from '../types';
 import { 
@@ -27,20 +31,16 @@ import {
   toIndicNumeral 
 } from '../utils/panchanga';
 import { FESTIVALS_CATALOG } from '../utils/festivals';
-import { GocharTransitsView } from './GocharTransitsView';
-import { DashboardWidget } from './DashboardWidget';
 import { MoonPhaseIcon } from './MoonPhaseIcon';
-import { MoonPhaseCalendarWidget } from './MoonPhaseCalendarWidget';
+import { NavaratriColorsFeature } from './NavaratriColorsFeature';
+import { NavaratriRitualsModal } from './NavaratriRitualsModal';
+import { AstroDetailWindows } from './AstroDetailWindows';
+import { Activity } from 'lucide-react';
 import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  CartesianGrid 
-} from 'recharts';
-import { Activity, TrendingUp } from 'lucide-react';
+  fetchDailyAstrologicalTip, 
+  speakAstrologicalTip, 
+  DailyInsightResponse 
+} from '../utils/geminiDailyInsights';
 
 interface CalendarViewProps {
   currentLang: Language;
@@ -52,6 +52,8 @@ interface CalendarViewProps {
   onOpenKundali: () => void;
   isAstroDiagnosticActive?: boolean;
   onOpenAstroDiagnostic?: () => void;
+  onOpenNavaratriRituals?: (dayNumber?: number, tab?: 'kalasha' | 'akhandaDeepa' | 'dailyDurga' | 'kushmandaBali' | 'ayudhaPuja' | 'vijayadashami') => void;
+  onOpenGoogleMap?: () => void;
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
@@ -63,13 +65,91 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onOpenSankalpa,
   onOpenKundali,
   isAstroDiagnosticActive = false,
-  onOpenAstroDiagnostic
+  onOpenAstroDiagnostic,
+  onOpenNavaratriRituals,
+  onOpenGoogleMap
 }) => {
   const today = new Date();
   const [selectedYear, setSelectedYear] = useState<number>(today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth()); // 0-11
   const [showTrendChart, setShowTrendChart] = useState<boolean>(false);
   const [trendMetric, setTrendMetric] = useState<'tithi' | 'nakshatra'>('tithi');
+  const [showNavaratriRitualsModal, setShowNavaratriRitualsModal] = useState<boolean>(false);
+  const [ritualsModalTab, setRitualsModalTab] = useState<'kalasha' | 'akhandaDeepa' | 'dailyDurga' | 'kushmandaBali' | 'ayudhaPuja' | 'vijayadashami'>('kalasha');
+  const [ritualsModalDayNum, setRitualsModalDayNum] = useState<number>(1);
+
+  // Today's Panchanga calculation for Daily Insights
+  const todayPanchangaDay = useMemo(() => getPanchangaForDate(today, selectedCity), [selectedCity]);
+  const [dailyInsight, setDailyInsight] = useState<DailyInsightResponse | null>(null);
+  const [isGeneratingInsight, setIsGeneratingInsight] = useState<boolean>(false);
+  const [copiedTip, setCopiedTip] = useState<boolean>(false);
+  const [isSpeakingTip, setIsSpeakingTip] = useState<boolean>(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadInsight = async () => {
+      setIsGeneratingInsight(true);
+      try {
+        const result = await fetchDailyAstrologicalTip({
+          tithiName: todayPanchangaDay.tithiName?.[currentLang] || todayPanchangaDay.tithiName?.en || '',
+          tithiPaksha: todayPanchangaDay.pakshaName?.[currentLang] || todayPanchangaDay.paksha || 'Shukla',
+          nakshatraName: todayPanchangaDay.nakshatra?.[currentLang] || todayPanchangaDay.nakshatra?.en || '',
+          padaNumber: todayPanchangaDay.pada,
+          rashiName: todayPanchangaDay.chandraRashi?.[currentLang] || todayPanchangaDay.chandraRashi?.en || '',
+          dateStr: todayPanchangaDay.gregorianDate,
+          language: currentLang
+        });
+        if (isMounted) {
+          setDailyInsight(result);
+        }
+      } catch (err) {
+        console.error('Error fetching calendar daily insight:', err);
+      } finally {
+        if (isMounted) {
+          setIsGeneratingInsight(false);
+        }
+      }
+    };
+    loadInsight();
+    return () => {
+      isMounted = false;
+    };
+  }, [todayPanchangaDay.gregorianDate, currentLang]);
+
+  const handleRegenerateInsight = async () => {
+    if (isGeneratingInsight) return;
+    setIsGeneratingInsight(true);
+    try {
+      const result = await fetchDailyAstrologicalTip({
+        tithiName: todayPanchangaDay.tithiName?.[currentLang] || todayPanchangaDay.tithiName?.en || '',
+        tithiPaksha: todayPanchangaDay.pakshaName?.[currentLang] || todayPanchangaDay.paksha || 'Shukla',
+        nakshatraName: todayPanchangaDay.nakshatra?.[currentLang] || todayPanchangaDay.nakshatra?.en || '',
+        padaNumber: todayPanchangaDay.pada,
+        rashiName: todayPanchangaDay.chandraRashi?.[currentLang] || todayPanchangaDay.chandraRashi?.en || '',
+        dateStr: todayPanchangaDay.gregorianDate,
+        language: currentLang
+      }, true);
+      setDailyInsight(result);
+    } catch (err) {
+      console.error('Error regenerating daily insight:', err);
+    } finally {
+      setIsGeneratingInsight(false);
+    }
+  };
+
+  const handleCopyTip = () => {
+    if (!dailyInsight?.tip) return;
+    navigator.clipboard.writeText(dailyInsight.tip);
+    setCopiedTip(true);
+    setTimeout(() => setCopiedTip(false), 2000);
+  };
+
+  const handleSpeakTip = () => {
+    if (!dailyInsight?.tip) return;
+    setIsSpeakingTip(true);
+    speakAstrologicalTip(dailyInsight.tip, currentLang);
+    setTimeout(() => setIsSpeakingTip(false), 4000);
+  };
 
   // Year range from 1900 to 2100+
   const years = useMemo(() => {
@@ -106,10 +186,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   ], []);
 
   // Compute Panchanga days for the entire selected month
-  const { monthDays, leadingEmptyDays, currentMonthPanchangaSample } = useMemo(() => {
+  const { monthDays, leadingEmptyDays, trailingEmptyDays, currentMonthPanchangaSample } = useMemo(() => {
     const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
     const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
     const leadingEmpty = firstDayOfMonth.getDay(); // 0 is Sunday
+    const trailingEmpty = (7 - ((leadingEmpty + daysInMonth) % 7)) % 7;
 
     const days: PanchangaDay[] = [];
     for (let d = 1; d <= daysInMonth; d++) {
@@ -122,6 +203,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return {
       monthDays: days,
       leadingEmptyDays: leadingEmpty,
+      trailingEmptyDays: trailingEmpty,
       currentMonthPanchangaSample: sample
     };
   }, [selectedYear, selectedMonth, selectedCity]);
@@ -200,12 +282,34 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const samvatsaraName = currentMonthPanchangaSample.samvatsara[currentLang];
 
   const [showMonthlyOverview, setShowMonthlyOverview] = useState<boolean>(false);
+  const [expandedPortal, setExpandedPortal] = useState<'mantras' | 'sankalpa' | 'kundali' | null>(null);
   const [showGocharWidget, setShowGocharWidget] = useState<boolean>(true);
   const [showDashboardWidget, setShowDashboardWidget] = useState<boolean>(true);
   const [showMoonPhaseWidget, setShowMoonPhaseWidget] = useState<boolean>(true);
+  const [showNavaratriColors, setShowNavaratriColors] = useState<boolean>(false);
+  const [showMonthSpecialFestivals, setShowMonthSpecialFestivals] = useState<boolean>(false);
   const [selectedMoonDay, setSelectedMoonDay] = useState<PanchangaDay>(() => {
     return getPanchangaForDate(today, selectedCity);
   });
+
+  // Accurate check if current month has Navaratri / Dasera festivals
+  const isNavaratriMonth = useMemo(() => {
+    return monthDays.some(d =>
+      d.festivals && d.festivals.some(f =>
+        f.id.startsWith('navaratri_day') ||
+        f.id.includes('navaratri') ||
+        f.isNavaratri ||
+        f.id === 'vijayadashami'
+      )
+    );
+  }, [monthDays]);
+
+  // If navigated to non-Navaratri month, automatically close Navaratri colors
+  useEffect(() => {
+    if (!isNavaratriMonth && showNavaratriColors) {
+      setShowNavaratriColors(false);
+    }
+  }, [isNavaratriMonth, showNavaratriColors]);
 
   useEffect(() => {
     setSelectedMoonDay(getPanchangaForDate(new Date(), selectedCity));
@@ -270,9 +374,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 {currentLang === 'kn' ? 'ಶಾಲಿವಾಹನ ಶಕ:' : currentLang === 'hi' ? 'शालिवाहन शक:' : 'Shaka:'} {formatJustNumber(currentMonthPanchangaSample.hinduYearSaka, currentLang)}
               </span>
               <span>•</span>
-              <span className="font-mono text-amber-200 bg-black/20 px-2 py-0.5 rounded">
-                📍 {getLocalizedPlaceName(selectedCity, currentLang)}: 🌅 {currentMonthPanchangaSample.sunrise} • 🌇 {currentMonthPanchangaSample.sunset}
-              </span>
+              <button
+                onClick={onOpenGoogleMap}
+                className="font-mono text-amber-200 hover:text-white bg-black/25 hover:bg-black/45 px-2.5 py-0.5 rounded-lg border border-amber-300/30 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                title="Click to open Google Maps Place Selector or Auto-GPS"
+              >
+                <span>📍 {getLocalizedPlaceName(selectedCity, currentLang)}</span>
+                <span className="text-[11px] text-amber-300 font-sans hidden sm:inline">🌅 {currentMonthPanchangaSample.sunrise} • 🌇 {currentMonthPanchangaSample.sunset}</span>
+                <span className="text-[9px] bg-amber-500/30 text-amber-100 px-1 py-0.2 rounded font-sans uppercase font-bold">Map</span>
+              </button>
             </div>
           </div>
 
@@ -340,63 +450,63 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <span>{currentLang === 'kn' ? 'ಮಾಸಿಕ PDF ರಫ್ತು' : currentLang === 'hi' ? 'मासिक PDF निर्यात' : 'Export Monthly PDF'}</span>
             </button>
 
-            {/* NEW FEATURE: Monthly Overview */}
-            <button
-              onClick={() => setShowMonthlyOverview(true)}
-              className="px-3.5 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white font-bold text-xs transition-colors shadow-md flex items-center gap-1.5 ml-1 backdrop-blur-xs"
-              title="Consolidated list of important Tithis, Nakshatras & festivals for this month"
-            >
-              <Compass className="w-4 h-4 text-amber-300" />
-              <span>{currentLang === 'kn' ? 'ಮಾಸಿಕ ಅವಲೋಕನ' : currentLang === 'hi' ? 'मासिक अवलोकन' : 'Monthly Overview'}</span>
-            </button>
+            {/* Conditional Navaratri Controls vs Month's Special Festivals */}
+            {isNavaratriMonth ? (
+              <>
+                {/* Navaratri 9 Colors Feature Toggle */}
+                <button
+                  onClick={() => setShowNavaratriColors(!showNavaratriColors)}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all shadow-md flex items-center gap-1.5 ml-1 backdrop-blur-xs cursor-pointer ${
+                    showNavaratriColors 
+                      ? 'bg-gradient-to-r from-red-600 via-amber-600 to-orange-600 text-white font-extrabold ring-2 ring-amber-300' 
+                      : 'bg-gradient-to-r from-rose-600/90 to-amber-600/90 hover:from-rose-600 hover:to-amber-600 text-white hover:shadow-lg'
+                  }`}
+                  title="Specific auspicious colors for each of the nine days of Navaratri"
+                >
+                  <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
+                  <span>{currentLang === 'kn' ? '🎨 ನವರಾತ್ರಿ ಬಣ್ಣಗಳು' : currentLang === 'hi' ? '🎨 नवरात्रि रंग' : '🎨 Navaratri Colors'}</span>
+                </button>
 
-            {/* Live Dashboard Widget Toggle */}
-            <button
-              onClick={() => setShowDashboardWidget(!showDashboardWidget)}
-              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-md flex items-center gap-1.5 ml-1 backdrop-blur-xs ${
-                showDashboardWidget ? 'bg-amber-500 text-stone-950 font-bold' : 'bg-white/20 hover:bg-white/30 text-white'
-              }`}
-              title="Today's Live Tithi, Nakshatra & Yoga Dashboard Widget"
-            >
-              <Clock className="w-4 h-4" />
-              <span>{currentLang === 'kn' ? 'ಲೈವ್ ಪಂಚಾಂಗ' : currentLang === 'hi' ? 'लाइव पंचांग' : 'Live Panchanga'}</span>
-            </button>
-
-            {/* NEW FEATURE: Gochar Planetary Transits Widget Toggle */}
-            <button
-              onClick={() => setShowGocharWidget(!showGocharWidget)}
-              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-md flex items-center gap-1.5 ml-1 backdrop-blur-xs ${
-                showGocharWidget ? 'bg-amber-500 text-stone-950 font-bold' : 'bg-white/20 hover:bg-white/30 text-white'
-              }`}
-              title="Current Planetary Transits (Gochar) based on selected city"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>{currentLang === 'kn' ? 'ಗ್ರಹ ಗೋಚಾರ' : currentLang === 'hi' ? 'ग्रह गोचर' : 'Planetary Gochar'}</span>
-            </button>
-
-            {/* NEW FEATURE: Moon Phase Visualizer Toggle (Amavasya to Purnima) */}
-            <button
-              onClick={() => setShowMoonPhaseWidget(!showMoonPhaseWidget)}
-              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-md flex items-center gap-1.5 ml-1 backdrop-blur-xs ${
-                showMoonPhaseWidget ? 'bg-amber-500 text-stone-950 font-bold' : 'bg-white/20 hover:bg-white/30 text-white'
-              }`}
-              title="Moon Phase Visualizer for selected date (Amavasya to Purnima progression)"
-            >
-              <Moon className="w-4 h-4" />
-              <span>{currentLang === 'kn' ? 'ಚಂದ್ರ ದರ್ಶನ' : currentLang === 'hi' ? 'चन्द्र दर्शन' : 'Moon Phase'}</span>
-            </button>
-
-            {/* NEW FEATURE: Recharts Monthly Trend Line Toggle */}
-            <button
-              onClick={() => setShowTrendChart(!showTrendChart)}
-              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-md flex items-center gap-1.5 ml-1 backdrop-blur-xs ${
-                showTrendChart ? 'bg-amber-500 text-stone-950 font-bold' : 'bg-white/20 hover:bg-white/30 text-white'
-              }`}
-              title="Monthly trend line for Tithi and Nakshatra influence intensity (Recharts)"
-            >
-              <TrendingUp className="w-4 h-4" />
-              <span>{currentLang === 'kn' ? 'ಮಾಸಿಕ ರೇಖಾಚಿತ್ರ' : currentLang === 'hi' ? 'मासिक प्रभाव रेखा' : 'Cosmic Trends'}</span>
-            </button>
+                {/* Navaratri Sacred Rituals Hub Button */}
+                <button
+                  onClick={() => {
+                    if (onOpenNavaratriRituals) {
+                      onOpenNavaratriRituals(1, 'kalasha');
+                    } else {
+                      setRitualsModalTab('kalasha');
+                      setRitualsModalDayNum(1);
+                      setShowNavaratriRitualsModal(true);
+                    }
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all shadow-md flex items-center gap-1.5 ml-1 backdrop-blur-xs cursor-pointer bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 hover:from-red-700 hover:to-orange-700 text-white hover:shadow-lg border border-amber-300/60"
+                  title="Comprehensive Navaratri Rituals, Kalasa Sthapana, Kushmanda Bali & Ayudha Puja"
+                >
+                  <span className="text-sm">🌺</span>
+                  <span>{currentLang === 'kn' ? 'ನವರಾತ್ರಿ ಪೂಜಾ ವಿಧಿಗಳು' : currentLang === 'hi' ? 'नवरात्रि पूजा विधान' : 'Navaratri Rituals'}</span>
+                </button>
+              </>
+            ) : (
+              /* Month's Special Festivals Button for all other months */
+              <button
+                onClick={() => setShowMonthSpecialFestivals(!showMonthSpecialFestivals)}
+                className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all shadow-md flex items-center gap-1.5 ml-1 backdrop-blur-xs cursor-pointer ${
+                  showMonthSpecialFestivals
+                    ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 text-white font-extrabold ring-2 ring-amber-300'
+                    : 'bg-gradient-to-r from-amber-500/90 to-orange-500/90 hover:from-amber-600 hover:to-orange-600 text-white hover:shadow-lg border border-amber-300/60'
+                }`}
+                title={`Special festivals and sacred rituals for ${currentMonthName}`}
+              >
+                <span className="text-sm">🌺</span>
+                <span>
+                  {currentLang === 'kn' 
+                    ? `${currentMonthName} ವಿಶೇಷ ಹಬ್ಬಗಳು (${monthlyFestivals.length})` 
+                    : currentLang === 'hi' 
+                    ? `${currentMonthName} विशेष त्यौहार (${monthlyFestivals.length})` 
+                    : `${currentMonthName} Special Festivals (${monthlyFestivals.length})`}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showMonthSpecialFestivals ? 'rotate-180' : ''}`} />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -428,126 +538,340 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       )}
 
-      {/* Recharts Monthly Trend Line Component */}
-      {showTrendChart && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-stone-900 border border-amber-300 dark:border-stone-800 shadow-xl space-y-4 animate-in fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest font-mono">
-                <TrendingUp className="w-4 h-4" />
-                <span>RECHARTS DATA VISUALIZATION • MONTHLY INTENSITY FLOW</span>
+      {/* ========================================================================= */}
+      {/* DAILY INSIGHTS (GEMINI AI ASTROLOGICAL GUIDANCE) */}
+      {/* ========================================================================= */}
+      <div className="rounded-2xl bg-gradient-to-br from-indigo-950 via-purple-950 to-stone-900 border-2 border-indigo-500/40 p-4 sm:p-5 text-white shadow-xl relative overflow-hidden backdrop-blur-md">
+        {/* Ambient celestial glow */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 space-y-3">
+          {/* Top Bar: Title & AI Model Badge */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-indigo-400/20">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-tr from-amber-400 via-orange-400 to-indigo-500 text-stone-950 shadow-md">
+                <Sparkles className="w-5 h-5 animate-pulse" />
               </div>
-              <h3 className="text-base sm:text-lg font-serif font-bold text-stone-900 dark:text-stone-100 mt-0.5">
-                {currentLang === 'kn' 
-                  ? `${monthNames[selectedMonth][currentLang]} ಮಾಸದ ತಿಥಿ ಮತ್ತು ನಕ್ಷತ್ರ ಪ್ರಭಾವ ರೇಖಾಚಿತ್ರ` 
-                  : `${monthNames[selectedMonth][currentLang]} Monthly Tithi & Nakshatra Influence Intensity`}
-              </h3>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-serif font-black text-base sm:text-lg text-amber-200 tracking-wide">
+                    {currentLang === 'kn' ? 'ದೈನಂದಿನ ಜ್ಯೋತಿಷ್ಯ ಒಳನೋಟ' : currentLang === 'hi' ? 'दैनिक ज्योतिषीय परामर्श' : 'Daily Astrological Insights'}
+                  </h3>
+                  <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/40">
+                    {dailyInsight?.source === 'gemini' ? 'Gemini 3.8 Flash' : 'Vedic Muhurtha Shastra'}
+                  </span>
+                </div>
+                <p className="text-xs text-indigo-200/80 mt-0.5">
+                  {currentLang === 'kn'
+                    ? 'ಇಂದಿನ ತಿಥಿ ಮತ್ತು ನಕ್ಷತ್ರದ ಗ್ರಹಗತಿಗೆ ಅನುಗುಣವಾದ ದೈನಂದಿನ ಜ್ಯೋತಿಷ್ಯ ಮಾರ್ಗದರ್ಶನ'
+                    : currentLang === 'hi'
+                    ? 'आज की तिथि एवं नक्षत्र के आधार पर पावन ज्योतिषीय मार्गदर्शन'
+                    : "Today's personalized Vedic astrological tip based on active Tithi & Nakshatra"}
+                </p>
+              </div>
             </div>
 
-            <div className="inline-flex rounded-xl border border-stone-200 dark:border-stone-700 p-1 bg-stone-100 dark:bg-stone-800 text-xs font-bold">
+            {/* Quick Actions: Audio, Copy, Regenerate, View Today's Modal */}
+            <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
               <button
-                onClick={() => setTrendMetric('tithi')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  trendMetric === 'tithi'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                type="button"
+                onClick={handleSpeakTip}
+                disabled={!dailyInsight?.tip || isSpeakingTip}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isSpeakingTip
+                    ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-md animate-pulse'
+                    : 'bg-white/10 hover:bg-white/20 text-indigo-100 border-indigo-400/30 hover:border-indigo-300'
                 }`}
+                title="Read tip aloud with natural speech"
               >
-                {currentLang === 'kn' ? 'ತಿಥಿ ಪ್ರಭಾವ (Lunar Curve)' : 'Tithi Intensity'}
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>{currentLang === 'kn' ? 'ಆಲಿಸಿ' : currentLang === 'hi' ? 'सुने' : 'Listen'}</span>
               </button>
+
               <button
-                onClick={() => setTrendMetric('nakshatra')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  trendMetric === 'nakshatra'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
-                }`}
+                type="button"
+                onClick={handleCopyTip}
+                disabled={!dailyInsight?.tip}
+                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-indigo-100 border border-indigo-400/30 hover:border-indigo-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Copy tip to clipboard"
               >
-                {currentLang === 'kn' ? 'ನಕ್ಷತ್ರ ತಾರಾಬಲ (Nakshatra Energy)' : 'Nakshatra Energy'}
+                {copiedTip ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedTip ? (currentLang === 'kn' ? 'ನಕಲಿಸಲಾಗಿದೆ' : 'Copied') : (currentLang === 'kn' ? 'ನಕಲಿಸಿ' : 'Copy')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRegenerateInsight}
+                disabled={isGeneratingInsight}
+                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-amber-200 border border-amber-400/30 hover:border-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                title="Regenerate with Gemini AI"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isGeneratingInsight ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{currentLang === 'kn' ? 'ಮರುರಚಿಸಿ' : currentLang === 'hi' ? 'पुनः बनाएँ' : 'Regenerate'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onSelectDay(todayPanchangaDay)}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer ml-1"
+                title="Open detailed Day View with Timeline, Rituals & Muhurta"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>{currentLang === 'kn' ? 'ಇಂದಿನ ವಿವರ' : currentLang === 'hi' ? 'आज का विवरण' : "View Today's Details"}</span>
               </button>
             </div>
           </div>
 
-          <div className="h-56 sm:h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyTrendData} margin={{ top: 10, right: 15, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="tithiGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05}/>
-                  </linearGradient>
-                  <linearGradient id="nakshatraGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.05}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
-                <Tooltip 
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const data = payload[0].payload;
-                      return (
-                        <div className="p-3 bg-stone-900 text-white text-xs rounded-xl shadow-xl border border-amber-500/30 space-y-1">
-                          <p className="font-bold text-amber-300 font-serif">{data.dateLabel}</p>
-                          <p className="text-stone-300">ತಿಥಿ: <strong className="text-white">{data.tithiName}</strong> ({data.paksha})</p>
-                          <p className="text-stone-300">ನಕ್ಷತ್ರ: <strong className="text-white">{data.nakshatraName}</strong></p>
-                          <p className="text-amber-400 font-mono font-bold">
-                            {trendMetric === 'tithi' ? `Lunar Intensity: ${data.tithiIntensity}%` : `Nakshatra Energy: ${data.nakshatraEnergy}%`}
-                          </p>
+          {/* Alignment Chips */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+            <span className="font-medium px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-400/30 flex items-center gap-1.5">
+              <span>🌙</span>
+              <span>
+                {currentLang === 'kn' ? 'ತಿಥಿ:' : currentLang === 'hi' ? 'तिथि:' : 'Tithi:'} {todayPanchangaDay.tithiName?.[currentLang] || todayPanchangaDay.tithiName?.en} ({todayPanchangaDay.pakshaName?.[currentLang] || todayPanchangaDay.paksha})
+              </span>
+            </span>
+            <span className="font-medium px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 flex items-center gap-1.5">
+              <span>✨</span>
+              <span>
+                {currentLang === 'kn' ? 'ನಕ್ಷತ್ರ:' : currentLang === 'hi' ? 'नक्षत्र:' : 'Nakshatra:'} {todayPanchangaDay.nakshatra?.[currentLang] || todayPanchangaDay.nakshatra?.en} {todayPanchangaDay.pada ? `(${currentLang === 'kn' ? 'ಪಾದ' : 'Pada'} ${todayPanchangaDay.pada})` : ''}
+              </span>
+            </span>
+            {todayPanchangaDay.chandraRashi && (
+              <span className="font-medium px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-200 border border-indigo-400/30 flex items-center gap-1.5">
+                <span>🪐</span>
+                <span>
+                  {currentLang === 'kn' ? 'ಚಂದ್ರ ರಾಶಿ:' : currentLang === 'hi' ? 'चन्द्र राशि:' : 'Moon Sign:'} {todayPanchangaDay.chandraRashi?.[currentLang] || todayPanchangaDay.chandraRashi?.en}
+                </span>
+              </span>
+            )}
+          </div>
+
+          {/* Tip Display Card */}
+          <div className="p-4 rounded-xl bg-black/40 border border-indigo-400/25 shadow-inner">
+            {isGeneratingInsight ? (
+              <div className="flex items-center gap-3 py-2 text-indigo-200 animate-pulse">
+                <RefreshCw className="w-5 h-5 animate-spin text-amber-400" />
+                <span className="text-sm font-medium">
+                  {currentLang === 'kn'
+                    ? 'ಜೆಮಿನಿ ಎಐ ಇಂದಿನ ಜ್ಯೋತಿಷ್ಯ ಸಲಹೆಯನ್ನು ಸಿದ್ಧಪಡಿಸುತ್ತಿದೆ...'
+                    : currentLang === 'hi'
+                    ? 'जेमिनी एआई द्वारा आज का ज्योतिषीय परामर्श तैयार किया जा रहा है...'
+                    : "Gemini AI is analyzing today's celestial alignments..."}
+                </span>
+              </div>
+            ) : dailyInsight?.tip ? (
+              <p className="font-serif text-sm sm:text-base leading-relaxed text-stone-100 italic">
+                "{dailyInsight.tip}"
+              </p>
+            ) : (
+              <p className="text-sm text-stone-400">
+                {currentLang === 'kn' ? 'ಜ್ಯೋತಿಷ್ಯ ಮಾಹಿತಿ ಲಭ್ಯವಿಲ್ಲ.' : 'Astrological guidance unavailable.'}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+
+
+      {/* NAVARATRI 9 COLORS FEATURE (Shown ONLY during Navaratri Month when toggled) */}
+      {isNavaratriMonth && showNavaratriColors && (
+        <NavaratriColorsFeature
+          currentLang={currentLang}
+          selectedYear={selectedYear}
+          selectedCity={selectedCity}
+          onSelectDayDate={(dateStr) => {
+            const dt = new Date(dateStr);
+            const foundDay = getPanchangaForDate(dt, selectedCity);
+            setSelectedMoonDay(foundDay);
+            onSelectDay(foundDay);
+          }}
+          onSelectFestival={onSelectFestival}
+          onClose={() => setShowNavaratriColors(false)}
+        />
+      )}
+
+      {/* MONTH'S SPECIAL FESTIVALS & RITUALS (Shown on non-Navaratri months when toggled) */}
+      {!isNavaratriMonth && showMonthSpecialFestivals && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50/70 dark:from-stone-900 dark:to-stone-950 p-5 rounded-2xl border-2 border-amber-300/80 dark:border-amber-600/50 shadow-xl transition-all">
+          <div className="flex items-center justify-between pb-4 border-b border-amber-200/80 dark:border-stone-800">
+            <div className="flex items-center gap-3">
+              <span className="p-2.5 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 text-lg">
+                🌺
+              </span>
+              <div>
+                <h3 className="text-base sm:text-lg font-serif font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                  <span>{currentMonthName} {selectedYear}</span>
+                  <span className="text-xs font-sans px-2.5 py-0.5 rounded-full bg-amber-200/70 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 font-semibold">
+                    {masaName} {currentLang === 'kn' ? 'ಮಾಸದ ವಿಶೇಷ ಹಬ್ಬಗಳು' : currentLang === 'hi' ? 'मास के विशेष पर्व' : 'Special Festivals'}
+                  </span>
+                </h3>
+                <p className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
+                  {currentLang === 'kn'
+                    ? 'ಈ ಮಾಸದ ಪವಿತ್ರ ಹಬ್ಬಗಳು, ಪೂಜಾ ವಿಧಾನಗಳು, ಪೌರಾಣಿಕ ಕಥೆಗಳು ಮತ್ತು ಮಂತ್ರಗಳು'
+                    : currentLang === 'hi'
+                    ? 'इस मास के पावन व्रत-त्यौहार, पूजा विधि, कथा एवं वैदिक मन्त्र'
+                    : 'Sacred festivals, step-by-step Puja Vidhi, Puranic Katha, and Vedic mantras for this month'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowMonthSpecialFestivals(false)}
+              className="p-1.5 rounded-lg hover:bg-stone-200/60 dark:hover:bg-stone-800 text-stone-500 transition-colors"
+              title="Close Special Festivals"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {monthlyFestivals.length === 0 ? (
+            <div className="py-8 text-center text-stone-600 dark:text-stone-400">
+              <Sparkles className="w-8 h-8 text-amber-500 mx-auto mb-2 animate-bounce" />
+              <p className="text-sm font-semibold text-stone-800 dark:text-stone-200">
+                {currentLang === 'kn'
+                  ? 'ಈ ತಿಂಗಳಲ್ಲಿ ನಿತ್ಯ ಪೂಜೆ, ಶುಕ್ಲ/ಕೃಷ್ಣ ಏಕಾದಶಿ, ಪ್ರದೋಷ ಮತ್ತು ಅಮಾವಾಸ್ಯೆ/ಹುಣ್ಣಿಮೆ ಮುಖ್ಯ ಆಚರಣೆಗಳು.'
+                  : currentLang === 'hi'
+                  ? 'इस मास में नित्य पूजा, शुक्ल/कृष्ण एकादशी, प्रदोष एवं अमावस्या/पूर्णिमा मुख्य धार्मिक पर्व हैं।'
+                  : 'This month focuses on sacred Vedic Nitya Aradhana, Shukla & Krishna Ekadashis, Pradosha Vrata, and Amavasya/Purnima.'}
+              </p>
+              <p className="text-xs text-stone-500 mt-1">
+                {currentLang === 'kn'
+                  ? 'ದೈನಂದಿನ ತಿಥಿ, ನಕ್ಷತ್ರ ಮತ್ತು ಮುಹೂರ್ತಗಳನ್ನು ಕ್ಯಾಲೆಂಡರ್ ಕೋಶಗಳ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ ವೀಕ್ಷಿಸಿ.'
+                  : 'Click on any calendar day cell to view complete Tithi entry-exit timings and muhurtas.'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+              {monthlyFestivals.map((item) => (
+                <div
+                  key={item.festival.id}
+                  className="bg-white dark:bg-stone-900 rounded-xl p-4 sm:p-5 border border-amber-200/80 dark:border-stone-800 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3 border-b border-amber-100 dark:border-stone-800 pb-3 mb-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-200 border border-amber-300/60 font-mono">
+                            📅 {item.dateStr}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300">
+                            Day {formatJustNumber(item.dayNum, currentLang)}
+                          </span>
                         </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey={trendMetric === 'tithi' ? 'tithiIntensity' : 'nakshatraEnergy'} 
-                  stroke={trendMetric === 'tithi' ? '#f59e0b' : '#8b5cf6'} 
-                  strokeWidth={2.5}
-                  fillOpacity={1} 
-                  fill={`url(#${trendMetric === 'tithi' ? 'tithiGrad' : 'nakshatraGrad'})`} 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+
+                        <h4 className="text-base font-bold font-serif text-stone-900 dark:text-stone-100">
+                          {item.festival.name[currentLang] || item.festival.name.en}
+                        </h4>
+                        {item.festival.name.kn && currentLang !== 'kn' && (
+                          <p className="text-xs text-amber-700 dark:text-amber-400 font-serif mt-0.5">
+                            {item.festival.name.kn}
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => onSelectFestival(item.festival)}
+                        className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold text-xs shadow-xs transition-colors shrink-0 flex items-center gap-1.5"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>{currentLang === 'kn' ? 'ಪೂಜಾ ವಿವರ' : currentLang === 'hi' ? 'पूजा विवरण' : 'Ritual Guide'}</span>
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-stone-700 dark:text-stone-300 mb-3 leading-relaxed">
+                      {item.festival.shortDesc?.[currentLang] || item.festival.shortDesc?.en}
+                    </p>
+
+                    {item.festival.story && (
+                      <div className="p-3 rounded-lg bg-amber-50/70 dark:bg-stone-800/60 border border-amber-200/50 dark:border-stone-700/60 mb-2.5 text-xs">
+                        <span className="font-bold text-amber-900 dark:text-amber-300 block mb-1">
+                          📜 {currentLang === 'kn' ? 'ಪೌರಾಣಿಕ ಕಥೆ' : currentLang === 'hi' ? 'पौराणिक कथा' : 'Puranic Story'}:
+                        </span>
+                        <p className="text-stone-600 dark:text-stone-300 leading-relaxed line-clamp-3">
+                          {item.festival.story[currentLang] || item.festival.story.en}
+                        </p>
+                      </div>
+                    )}
+
+                    {item.festival.poojaVidhi && item.festival.poojaVidhi.length > 0 && (
+                      <div className="p-3 rounded-lg bg-stone-50 dark:bg-stone-800/40 border border-stone-200/60 dark:border-stone-700/60 mb-2.5 text-xs">
+                        <span className="font-bold text-stone-800 dark:text-stone-200 block mb-1">
+                          🪔 {currentLang === 'kn' ? 'ಪೂಜಾ ವಿಧಾನ' : currentLang === 'hi' ? 'पूजा विधान' : 'Puja Vidhi Highlights'}:
+                        </span>
+                        <ul className="list-disc list-inside space-y-1 text-stone-600 dark:text-stone-300">
+                          {item.festival.poojaVidhi.slice(0, 2).map((v, vIdx) => (
+                            <li key={vIdx} className="line-clamp-2">{v[currentLang] || v.en}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {item.festival.mantras && item.festival.mantras.length > 0 && (
+                      <div className="p-2.5 rounded-lg bg-red-50/40 dark:bg-red-950/20 border border-red-200/40 dark:border-red-900/30 text-xs">
+                        <span className="font-bold text-red-800 dark:text-red-400 block mb-0.5">
+                          🕉️ {currentLang === 'kn' ? 'ಪ್ರಧಾನ ಮಂತ್ರ' : currentLang === 'hi' ? 'प्रधान मन्त्र' : 'Main Mantra'}:
+                        </span>
+                        <p className="font-mono text-red-900 dark:text-red-200 italic line-clamp-2">
+                          {item.festival.mantras[0][currentLang] || item.festival.mantras[0].en}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between text-[11px] text-amber-700 dark:text-amber-400 font-semibold">
+                    <span>
+                      {item.festival.poojaSamagri ? `🧺 ${item.festival.poojaSamagri.length} ${currentLang === 'kn' ? 'ಸಾಮಗ್ರಿಗಳು' : currentLang === 'hi' ? 'सामग्रियां' : 'Samagri items'}` : ''}
+                    </span>
+                    <button
+                      onClick={() => onSelectFestival(item.festival)}
+                      className="hover:underline flex items-center gap-1"
+                    >
+                      <span>{currentLang === 'kn' ? 'ಪೂರ್ಣ ವಿವರ ನೋಡಿ →' : currentLang === 'hi' ? 'पूर्ण विवरण देखें →' : 'View Full Details →'}</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* NEW FEATURE: Live Dynamic Dashboard Widget (Tithi, Nakshatra, Yoga) */}
-      {showDashboardWidget && (
-        <DashboardWidget
-          currentLang={currentLang}
-          selectedCity={selectedCity}
-          onOpenDayDetail={(day) => {
-            setSelectedMoonDay(day);
-            onSelectDay(day);
-          }}
-          onOpenKundali={onOpenKundali}
-          onOpenMantras={onOpenMantras}
-          onOpenSankalpa={onOpenSankalpa}
-        />
-      )}
-
-      {/* NEW FEATURE: Visual Moon Phase Component for Selected Date (Amavasya to Purnima) */}
-      {showMoonPhaseWidget && (
-        <MoonPhaseCalendarWidget
-          selectedDay={selectedMoonDay}
-          currentLang={currentLang}
-        />
-      )}
-
-      {/* NEW FEATURE: Current Planetary Transits (Gochar) Dashboard Widget */}
-      {showGocharWidget && (
-        <GocharTransitsView
-          currentLang={currentLang}
-          selectedCity={selectedCity}
-          onOpenKundali={onOpenKundali}
-          isWidget={true}
-        />
-      )}
+      {/* ========================================================================= */}
+      {/* EXACTLY ABOVE THE CALENDAR: ASTRONOMICAL DETAIL WINDOWS (IMAGE_F73DD85D)   */}
+      {/* ========================================================================= */}
+      <AstroDetailWindows
+        currentLang={currentLang}
+        selectedCity={selectedCity}
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
+        currentMonthName={currentMonthName}
+        samvatsaraName={samvatsaraName}
+        masaName={masaName}
+        monthDays={monthDays}
+        monthlyHighlights={monthlyHighlights}
+        monthlyTrendData={monthlyTrendData}
+        showMonthlyOverview={showMonthlyOverview}
+        setShowMonthlyOverview={setShowMonthlyOverview}
+        showDashboardWidget={showDashboardWidget}
+        setShowDashboardWidget={setShowDashboardWidget}
+        showGocharWidget={showGocharWidget}
+        setShowGocharWidget={setShowGocharWidget}
+        showMoonPhaseWidget={showMoonPhaseWidget}
+        setShowMoonPhaseWidget={setShowMoonPhaseWidget}
+        showTrendChart={showTrendChart}
+        setShowTrendChart={setShowTrendChart}
+        trendMetric={trendMetric}
+        setTrendMetric={setTrendMetric}
+        selectedMoonDay={selectedMoonDay}
+        setSelectedMoonDay={setSelectedMoonDay}
+        onSelectDay={onSelectDay}
+        onSelectFestival={onSelectFestival}
+        onOpenKundali={onOpenKundali}
+        onOpenMantras={onOpenMantras}
+        onOpenSankalpa={onOpenSankalpa}
+      />
 
       {/* Main Calendar Grid */}
       <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-md border border-amber-200/80 dark:border-stone-800 overflow-hidden">
@@ -566,12 +890,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           ))}
         </div>
 
-        {/* Calendar Cells Grid */}
-        <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-amber-100/80 dark:divide-stone-800/80 bg-stone-50/30 dark:bg-stone-900/30">
+        {/* Calendar Cells Grid: Balanced Grid maintaining consistent aspect ratios across screen sizes */}
+        <div className="grid grid-cols-7 divide-x divide-y divide-amber-100/80 dark:divide-stone-800/80 bg-stone-50/30 dark:bg-stone-900/30">
           
           {/* Empty cells for leading days */}
           {Array.from({ length: leadingEmptyDays }).map((_, i) => (
-            <div key={`empty-${i}`} className="min-h-[110px] sm:min-h-[125px] p-2 bg-stone-100/30 dark:bg-stone-950/20 opacity-40 select-none" />
+            <div
+              key={`empty-lead-${i}`}
+              className="aspect-square sm:aspect-[1/1.05] p-1 sm:p-1.5 bg-stone-100/30 dark:bg-stone-950/20 opacity-40 select-none border-t border-l"
+            />
           ))}
 
           {/* Actual Month Days */}
@@ -590,7 +917,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   setSelectedMoonDay(panchangDay);
                   onSelectDay(panchangDay);
                 }}
-                className={`min-h-[78px] xs:min-h-[92px] sm:min-h-[110px] md:min-h-[125px] p-1 sm:p-2 transition-all relative flex flex-col justify-between cursor-pointer group border-t border-l ${
+                className={`aspect-square sm:aspect-[1/1.05] p-1 sm:p-1.5 transition-all relative flex flex-col justify-between overflow-hidden cursor-pointer group border-t border-l ${
                   panchangDay.colorTheme
                 } ${
                   isToday 
@@ -601,7 +928,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 {/* Cell Top Bar: Gregorian Date with localized & English bracket */}
                 <div className="flex items-start justify-between">
                   <div className="flex flex-col">
-                    <span className={`text-sm xs:text-base sm:text-lg font-bold font-serif leading-none ${
+                    <span className={`text-[11px] xs:text-xs sm:text-sm md:text-base font-bold font-serif leading-none ${
                       isToday 
                         ? 'text-amber-700 dark:text-amber-300' 
                         : isSunday 
@@ -610,7 +937,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     }`}>
                       {formatNumberWithEnglishBracket(panchangDay.day, currentLang)}
                     </span>
-                    <span className="text-[8px] xs:text-[9px] sm:text-[10px] font-medium text-stone-500 dark:text-stone-400 mt-0.5">
+                    <span className="text-[7px] xs:text-[7.5px] sm:text-[9px] font-medium text-stone-500 dark:text-stone-400 mt-0.5 leading-none">
                       {panchangDay.paksha === 'Shukla' ? (currentLang === 'kn' ? 'ಶು' : currentLang === 'hi' ? 'शु' : 'Sh') : (currentLang === 'kn' ? 'ಕೃ' : currentLang === 'hi' ? 'कृ' : 'Kr')} {formatJustNumber(panchangDay.tithiNumber, currentLang)}
                     </span>
                   </div>
@@ -620,72 +947,140 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <MoonPhaseIcon
                       paksha={panchangDay.paksha}
                       tithiNumber={panchangDay.tithiNumber}
-                      size={15}
+                      size={13}
                       currentLang={currentLang}
                     />
                   </div>
                 </div>
 
-                {/* Sanskrit Tithi Name prominently displayed */}
-                <div className="my-0.5 sm:my-1 space-y-0.5">
-                  <div className="text-[8.5px] xs:text-[9.5px] sm:text-[11px] font-semibold text-stone-800 dark:text-stone-200 truncate leading-tight">
+                {/* Sanskrit Tithi & Nakshatra Name */}
+                <div className="my-0.5 space-y-0.5 overflow-hidden">
+                  <div className="text-[7.5px] xs:text-[8px] sm:text-[9.5px] font-semibold text-stone-800 dark:text-stone-200 truncate leading-tight">
                     {panchangDay.tithiName[currentLang]}
                   </div>
-                  <div className="text-[7.5px] xs:text-[8.5px] sm:text-[9.5px] text-stone-500 dark:text-stone-400 truncate leading-tight">
+                  {panchangDay.tithiTiming && (
+                    <div 
+                      className="text-[6px] xs:text-[6.5px] sm:text-[7.5px] font-mono text-amber-700 dark:text-amber-400 truncate leading-tight font-medium"
+                      title={panchangDay.tithiTiming.summary[currentLang]}
+                    >
+                      <span>{currentLang === 'kn' ? 'ಮುಕ್ತಾಯ: ' : currentLang === 'hi' ? 'समाप्ति: ' : 'Ends: '}</span>
+                      <span>{panchangDay.tithiTiming.endTimeFormatted[currentLang]?.split(',')[1] || panchangDay.tithiTiming.endTime}</span>
+                    </div>
+                  )}
+                  <div className="text-[6.5px] xs:text-[7px] sm:text-[8px] text-stone-500 dark:text-stone-400 truncate leading-tight">
                     {panchangDay.nakshatra[currentLang]}
                   </div>
-                  <div className="text-[7px] xs:text-[8px] sm:text-[8.5px] font-bold text-amber-700 dark:text-amber-400 truncate leading-tight hidden xs:block">
-                    {panchangDay.ritu[currentLang].split('(')[0].trim()}
-                  </div>
-                </div>
 
-                {/* Festival Tags if any */}
-                {panchangDay.festivals.length > 0 && (
-                  <div className="mt-1 space-y-1">
-                    {/* Special Highlight for Navaratri Day 1: Kalash Sthapana with explicit timing */}
-                    {panchangDay.festivals.some(f => f.id === 'navaratri_day1') && (
-                      <div className="px-1.5 py-1 rounded-sm bg-gradient-to-r from-red-600 via-amber-600 to-orange-600 text-white font-extrabold text-[8.5px] sm:text-[9.5px] shadow-2xs flex flex-col gap-0.5 border border-amber-300">
-                        <div className="flex items-center gap-1">
-                          <span>🏺</span>
-                          <span className="font-bold truncate">
-                            {currentLang === 'kn' ? 'ಕಲಶ ಸ್ಥಾಪನೆ ಮುಹೂರ್ತ:' : currentLang === 'hi' ? 'कलश स्थापना मुहूर्त:' : 'Kalash Sthapana:'}
+                  {/* Visual Progress Bar / Timeline Indicator for Tithi & Nakshatra Transitions */}
+                  {panchangDay.tithiTiming && (() => {
+                    const cellRefTime = isToday 
+                      ? Date.now() 
+                      : new Date(panchangDay.year, panchangDay.month - 1, panchangDay.day, 12, 0, 0).getTime();
+                    
+                    const tStart = new Date(panchangDay.tithiTiming.startDateTime).getTime();
+                    const tEnd = new Date(panchangDay.tithiTiming.endDateTime).getTime();
+                    const tTotal = Math.max(1, tEnd - tStart);
+                    const tElapsed = Math.min(tTotal, Math.max(0, cellRefTime - tStart));
+                    const tithiPercent = Math.min(100, Math.max(0, Math.round((tElapsed / tTotal) * 100)));
+
+                    const nTiming = panchangDay.nakshatraTiming || panchangDay.padaTiming;
+                    let nakPercent = 50;
+                    if (nTiming?.startDateTime && nTiming?.endDateTime) {
+                      const nStart = new Date(nTiming.startDateTime).getTime();
+                      const nEnd = new Date(nTiming.endDateTime).getTime();
+                      const nTotal = Math.max(1, nEnd - nStart);
+                      const nElapsed = Math.min(nTotal, Math.max(0, cellRefTime - nStart));
+                      nakPercent = Math.min(100, Math.max(0, Math.round((nElapsed / nTotal) * 100)));
+                    }
+
+                    return (
+                      <div 
+                        className="my-0.5 space-y-0.5 bg-amber-500/10 dark:bg-stone-800/60 p-0.5 rounded border border-amber-200/50 dark:border-stone-700/50"
+                        title={`Tithi: ${tithiPercent}% elapsed • Nakshatra: ${nakPercent}% elapsed`}
+                      >
+                        <div className="flex items-center justify-between text-[6px] xs:text-[6.5px] font-mono leading-none">
+                          <span className="text-amber-800 dark:text-amber-400 font-bold">
+                            {currentLang === 'kn' ? 'ತಿ' : 'T'}: {tithiPercent}%
+                          </span>
+                          <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                            {currentLang === 'kn' ? 'ನ' : 'N'}: {nakPercent}%
                           </span>
                         </div>
-                        <div className="text-[7.5px] sm:text-[8.5px] text-amber-100 font-mono font-bold leading-tight truncate">
-                          <span>🌅 {panchangDay.sunrise} - 08:45 AM</span>
-                          <span className="block text-yellow-200">☀️ ಅಭಿಜಿತ್: {panchangDay.abhijitMuhurta.start} - {panchangDay.abhijitMuhurta.end}</span>
+                        <div className="h-1 w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden flex">
+                          <div 
+                            className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all rounded-full" 
+                            style={{ width: `${Math.max(4, tithiPercent)}%` }} 
+                          />
                         </div>
                       </div>
-                    )}
-                    {panchangDay.festivals.map(fest => (
+                    );
+                  })()}
+                </div>
+
+                {/* Festival Tags if any (Compact & Uniform) */}
+                {panchangDay.festivals.length > 0 && (
+                  <div className="space-y-0.5 overflow-hidden">
+                    {/* Special Navaratri Day Ritual Badge */}
+                    {panchangDay.festivals.some(f => f.isNavaratri || f.id.startsWith('navaratri_day')) && (() => {
+                      const nFest = panchangDay.festivals.find(f => f.isNavaratri || f.id.startsWith('navaratri_day'))!;
+                      const dNum = parseInt(nFest.id.replace('navaratri_day', ''), 10) || 1;
+                      const ritualBadge = 
+                        dNum === 1 ? (currentLang === 'kn' ? '🏺 ಕಲಶ ಸ್ಥಾಪನೆ' : currentLang === 'hi' ? '🏺 कलश स्थापना' : '🏺 Kalasa Sthapana') :
+                        dNum === 8 ? (currentLang === 'kn' ? '🗡️ ಸಂಧಿ / ಬಲಿ' : currentLang === 'hi' ? '🗡️ सन्धि / बलि' : '🗡️ Sandhi Bali') :
+                        dNum === 9 ? (currentLang === 'kn' ? '🛠️ ಆಯುಧ ಪೂಜೆ' : currentLang === 'hi' ? '🛠️ आयुध पूजा' : '🛠️ Ayudha Puja') :
+                        dNum === 10 ? (currentLang === 'kn' ? '🏺 ಕಲಶ ವಿಸರ್ಜನೆ & ದಸರಾ' : currentLang === 'hi' ? '🏺 कलश विसर्जन व दशहरा' : '🏺 Kalasa Visarjana & Dasara') :
+                        (currentLang === 'kn' ? `🌺 ನವರಾತ್ರಿ ${dNum}` : currentLang === 'hi' ? `🌺 नवरात्रि ${dNum}` : `🌺 Navaratri ${dNum}`);
+
+                      return (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const targetTab = dNum === 1 ? 'kalasha' : dNum === 8 ? 'kushmandaBali' : dNum === 9 ? 'ayudhaPuja' : dNum === 10 ? 'vijayadashami' : 'dailyDurga';
+                            if (onOpenNavaratriRituals) {
+                              onOpenNavaratriRituals(dNum, targetTab);
+                            } else {
+                              setRitualsModalDayNum(dNum);
+                              setRitualsModalTab(targetTab);
+                              setShowNavaratriRitualsModal(true);
+                            }
+                          }}
+                          className="w-full text-[6px] xs:text-[6.5px] sm:text-[7.5px] font-bold px-1 py-0.2 rounded-xs truncate bg-gradient-to-r from-red-600 to-amber-600 text-white flex items-center gap-0.5 shadow-2xs hover:scale-[1.02] cursor-pointer transition-transform"
+                          title={nFest.name[currentLang]}
+                        >
+                          <span className="truncate">{ritualBadge}</span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Primary Festival Badge */}
+                    {panchangDay.festivals.slice(0, 1).map(fest => (
                       <button
                         key={fest.id}
                         onClick={(e) => {
                           e.stopPropagation();
                           onSelectFestival(fest);
                         }}
-                        className={`w-full text-left text-[10px] font-bold px-1.5 py-0.5 rounded-sm truncate transition-transform hover:scale-[1.02] border flex items-center gap-1 ${
+                        className={`w-full text-left text-[6.5px] xs:text-[7px] sm:text-[8px] font-bold px-1 py-0.2 rounded-xs truncate transition-transform hover:scale-[1.01] border flex items-center gap-0.5 ${
                           fest.badgeBg
                         }`}
                         title="Click to view Festival Story, Pooja Vidhi & Mantras"
                       >
-                        <Sparkles className="w-2.5 h-2.5 shrink-0" />
+                        <Sparkles className="w-2 h-2 shrink-0" />
                         <span className="truncate">{fest.name[currentLang]}</span>
                       </button>
                     ))}
-                  </div>
-                )}
 
-                {/* Real-time Tithi & Paksha calculation logs when Astro-Diagnostic is active */}
-                {isAstroDiagnosticActive && (
-                  <div className="mt-1 px-1 py-0.5 rounded bg-stone-900/95 text-amber-300 font-mono text-[7px] sm:text-[8px] leading-tight border border-amber-500/40 shadow-xs">
-                    <span className="font-bold text-yellow-300">{panchangDay.paksha === 'Shukla' ? 'Shukla' : 'Krishna'}</span> T{panchangDay.tithiNumber}
-                    <div className="truncate text-stone-300">N{panchangDay.nakshatraIndex} P{panchangDay.pada}</div>
+                    {/* More Festivals Indicator if > 1 */}
+                    {panchangDay.festivals.length > 1 && (
+                      <span className="text-[6.5px] font-bold text-amber-700 dark:text-amber-400 block truncate leading-none">
+                        +{panchangDay.festivals.length - 1} more
+                      </span>
+                    )}
                   </div>
                 )}
 
                 {/* Quick daily timings preview: Sunrise / Rahu Kaal icon */}
-                <div className="mt-auto pt-1 flex items-center justify-between text-[9px] text-stone-400 dark:text-stone-500 font-mono">
+                <div className="mt-auto pt-0.5 flex items-center justify-between text-[7px] xs:text-[7.5px] sm:text-[8.5px] text-stone-400 dark:text-stone-500 font-mono leading-none">
                   <span title={`Suryodaya: ${panchangDay.sunrise}`}>
                     🌅 {panchangDay.sunrise.split(' ')[0]}
                   </span>
@@ -696,6 +1091,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               </div>
             );
           })}
+
+          {/* Empty cells for trailing days */}
+          {Array.from({ length: trailingEmptyDays }).map((_, i) => (
+            <div
+              key={`empty-trail-${i}`}
+              className="aspect-square sm:aspect-[1/1.05] p-1 sm:p-1.5 bg-stone-100/30 dark:bg-stone-950/20 opacity-40 select-none border-t border-l"
+            />
+          ))}
         </div>
       </div>
 
@@ -759,6 +1162,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         )}
       </div>
 
+      {/* ========================================================================= */}
+      {/* SACRED VEDIC PORTALS: MANTRAS, SANKALPA & LAGNA KUNDALI                   */}
+      {/* ========================================================================= */}
       {/* THREE PROMINENT BOTTOM BUTTONS AS EXPLICITLY REQUESTED */}
       <div className="pt-2">
         <div className="text-center mb-3">
@@ -767,340 +1173,286 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
           
-          {/* Button 1: Mantras */}
-          <button
-            onClick={onOpenMantras}
-            className="group relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.99] transition-all text-left border border-amber-400/30"
-          >
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="p-3 rounded-xl bg-white/20 backdrop-blur-xs text-white">
-                <Sparkles className="w-6 h-6" />
+          {/* Column 1: Mantras Button & Inline Elaboration */}
+          <div className="flex flex-col">
+            <button
+              onClick={() => setExpandedPortal(prev => prev === 'mantras' ? null : 'mantras')}
+              className={`group relative overflow-hidden rounded-2xl p-6 text-white shadow-lg transition-all text-left border cursor-pointer w-full ${
+                expandedPortal === 'mantras'
+                  ? 'bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700 ring-4 ring-amber-400 border-white'
+                  : 'bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] border-amber-400/30'
+              }`}
+            >
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="p-3 rounded-xl bg-white/20 backdrop-blur-xs text-white">
+                  <Sparkles className="w-6 h-6" />
+                </span>
+                <span className="text-[11px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-black/20 font-bold flex items-center gap-1">
+                  <span>MANTRAMALA</span>
+                  <span>{expandedPortal === 'mantras' ? '▲' : '▼'}</span>
+                </span>
+              </div>
+              <h3 className="text-xl font-serif font-bold tracking-tight">
+                {currentLang === 'kn' ? 'ಮಂತ್ರಗಳು (Mantras)' : currentLang === 'hi' ? 'मन्त्र माला (Mantras)' : 'Mantras Library'}
+              </h3>
+              <p className="text-xs text-amber-100 mt-1 leading-relaxed">
+                {currentLang === 'kn'
+                  ? 'ವೇದ ಸೂಕ್ತಗಳು, ಸ್ತೋತ್ರಗಳು, ನಿಮ್ಮದೇ ಮಂತ್ರ ಲಿಂಕ್‌ಗಳು ಮತ್ತು ಎಚ್‌ಸಿಎಂಎಂ ಕೋಡ್ ಆಯ್ಕೆ.'
+                  : currentLang === 'hi'
+                  ? 'वैदिक सूक्त, स्तोत्र, आपके अपने मन्त्र लिंक एवं एचसीएमएम कोड विकल्प।'
+                  : 'Vedic hymns, stotras, custom user mantra links, and HCMM embed options.'}
+              </p>
+              <span className="inline-block mt-3 text-[11px] font-bold text-amber-200 underline">
+                {expandedPortal === 'mantras' ? '▲ Collapse Section' : '▼ Elaborate Below Button'}
               </span>
-              <span className="text-[11px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-black/20 font-bold">
-                MANTRAMALA
-              </span>
-            </div>
-            <h3 className="text-xl font-serif font-bold tracking-tight">
-              {currentLang === 'kn' ? 'ಮಂತ್ರಗಳು (Mantras)' : currentLang === 'hi' ? 'मन्त्र माला (Mantras)' : 'Mantras Library'}
-            </h3>
-            <p className="text-xs text-amber-100 mt-1 leading-relaxed">
-              {currentLang === 'kn'
-                ? 'ವೇದ ಸೂಕ್ತಗಳು, ಸ್ತೋತ್ರಗಳು, ನಿಮ್ಮದೇ ಮಂತ್ರ ಲಿಂಕ್‌ಗಳು ಮತ್ತು ಎಚ್‌ಸಿಎಂಎಂ ಕೋಡ್ ಆಯ್ಕೆ.'
-                : currentLang === 'hi'
-                ? 'वैदिक सूक्त, स्तोत्र, आपके अपने मन्त्र लिंक एवं एचसीएमएम कोड विकल्प।'
-                : 'Vedic hymns, stotras, custom user mantra links, and HCMM embed options.'}
-            </p>
-          </button>
+            </button>
 
-          {/* Button 2: Sankalpa Vidhi */}
-          <button
-            onClick={onOpenSankalpa}
-            className="group relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.99] transition-all text-left border border-rose-400/30"
-          >
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="p-3 rounded-xl bg-white/20 backdrop-blur-xs text-white">
-                <BookOpen className="w-6 h-6" />
-              </span>
-              <span className="text-[11px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-black/20 font-bold">
-                PDF VIDHANA
-              </span>
-            </div>
-            <h3 className="text-xl font-serif font-bold tracking-tight">
-              {currentLang === 'kn' ? 'ಸಂಕಲ್ಪ ವಿಧಿ (Sankalpa Vidhi)' : currentLang === 'hi' ? 'संकल्प विधि (Sankalpa Vidhi)' : 'Sankalpa Vidhi'}
-            </h3>
-            <p className="text-xs text-rose-100 mt-1 leading-relaxed">
-              {currentLang === 'kn'
-                ? 'ದಿನಾಂಕ ಆಧಾರಿತ ೨-೯ ಸ್ವಯಂಚಾಲಿತ ನೀಲಿ ವಿವರಗಳು, ೬೦ ಸಂವತ್ಸರ, ಪಂಚಪೀಠ ಪ್ರವರ ಮತ್ತು ಪಿಡಿಎಫ್ ರಫ್ತು.'
-                : currentLang === 'hi'
-                ? 'तिथि अनुसार २-९ स्वतः नीले रंग में प्रविष्ट विवरण, ६० संवत्सर, पंचपीठ प्रवर व पीडीएफ निर्यात।'
-                : 'Auto date-populated blue dashed details (2-9), 60 Samvatsaras, Panchapeetha, and PDF export.'}
-            </p>
-          </button>
+            {/* Elaborated Mantras Portal Directly Below Button 1 */}
+            {expandedPortal === 'mantras' && (
+              <div className="mt-3 p-4 sm:p-5 rounded-2xl bg-white dark:bg-stone-900 border-2 border-amber-500 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
+                <div className="flex items-center justify-between border-b border-amber-200 dark:border-stone-800 pb-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    <h4 className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">
+                      {currentLang === 'kn' ? 'ಮಂತ್ರ ಮಾಲೆ & ವೆಬ್‌ಲಿಂಕ್‌ಗಳು' : 'Mantras Library & Hymns'}
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => setExpandedPortal(null)}
+                    className="p-1 text-stone-400 hover:text-stone-600 rounded-lg text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-          {/* Button 3: Lagna Kundali */}
-          <button
-            onClick={onOpenKundali}
-            className="group relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-indigo-700 via-purple-700 to-amber-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.99] transition-all text-left border border-indigo-400/30"
-          >
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="p-3 rounded-xl bg-white/20 backdrop-blur-xs text-white">
-                <Layers className="w-6 h-6" />
+                <p className="text-[11.5px] text-stone-600 dark:text-stone-300 leading-relaxed">
+                  {currentLang === 'kn'
+                    ? 'ವೇದ ಸೂಕ್ತಗಳು (ಪುರುಷ ಸೂಕ್ತ, ಶ್ರೀ ಸೂಕ್ತ, ರುದ್ರಂ), ದೇವೀ ಮಾಹಾತ್ಮ್ಯೆ ಸ್ತೋತ್ರಗಳು ಹಾಗೂ ನಿಮ್ಮ ಸ್ವಂತ ಮಂತ್ರ ಲಿಂಕ್‌ಗಳನ್ನು ಆನ್‌ಲೈನ್‌ಗೆ ಸೇರಿಸಿ.'
+                    : 'Explore Vedic Suktas, Devi Mahatmyam stotras, and custom user web links synced online.'}
+                </p>
+
+                <div className="space-y-2 pt-1 text-xs">
+                  <div className="p-2.5 rounded-xl bg-amber-50/70 dark:bg-stone-800 border border-amber-200 dark:border-stone-700">
+                    <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-400 block mb-0.5">
+                      Vedic Suktas
+                    </span>
+                    <p className="font-bold text-stone-900 dark:text-stone-100">
+                      Sri Rudram, Chamakam, Sri Sukta
+                    </p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-orange-50/70 dark:bg-stone-800 border border-orange-200 dark:border-stone-700">
+                    <span className="text-[10px] uppercase font-bold text-orange-800 dark:text-orange-400 block mb-0.5">
+                      Stotras & Sahasranama
+                    </span>
+                    <p className="font-bold text-stone-900 dark:text-stone-100">
+                      Vishnu & Lalita Sahasranama
+                    </p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-rose-50/70 dark:bg-stone-800 border border-rose-200 dark:border-stone-700">
+                    <span className="text-[10px] uppercase font-bold text-rose-800 dark:text-rose-400 block mb-0.5">
+                      Online Added Links
+                    </span>
+                    <p className="font-bold text-stone-900 dark:text-stone-100">
+                      Photo selection + instant web sync
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={onOpenMantras}
+                  className="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <span>{currentLang === 'kn' ? 'ಪೂರ್ಣ ಮಂತ್ರ ಪುಟ ತೆರೆಯಿರಿ →' : 'Open Full Mantras Page →'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Column 2: Sankalpa Vidhi Button & Inline Elaboration */}
+          <div className="flex flex-col">
+            <button
+              onClick={() => setExpandedPortal(prev => prev === 'sankalpa' ? null : 'sankalpa')}
+              className={`group relative overflow-hidden rounded-2xl p-6 text-white shadow-lg transition-all text-left border cursor-pointer w-full ${
+                expandedPortal === 'sankalpa'
+                  ? 'bg-gradient-to-br from-red-700 via-rose-700 to-amber-700 ring-4 ring-rose-400 border-white'
+                  : 'bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] border-rose-400/30'
+              }`}
+            >
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="p-3 rounded-xl bg-white/20 backdrop-blur-xs text-white">
+                  <BookOpen className="w-6 h-6" />
+                </span>
+                <span className="text-[11px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-black/20 font-bold flex items-center gap-1">
+                  <span>PDF VIDHANA</span>
+                  <span>{expandedPortal === 'sankalpa' ? '▲' : '▼'}</span>
+                </span>
+              </div>
+              <h3 className="text-xl font-serif font-bold tracking-tight">
+                {currentLang === 'kn' ? 'ಸಂಕಲ್ಪ ಮತ್ತು ಸ್ಥಾಪನೆ (Sankalpa & Sthapana)' : currentLang === 'hi' ? 'संकल्प एवं स्थापना (Sankalpa & Sthapana)' : 'Sankalpa & Sthapana'}
+              </h3>
+              <p className="text-xs text-rose-100 mt-1 leading-relaxed">
+                {currentLang === 'kn'
+                  ? 'ದಿನಾಂಕ ಆಧಾರಿತ ೨-೯ ಸ್ವಯಂಚಾಲಿತ ನೀಲಿ ವಿವರಗಳು, ೬೦ ಸಂವತ್ಸರ, ಪಂಚಪೀಠ ಪ್ರವರ ಮತ್ತು ಪಿಡಿಎಫ್ ರಫ್ತು.'
+                  : currentLang === 'hi'
+                  ? 'तिथि अनुसार २-९ स्वतः नीले रंग में प्रविष्ट विवरण, ६० संवत्सर, पंचपीठ प्रवर व पीडीएफ निर्यात।'
+                  : 'Auto date-populated blue dashed details (2-9), 60 Samvatsaras, Panchapeetha, and PDF export.'}
+              </p>
+              <span className="inline-block mt-3 text-[11px] font-bold text-rose-200 underline">
+                {expandedPortal === 'sankalpa' ? '▲ Collapse Section' : '▼ Elaborate Below Button'}
               </span>
-              <span className="text-[11px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-black/20 font-bold">
-                VEDIC CHART
+            </button>
+
+            {/* Elaborated Sankalpa Vidhi Portal Directly Below Button 2 */}
+            {expandedPortal === 'sankalpa' && (
+              <div className="mt-3 p-4 sm:p-5 rounded-2xl bg-white dark:bg-stone-900 border-2 border-rose-500 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
+                <div className="flex items-center justify-between border-b border-rose-200 dark:border-stone-800 pb-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-rose-600" />
+                    <h4 className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">
+                      {currentLang === 'kn' ? 'ಇಂದಿನ ಸಂಕಲ್ಪ ವಿವರಗಳು' : 'Daily Sankalpa Details'}
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => setExpandedPortal(null)}
+                    className="p-1 text-stone-400 hover:text-stone-600 rounded-lg text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2 bg-rose-50/70 dark:bg-stone-800 rounded-lg border border-rose-200 dark:border-stone-700">
+                    <span className="text-stone-500 block text-[10px]">1. Location:</span>
+                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">{selectedCity.nameLocalized ? selectedCity.nameLocalized[currentLang] : selectedCity.name}</strong>
+                  </div>
+                  <div className="p-2 bg-rose-50/70 dark:bg-stone-800 rounded-lg border border-rose-200 dark:border-stone-700">
+                    <span className="text-stone-500 block text-[10px]">2. Samvatsara:</span>
+                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">{currentMonthPanchangaSample.samvatsara[currentLang]}</strong>
+                  </div>
+                  <div className="p-2 bg-rose-50/70 dark:bg-stone-800 rounded-lg border border-rose-200 dark:border-stone-700">
+                    <span className="text-stone-500 block text-[10px]">3. Ayana:</span>
+                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">{currentMonthPanchangaSample.ayana[currentLang]}</strong>
+                  </div>
+                  <div className="p-2 bg-rose-50/70 dark:bg-stone-800 rounded-lg border border-rose-200 dark:border-stone-700">
+                    <span className="text-stone-500 block text-[10px]">4. Masa:</span>
+                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">{currentMonthPanchangaSample.masa[currentLang]}</strong>
+                  </div>
+                  <div className="p-2 bg-rose-50/70 dark:bg-stone-800 rounded-lg border border-rose-200 dark:border-stone-700">
+                    <span className="text-stone-500 block text-[10px]">5. Paksha:</span>
+                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">{currentMonthPanchangaSample.paksha}</strong>
+                  </div>
+                  <div className="p-2 bg-rose-50/70 dark:bg-stone-800 rounded-lg border border-rose-200 dark:border-stone-700">
+                    <span className="text-stone-500 block text-[10px]">6. Tithi:</span>
+                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">{currentMonthPanchangaSample.tithiName[currentLang]}</strong>
+                  </div>
+                </div>
+
+                <button
+                  onClick={onOpenSankalpa}
+                  className="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <span>{currentLang === 'kn' ? 'ಪೂರ್ಣ ಸಂಕಲ್ಪ ಪುಟ ಹಾಗೂ ಪಿಡಿಎಫ್ →' : 'Open Sankalpa Page & PDF →'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Column 3: Lagna Kundali Button & Inline Elaboration */}
+          <div className="flex flex-col">
+            <button
+              onClick={() => setExpandedPortal(prev => prev === 'kundali' ? null : 'kundali')}
+              className={`group relative overflow-hidden rounded-2xl p-6 text-white shadow-lg transition-all text-left border cursor-pointer w-full ${
+                expandedPortal === 'kundali'
+                  ? 'bg-gradient-to-br from-indigo-800 via-purple-800 to-amber-800 ring-4 ring-indigo-400 border-white'
+                  : 'bg-gradient-to-br from-indigo-700 via-purple-700 to-amber-700 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] border-indigo-400/30'
+              }`}
+            >
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="p-3 rounded-xl bg-white/20 backdrop-blur-xs text-white">
+                  <Layers className="w-6 h-6" />
+                </span>
+                <span className="text-[11px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-black/20 font-bold flex items-center gap-1">
+                  <span>VEDIC CHART</span>
+                  <span>{expandedPortal === 'kundali' ? '▲' : '▼'}</span>
+                </span>
+              </div>
+              <h3 className="text-xl font-serif font-bold tracking-tight">
+                {currentLang === 'kn' ? 'ಲಗ್ನ ಕುಂಡಲಿ (Lagna Kundali)' : currentLang === 'hi' ? 'लग्न कुण्डली (Lagna Kundali)' : 'Lagna Kundali'}
+              </h3>
+              <p className="text-xs text-indigo-100 mt-1 leading-relaxed">
+                {currentLang === 'kn'
+                  ? 'ಉತ್ತರ/ದಕ್ಷಿಣ ಭಾರತ ಶೈಲಿಯ ಡೈಮಂಡ್ ಕುಂಡಲಿ, ನವಗ್ರಹ ಸ್ಥಿತಿ, ರಾಹು/ಗುಳಿಕ ಕಾಲ ಮತ್ತು ಡಾರ್ಕ್ ಮೋಡ್.'
+                  : currentLang === 'hi'
+                  ? 'उत्तर/दक्षिण भारतीय शैली डायमण्ड कुण्डली, नवग्रह स्थिति, राहु/गुलिक काल एवं डार्क मोड।'
+                  : 'North/South Indian diamond style birth chart, planetary positions, Rahu Kaal alerts & dark mode.'}
+              </p>
+              <span className="inline-block mt-3 text-[11px] font-bold text-indigo-200 underline">
+                {expandedPortal === 'kundali' ? '▲ Collapse Section' : '▼ Elaborate Below Button'}
               </span>
-            </div>
-            <h3 className="text-xl font-serif font-bold tracking-tight">
-              {currentLang === 'kn' ? 'ಲಗ್ನ ಕುಂಡಲಿ (Lagna Kundali)' : currentLang === 'hi' ? 'लग्न कुण्डली (Lagna Kundali)' : 'Lagna Kundali'}
-            </h3>
-            <p className="text-xs text-indigo-100 mt-1 leading-relaxed">
-              {currentLang === 'kn'
-                ? 'ಉತ್ತರ/ದಕ್ಷಿಣ ಭಾರತ ಶೈಲಿಯ ಡೈಮಂಡ್ ಕುಂಡಲಿ, ನವಗ್ರಹ ಸ್ಥಿತಿ, ರಾಹು/ಗುಳಿಕ ಕಾಲ ಮತ್ತು ಡಾರ್ಕ್ ಮೋಡ್.'
-                : currentLang === 'hi'
-                ? 'उत्तर/दक्षिण भारतीय शैली डायमण्ड कुण्डली, नवग्रह स्थिति, राहु/गुलिक काल एवं डार्क मोड।'
-                : 'North/South Indian diamond style birth chart, planetary positions, Rahu Kaal alerts & dark mode.'}
-            </p>
-          </button>
+            </button>
+
+            {/* Elaborated Lagna Kundali Portal Directly Below Button 3 */}
+            {expandedPortal === 'kundali' && (
+              <div className="mt-3 p-4 sm:p-5 rounded-2xl bg-white dark:bg-stone-900 border-2 border-indigo-500 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
+                <div className="flex items-center justify-between border-b border-indigo-200 dark:border-stone-800 pb-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <Layers className="w-4 h-4 text-indigo-600" />
+                    <h4 className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">
+                      {currentLang === 'kn' ? 'ಲಗ್ನ ಕುಂಡಲಿ & ಪರಿಹಾರಗಳು' : 'Lagna Kundali & Remedies'}
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => setExpandedPortal(null)}
+                    className="p-1 text-stone-400 hover:text-stone-600 rounded-lg text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-indigo-50/70 dark:bg-stone-800 border border-indigo-200 dark:border-stone-700">
+                    <span className="text-[10px] font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-wider block mb-0.5">
+                      Lagna Kundali
+                    </span>
+                    <p className="font-semibold text-stone-900 dark:text-stone-100">
+                      North & South Indian style charts with Lahiri Ephemeris.
+                    </p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-purple-50/70 dark:bg-stone-800 border border-purple-200 dark:border-stone-700">
+                    <span className="text-[10px] font-bold text-purple-800 dark:text-purple-400 uppercase tracking-wider block mb-0.5">
+                      Vedic Remedies & Prashna
+                    </span>
+                    <p className="font-semibold text-stone-900 dark:text-stone-100">
+                      Dosha shanti, Gemstone recommendations, and Horary Prashna Kundali.
+                    </p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-rose-50/70 dark:bg-stone-800 border border-rose-200 dark:border-stone-700">
+                    <span className="text-[10px] font-bold text-rose-800 dark:text-rose-400 uppercase tracking-wider block mb-0.5">
+                      Guna Milan
+                    </span>
+                    <p className="font-semibold text-stone-900 dark:text-stone-100">
+                      36-point Ashtakoota marriage compatibility.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={onOpenKundali}
+                  className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <span>{currentLang === 'kn' ? 'ಪೂರ್ಣ ಕುಂಡಲಿ ಪುಟ ತೆರೆಯಿರಿ →' : 'Open Full Kundali Page →'}</span>
+                </button>
+              </div>
+            )}
+          </div>
 
         </div>
       </div>
-
-      {/* ========================================================================= */}
-      {/* MONTHLY OVERVIEW MODAL (Consolidated Tithis, Nakshatras & Auspicious Days) */}
-      {/* ========================================================================= */}
-      {showMonthlyOverview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-          <div className="relative w-full max-w-4xl rounded-2xl bg-white dark:bg-stone-900 shadow-2xl border border-amber-200/80 dark:border-stone-700 overflow-hidden my-8 max-h-[90vh] flex flex-col">
-            
-            {/* Header */}
-            <div className="bg-gradient-to-r from-amber-700 via-orange-600 to-amber-600 p-5 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-xs">
-                  <Compass className="w-6 h-6 text-amber-200" />
-                </div>
-                <div>
-                  <h3 className="font-serif font-bold text-xl sm:text-2xl text-white">
-                    {currentLang === 'kn' 
-                      ? `${currentMonthName} ${selectedYear} - ಮಾಸಿಕ ಅವಲೋಕನ` 
-                      : currentLang === 'hi' 
-                      ? `${currentMonthName} ${selectedYear} - मासिक अवलोकन` 
-                      : `${currentMonthName} ${selectedYear} - Monthly Overview`}
-                  </h3>
-                  <p className="text-xs text-amber-100 mt-0.5">
-                    {samvatsaraName} ಸಂವತ್ಸರ • {masaName} ಮಾಸ • 📍 {getLocalizedPlaceName(selectedCity, currentLang)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>{currentLang === 'kn' ? 'ಮುದ್ರಿಸಿ' : currentLang === 'hi' ? 'प्रिंट' : 'Print'}</span>
-                </button>
-                <button
-                  onClick={() => setShowMonthlyOverview(false)}
-                  className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Scrollable Content */}
-            <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-stone-800 dark:text-stone-200">
-              
-              {/* Section 1: Important Tithis of the Month */}
-              <div className="rounded-xl border border-amber-200/80 dark:border-stone-800 bg-amber-50/40 dark:bg-stone-850 p-4 space-y-3">
-                <h4 className="font-serif font-bold text-base text-stone-900 dark:text-stone-100 flex items-center gap-2 border-b border-amber-200/60 dark:border-stone-700 pb-2">
-                  <Flame className="w-4 h-4 text-amber-600" />
-                  <span>
-                    {currentLang === 'kn' ? 'ಪ್ರಮುಖ ತಿಥಿಗಳು ಮತ್ತು ವ್ರತಗಳು' : currentLang === 'hi' ? 'प्रमुख तिथियाँ एवं व्रत' : 'Important Tithis & Fasting Days'}
-                  </span>
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                  {/* Ekadashis */}
-                  <div className="p-3 rounded-lg bg-white dark:bg-stone-800 border border-amber-200 dark:border-stone-700 shadow-2xs">
-                    <span className="font-bold text-amber-800 dark:text-amber-300 block mb-1">
-                      🌿 {currentLang === 'kn' ? 'ಏಕಾದಶಿ (Ekadashi)' : currentLang === 'hi' ? 'एकादशी' : 'Ekadashi'}
-                    </span>
-                    {monthlyHighlights.ekadashis.length > 0 ? (
-                      monthlyHighlights.ekadashis.map(d => (
-                        <div key={d.day} onClick={() => { setShowMonthlyOverview(false); onSelectDay(d); }} className="cursor-pointer hover:text-amber-600 py-0.5">
-                          • <span className="font-bold">{d.day} {currentMonthName}</span> ({d.vara[currentLang]}) - {d.pakshaName[currentLang]}
-                        </div>
-                      ))
-                    ) : <span className="text-stone-400">None this month</span>}
-                  </div>
-
-                  {/* Pradosha */}
-                  <div className="p-3 rounded-lg bg-white dark:bg-stone-800 border border-amber-200 dark:border-stone-700 shadow-2xs">
-                    <span className="font-bold text-amber-800 dark:text-amber-300 block mb-1">
-                      🔱 {currentLang === 'kn' ? 'ಪ್ರದೋಷ ವ್ರತ (Pradosha)' : currentLang === 'hi' ? 'प्रदोष व्रत' : 'Pradosha Vrata'}
-                    </span>
-                    {monthlyHighlights.pradoshas.length > 0 ? (
-                      monthlyHighlights.pradoshas.map(d => (
-                        <div key={d.day} onClick={() => { setShowMonthlyOverview(false); onSelectDay(d); }} className="cursor-pointer hover:text-amber-600 py-0.5">
-                          • <span className="font-bold">{d.day} {currentMonthName}</span> ({d.vara[currentLang]}) - {d.pakshaName[currentLang]}
-                        </div>
-                      ))
-                    ) : <span className="text-stone-400">None this month</span>}
-                  </div>
-
-                  {/* Sankashti */}
-                  <div className="p-3 rounded-lg bg-white dark:bg-stone-800 border border-amber-200 dark:border-stone-700 shadow-2xs">
-                    <span className="font-bold text-amber-800 dark:text-amber-300 block mb-1">
-                      🐘 {currentLang === 'kn' ? 'ಸಂಕಷ್ಟಹರ ಚತುರ್ಥಿ (Sankashti)' : currentLang === 'hi' ? 'संकष्टी चतुर्थी' : 'Sankashti Chaturthi'}
-                    </span>
-                    {monthlyHighlights.sankashtis.length > 0 ? (
-                      monthlyHighlights.sankashtis.map(d => (
-                        <div key={d.day} onClick={() => { setShowMonthlyOverview(false); onSelectDay(d); }} className="cursor-pointer hover:text-amber-600 py-0.5">
-                          • <span className="font-bold">{d.day} {currentMonthName}</span> ({d.vara[currentLang]})
-                        </div>
-                      ))
-                    ) : <span className="text-stone-400">None this month</span>}
-                  </div>
-
-                  {/* Purnima */}
-                  <div className="p-3 rounded-lg bg-white dark:bg-stone-800 border border-amber-200 dark:border-stone-700 shadow-2xs">
-                    <span className="font-bold text-amber-800 dark:text-amber-300 block mb-1">
-                      🌕 {currentLang === 'kn' ? 'ಹುಣ್ಣಿಮೆ (Purnima)' : currentLang === 'hi' ? 'पूर्णिमा' : 'Full Moon (Purnima)'}
-                    </span>
-                    {monthlyHighlights.purnimas.length > 0 ? (
-                      monthlyHighlights.purnimas.map(d => (
-                        <div key={d.day} onClick={() => { setShowMonthlyOverview(false); onSelectDay(d); }} className="cursor-pointer hover:text-amber-600 py-0.5">
-                          • <span className="font-bold">{d.day} {currentMonthName}</span> ({d.vara[currentLang]}) - {d.nakshatra[currentLang]}
-                        </div>
-                      ))
-                    ) : <span className="text-stone-400">None this month</span>}
-                  </div>
-
-                  {/* Amavasya */}
-                  <div className="p-3 rounded-lg bg-white dark:bg-stone-800 border border-amber-200 dark:border-stone-700 shadow-2xs">
-                    <span className="font-bold text-amber-800 dark:text-amber-300 block mb-1">
-                      🌑 {currentLang === 'kn' ? 'ಅಮಾವಾಸ್ಯೆ (Amavasya)' : currentLang === 'hi' ? 'अमावस्या' : 'New Moon (Amavasya)'}
-                    </span>
-                    {monthlyHighlights.amavasyas.length > 0 ? (
-                      monthlyHighlights.amavasyas.map(d => (
-                        <div key={d.day} onClick={() => { setShowMonthlyOverview(false); onSelectDay(d); }} className="cursor-pointer hover:text-amber-600 py-0.5">
-                          • <span className="font-bold">{d.day} {currentMonthName}</span> ({d.vara[currentLang]}) - {d.nakshatra[currentLang]}
-                        </div>
-                      ))
-                    ) : <span className="text-stone-400">None this month</span>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 2: Consolidated Festivals of the Month */}
-              <div className="space-y-3">
-                <h4 className="font-serif font-bold text-base text-stone-900 dark:text-stone-100 flex items-center gap-2 border-b border-stone-200 dark:border-stone-700 pb-2">
-                  <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span>
-                    {currentLang === 'kn' ? 'ಈ ತಿಂಗಳ ಹಬ್ಬಗಳು ಮತ್ತು ಆಚರಣೆಗಳು' : currentLang === 'hi' ? 'इस माह के पर्व एवं त्योहार' : 'Festivals & Special Celebrations'}
-                  </span>
-                </h4>
-
-                {monthlyHighlights.festivalsInMonth.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {monthlyHighlights.festivalsInMonth.map(({ day, fest }, idx) => (
-                      <div
-                        key={`${day.day}-${fest.id}-${idx}`}
-                        onClick={() => {
-                          setShowMonthlyOverview(false);
-                          onSelectFestival(fest);
-                        }}
-                        className="p-3.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-800 hover:border-amber-400 transition-all cursor-pointer flex items-start gap-3 shadow-2xs"
-                      >
-                        <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex flex-col items-center justify-center text-stone-900 dark:text-stone-100 font-bold shrink-0">
-                          <span className="text-base font-serif leading-none">{day.day}</span>
-                          <span className="text-[10px] text-amber-700 dark:text-amber-300 font-mono">{day.vara[currentLang].slice(0, 3)}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h5 className="font-serif font-bold text-stone-900 dark:text-stone-100 text-sm truncate">
-                            {fest.name[currentLang]}
-                          </h5>
-                          <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 line-clamp-2">
-                            {fest.shortDesc[currentLang]}
-                          </p>
-                          <span className="inline-block mt-1.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 underline">
-                            {currentLang === 'kn' ? 'ಪೂಜಾ ವಿಧಿ ಮತ್ತು ಮಂತ್ರ ವೀಕ್ಷಿಸಿ →' : currentLang === 'hi' ? 'पूजा विधि व मन्त्र देखें →' : 'View Puja Vidhi & Mantra →'}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-stone-500 italic p-4 text-center">
-                    {currentLang === 'kn' ? 'ಈ ತಿಂಗಳು ಯಾವುದೇ ಪ್ರಮುಖ ಹಬ್ಬಗಳು ದಾಖಲಾಗಿಲ್ಲ.' : currentLang === 'hi' ? 'इस माह कोई प्रमुख त्योहार नहीं है।' : 'No major festivals recorded for this month.'}
-                  </p>
-                )}
-              </div>
-
-              {/* Section 3: Month's Complete Daily Panchanga Table */}
-              <div className="space-y-3">
-                <h4 className="font-serif font-bold text-base text-stone-900 dark:text-stone-100 flex items-center gap-2 border-b border-stone-200 dark:border-stone-700 pb-2">
-                  <Layers className="w-4 h-4 text-amber-600" />
-                  <span>
-                    {currentLang === 'kn' ? 'ದೈನಂದಿನ ಪಂಚಾಂಗ ಸೂಚಿ (ತಿಥಿ, ನಕ್ಷತ್ರ & ಚಂದ್ರ ರಾಶಿ)' : currentLang === 'hi' ? 'दैनिक पंचांग सूची (तिथि, नक्षत्र व चन्द्र राशि)' : 'Daily Panchanga Table (Tithi, Nakshatra & Moon Sign)'}
-                  </span>
-                </h4>
-
-                <div className="border border-stone-200 dark:border-stone-800 rounded-xl overflow-x-auto text-xs max-h-72">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 bg-stone-100 dark:bg-stone-800 shadow-2xs z-10">
-                      <tr className="border-b border-stone-200 dark:border-stone-700 font-bold text-stone-700 dark:text-stone-300">
-                        <th className="p-2.5 text-center w-14">
-                          {currentLang === 'kn' ? 'ದಿನಾಂಕ' : currentLang === 'hi' ? 'दिनांक' : 'Date'}
-                        </th>
-                        <th className="p-2.5 w-20">
-                          {currentLang === 'kn' ? 'ವಾರ' : currentLang === 'hi' ? 'वार' : 'Day'}
-                        </th>
-                        <th className="p-2.5">
-                          {currentLang === 'kn' ? 'ತಿಥಿ & ಪಕ್ಷ' : currentLang === 'hi' ? 'तिथि व पक्ष' : 'Tithi & Paksha'}
-                        </th>
-                        <th className="p-2.5">
-                          {currentLang === 'kn' ? 'ನಕ್ಷತ್ರ (ಅಕ್ಷರ)' : currentLang === 'hi' ? 'नक्षत्र' : 'Nakshatra'}
-                        </th>
-                        <th className="p-2.5">
-                          {currentLang === 'kn' ? 'ಚಂದ್ರ ರಾಶಿ' : currentLang === 'hi' ? 'चन्द्र राशि' : 'Moon Sign'}
-                        </th>
-                        <th className="p-2.5 text-right w-24">
-                          {currentLang === 'kn' ? 'ವಿವರ' : currentLang === 'hi' ? 'विवरण' : 'Action'}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
-                      {monthDays.map(d => (
-                        <tr 
-                          key={d.gregorianDate}
-                          className="hover:bg-amber-50/60 dark:hover:bg-stone-800/60 transition-colors"
-                        >
-                          <td className="p-2.5 text-center font-bold text-stone-900 dark:text-stone-100">
-                            {d.day}
-                          </td>
-                          <td className="p-2.5 text-stone-600 dark:text-stone-400">
-                            {d.vara[currentLang]}
-                          </td>
-                          <td className="p-2.5 font-semibold text-stone-800 dark:text-stone-200">
-                            {d.pakshaName[currentLang]} • {d.tithiName[currentLang]}
-                          </td>
-                          <td className="p-2.5 text-stone-700 dark:text-stone-300">
-                            {d.nakshatra[currentLang]} <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">({d.charanaLetter})</span>
-                          </td>
-                          <td className="p-2.5 text-stone-700 dark:text-stone-300">
-                            {d.chandraRashi[currentLang]}
-                          </td>
-                          <td className="p-2.5 text-right">
-                            <button
-                              onClick={() => {
-                                setShowMonthlyOverview(false);
-                                onSelectDay(d);
-                              }}
-                              className="px-2 py-1 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold text-[11px]"
-                            >
-                              {currentLang === 'kn' ? 'ನೋಡಿ' : currentLang === 'hi' ? 'देखें' : 'View'}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-      )}
 
       {/* ========================================================================= */}
       {/* PRINTABLE MONTHLY CALENDAR CONTAINER (Visible only during PDF Print) */}

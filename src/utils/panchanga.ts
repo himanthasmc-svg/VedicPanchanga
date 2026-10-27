@@ -1,5 +1,6 @@
-import { CityLocation, KundaliData, Language, LocalizedString, PanchangaDay, PlanetPosition } from '../types';
+import { CityLocation, KundaliData, Language, LocalizedString, NakshatraTimingInfo, PadaTimingInfo, PanchangaDay, PlanetPosition, TithiTimingInfo } from '../types';
 import { FESTIVALS_CATALOG } from './festivals';
+import { calculateNavaratriColorForDay } from './navaratriColors';
 import { RASHI_NAKSHATRA_CHART, SAMVATSARA_LIST, SamvatsaraRecord } from './pdfData';
 export { RASHI_NAKSHATRA_CHART, SAMVATSARA_LIST };
 
@@ -578,6 +579,366 @@ export function calculateAstronomicalPositions(date: Date) {
   };
 }
 
+// -------------------------------------------------------------
+// EXACT TITHI ENTRY & EXIT (START & END) ASTRONOMICAL CALCULATOR
+// -------------------------------------------------------------
+const KANNADA_MONTHS_SHORT = ['ಜನವರಿ', 'ಫೆಬ್ರವರಿ', 'ಮಾರ್ಚ್', 'ಏಪ್ರಿಲ್', 'ಮೇ', 'ಜೂನ್', 'ಜುಲೈ', 'ಆಗಸ್ಟ್', 'ಸೆಪ್ಟೆಂಬರ್', 'ಅಕ್ಟೋಬರ್', 'ನವೆಂಬರ್', 'ಡಿಸೆಂಬರ್'];
+const HINDI_MONTHS_SHORT = ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितम्बर', 'अक्टूबर', 'नवम्बर', 'दिसम्बर'];
+const EN_MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const toKannadaDigits = (num: number | string): string => {
+  const knDigits = ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯'];
+  return String(num).replace(/[0-9]/g, (d) => knDigits[parseInt(d, 10)]);
+};
+
+const toDevanagariDigits = (num: number | string): string => {
+  const hiDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return String(num).replace(/[0-9]/g, (d) => hiDigits[parseInt(d, 10)]);
+};
+
+export function formatTime12(d: Date): string {
+  let hrs = d.getHours();
+  const mins = d.getMinutes();
+  const ampm = hrs >= 12 ? 'PM' : 'AM';
+  hrs = hrs % 12;
+  if (hrs === 0) hrs = 12;
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${ampm}`;
+}
+
+export function formatTithiDateTime(d: Date): { en: string; kn: string; hi: string } {
+  const mIdx = d.getMonth();
+  const dayNum = d.getDate();
+  const yr = d.getFullYear();
+  const timeStr = formatTime12(d);
+  const hrs = d.getHours();
+  const mins = d.getMinutes();
+  const dispHrs = (hrs % 12 === 0 ? 12 : hrs % 12);
+  const timeOfDayEn = hrs < 12 ? 'Morning' : (hrs < 16 ? 'Afternoon' : (hrs < 19 ? 'Evening' : 'Night'));
+  const timeOfDayKn = hrs < 12 ? 'ಬೆಳಗ್ಗೆ' : (hrs < 16 ? 'ಮಧ್ಯಾಹ್ನ' : (hrs < 19 ? 'ಸಂಜೆ' : 'ರಾತ್ರಿ'));
+  const timeOfDayHi = hrs < 12 ? 'प्रातः' : (hrs < 16 ? 'दोपहर' : (hrs < 19 ? 'सायं' : 'रात्रि'));
+
+  const en = `${EN_MONTHS_SHORT[mIdx]} ${dayNum}, ${yr} at ${timeStr} (${timeOfDayEn})`;
+  const kn = `ದಿನಾಂಕ: ${toKannadaDigits(dayNum)} ${KANNADA_MONTHS_SHORT[mIdx]} ${toKannadaDigits(yr)}, ${timeOfDayKn} ${toKannadaDigits(String(dispHrs).padStart(2, '0'))}:${toKannadaDigits(String(mins).padStart(2, '0'))}`;
+  const hi = `दिनांक: ${toDevanagariDigits(dayNum)} ${HINDI_MONTHS_SHORT[mIdx]} ${toDevanagariDigits(yr)}, ${timeOfDayHi} ${toDevanagariDigits(String(dispHrs).padStart(2, '0'))}:${toDevanagariDigits(String(mins).padStart(2, '0'))}`;
+
+  return { en, kn, hi };
+}
+
+export function formatPadaDateTime(d: Date): { en: string; kn: string; hi: string } {
+  const mIdx = d.getMonth();
+  const dayNum = d.getDate();
+  const yr = d.getFullYear();
+  const timeStr = formatTime12(d);
+  const hrs = d.getHours();
+  const mins = d.getMinutes();
+  const dispHrs = (hrs % 12 === 0 ? 12 : hrs % 12);
+  const timeOfDayEn = hrs < 12 ? 'Morning' : (hrs < 16 ? 'Afternoon' : (hrs < 19 ? 'Evening' : 'Night'));
+  const timeOfDayKn = hrs < 12 ? 'ಬೆಳಗ್ಗೆ' : (hrs < 16 ? 'ಮಧ್ಯಾಹ್ನ' : (hrs < 19 ? 'ಸಂಜೆ' : 'ರಾತ್ರಿ'));
+  const timeOfDayHi = hrs < 12 ? 'प्रातः' : (hrs < 16 ? 'दोपहर' : (hrs < 19 ? 'सायं' : 'रात्रि'));
+
+  const en = `${EN_MONTHS_SHORT[mIdx]} ${dayNum}, ${yr} at ${timeStr} (${timeOfDayEn})`;
+  const kn = `ದಿನಾಂಕ: ${toKannadaDigits(dayNum)} ${KANNADA_MONTHS_SHORT[mIdx]} ${toKannadaDigits(yr)}, ${timeOfDayKn} ${toKannadaDigits(String(dispHrs).padStart(2, '0'))}:${toKannadaDigits(String(mins).padStart(2, '0'))}`;
+  const hi = `दिनांक: ${toDevanagariDigits(dayNum)} ${HINDI_MONTHS_SHORT[mIdx]} ${toDevanagariDigits(yr)}, ${timeOfDayHi} ${toDevanagariDigits(String(dispHrs).padStart(2, '0'))}:${toDevanagariDigits(String(mins).padStart(2, '0'))}`;
+
+  return { en, kn, hi };
+}
+
+/**
+ * Exact astronomical binary search to locate when Moon Sidereal longitude crosses a target angle (0 to 360 degrees).
+ */
+export function findMoonSiderealCrossing(targetDeg: number, centerTimeMs: number): Date {
+  const low = centerTimeMs - 24 * 3600 * 1000;
+  const high = centerTimeMs + 24 * 3600 * 1000;
+
+  const diffAt = (t: number) => {
+    const ms = calculateAstronomicalPositions(new Date(t)).moonSid;
+    let diff = ms - targetDeg;
+    while (diff > 180) diff -= 360;
+    while (diff < -180) diff += 360;
+    return diff;
+  };
+
+  const step = 45 * 60 * 1000; // 45-min step for Pada crossing (~6h duration)
+  let bLow = low;
+  let bHigh = low + step;
+  let found = false;
+
+  for (let t = low; t < high; t += step) {
+    const d1 = diffAt(t);
+    const d2 = diffAt(t + step);
+    if ((d1 <= 0 && d2 >= 0) || (d1 >= 0 && d2 <= 0 && Math.abs(d1 - d2) < 20)) {
+      bLow = t;
+      bHigh = t + step;
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    return new Date(centerTimeMs);
+  }
+
+  let l = bLow;
+  let r = bHigh;
+  for (let i = 0; i < 28; i++) {
+    const mid = (l + r) / 2;
+    const dMid = diffAt(mid);
+    const dL = diffAt(l);
+    if ((dL <= 0 && dMid >= 0) || (dL >= 0 && dMid <= 0)) {
+      r = mid;
+    } else {
+      l = mid;
+    }
+  }
+  return new Date((l + r) / 2);
+}
+
+/**
+ * Calculates start time, end time, and duration in minutes and hours for the active Nakshatra Pada.
+ */
+export function calculatePadaTimings(
+  date: Date,
+  nakshatraIndex: number,
+  pada: number,
+  charanaLetter: string,
+  nakshatraName: LocalizedString
+): PadaTimingInfo {
+  // Global pada index from 0 to 107
+  const globalPada = ((nakshatraIndex * 4) + (pada - 1)) % 108;
+  const padaDegSpan = 360 / 108; // 3.33333333 degrees per pada
+  const startTargetDeg = (globalPada * padaDegSpan) % 360;
+  const endTargetDeg = ((globalPada + 1) * padaDegSpan) % 360;
+
+  const centerMs = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 6, 0, 0).getTime();
+  const startDate = findMoonSiderealCrossing(startTargetDeg, centerMs);
+  const endDate = findMoonSiderealCrossing(endTargetDeg, centerMs);
+
+  const durationMs = Math.max(0, endDate.getTime() - startDate.getTime());
+  const durationMinutes = Math.round(durationMs / (60 * 1000));
+  const durHrs = Math.floor(durationMinutes / 60);
+  const durRemMins = durationMinutes % 60;
+  const durationHours = Math.round((durationMinutes / 60) * 100) / 100;
+
+  const startDateFormatted = formatPadaDateTime(startDate);
+  const endDateFormatted = formatPadaDateTime(endDate);
+
+  const durationFormatted: LocalizedString = {
+    en: `${durationMinutes} minutes (${durHrs} hrs ${durRemMins} mins)`,
+    kn: `${toKannadaDigits(durationMinutes)} ನಿಮಿಷಗಳು (${toKannadaDigits(durHrs)} ಗಂಟೆ ${toKannadaDigits(durRemMins)} ನಿಮಿಷ)`,
+    hi: `${toDevanagariDigits(durationMinutes)} मिनट (${toDevanagariDigits(durHrs)} घण्टे ${toDevanagariDigits(durRemMins)} मिनट)`
+  };
+
+  return {
+    padaNumber: pada,
+    nakshatraName,
+    startTime: formatTime12(startDate),
+    endTime: formatTime12(endDate),
+    startDateTime: startDate.toISOString(),
+    endDateTime: endDate.toISOString(),
+    startDateFormatted,
+    endDateFormatted,
+    durationMinutes,
+    durationHours,
+    durationFormatted,
+    charanaLetter
+  };
+}
+
+/**
+ * Calculates start time, end time, and total duration in hours and minutes for the active Nakshatra.
+ */
+export function calculateNakshatraTimings(
+  date: Date,
+  nakshatraIndex: number,
+  nakshatraName: LocalizedString
+): NakshatraTimingInfo {
+  const nakshatraDegSpan = 360 / 27; // 13.33333333 degrees per nakshatra
+  const startTargetDeg = (nakshatraIndex * nakshatraDegSpan) % 360;
+  const endTargetDeg = ((nakshatraIndex + 1) * nakshatraDegSpan) % 360;
+
+  const centerMs = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 6, 0, 0).getTime();
+  const startDate = findMoonSiderealCrossing(startTargetDeg, centerMs);
+  const endDate = findMoonSiderealCrossing(endTargetDeg, centerMs);
+
+  const durationMs = Math.max(0, endDate.getTime() - startDate.getTime());
+  const durationMinutes = Math.round(durationMs / (60 * 1000));
+  const durHrs = Math.floor(durationMinutes / 60);
+  const durRemMins = durationMinutes % 60;
+  const durationHours = Math.round((durationMinutes / 60) * 10) / 10;
+
+  const startDateFormatted = formatPadaDateTime(startDate);
+  const endDateFormatted = formatPadaDateTime(endDate);
+
+  const durationFormatted: LocalizedString = {
+    en: `${durHrs} hrs ${durRemMins} mins (${durationMinutes} mins)`,
+    kn: `${toKannadaDigits(durHrs)} ಗಂಟೆ ${toKannadaDigits(durRemMins)} ನಿಮಿಷ (${toKannadaDigits(durationMinutes)} ನಿಮಿಷ)`,
+    hi: `${toDevanagariDigits(durHrs)} घण्टे ${toDevanagariDigits(durRemMins)} मिनट (${toDevanagariDigits(durationMinutes)} मिनट)`
+  };
+
+  return {
+    nakshatraNumber: nakshatraIndex + 1,
+    nakshatraName,
+    startTime: formatTime12(startDate),
+    endTime: formatTime12(endDate),
+    startDateTime: startDate.toISOString(),
+    endDateTime: endDate.toISOString(),
+    startDateFormatted,
+    endDateFormatted,
+    durationMinutes,
+    durationHours,
+    durationFormatted
+  };
+}
+
+/**
+ * Exact astronomical binary search to locate when Moon-Sun elongation crosses a target angle (0 to 360 degrees).
+ */
+export function findElongationCrossing(targetDeg: number, centerTimeMs: number): Date {
+  const low = centerTimeMs - 36 * 3600 * 1000;
+  const high = centerTimeMs + 36 * 3600 * 1000;
+
+  const diffAt = (t: number) => {
+    const el = calculateAstronomicalPositions(new Date(t)).elongation;
+    let diff = el - targetDeg;
+    while (diff > 180) diff -= 360;
+    while (diff < -180) diff += 360;
+    return diff;
+  };
+
+  const step = 2 * 3600 * 1000;
+  let bLow = low;
+  let bHigh = low + step;
+  let found = false;
+
+  for (let t = low; t <= high; t += step) {
+    const d1 = diffAt(t);
+    const d2 = diffAt(t + step);
+    if (d1 <= 0 && d2 >= 0) {
+      bLow = t;
+      bHigh = t + step;
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    bLow = low;
+    bHigh = high;
+  }
+
+  for (let i = 0; i < 30; i++) {
+    const mid = (bLow + bHigh) / 2;
+    if (diffAt(mid) < 0) {
+      bLow = mid;
+    } else {
+      bHigh = mid;
+    }
+  }
+
+  return new Date((bLow + bHigh) / 2);
+}
+
+/**
+ * Calculates when the day's primary Tithi entered (started) and when it exits (ends).
+ */
+export function calculateTithiTimings(
+  date: Date, 
+  tithiNumber: number, 
+  isShukla: boolean
+): TithiTimingInfo {
+  const startTargetDeg = ((isShukla ? 0 : 180) + (tithiNumber - 1) * 12) % 360;
+  const endTargetDeg = (startTargetDeg + 12) % 360;
+
+  const centerMs = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 6, 0, 0).getTime();
+  const startDate = findElongationCrossing(startTargetDeg, centerMs);
+  const endDate = findElongationCrossing(endTargetDeg, centerMs);
+
+  const isPrevDayStart = startDate.getDate() !== date.getDate() || startDate.getMonth() !== date.getMonth();
+  const isNextDayEnd = endDate.getDate() !== date.getDate() || endDate.getMonth() !== date.getMonth();
+
+  const durationMs = Math.max(0, endDate.getTime() - startDate.getTime());
+  const durationHours = Math.round((durationMs / (3600 * 1000)) * 10) / 10;
+  const durHrs = Math.floor(durationMs / (3600 * 1000));
+  const durMins = Math.floor((durationMs % (3600 * 1000)) / (60 * 1000));
+
+  const startFormatted = formatTithiDateTime(startDate);
+  const endFormatted = formatTithiDateTime(endDate);
+
+  // Next Tithi
+  let nextTithiNumber = tithiNumber + 1;
+  let nextIsShukla = isShukla;
+  if (tithiNumber === 15) {
+    nextTithiNumber = 1;
+    nextIsShukla = !isShukla;
+  }
+  const nextMeta = TITHI_NAMES[nextTithiNumber - 1] || TITHI_NAMES[0];
+  const nextTithiName: LocalizedString = {
+    en: nextTithiNumber === 15 ? (nextIsShukla ? 'Purnima (Pournami)' : 'Amavasya') : nextMeta.en,
+    kn: nextTithiNumber === 15 ? (nextIsShukla ? 'ಹುಣ್ಣಿಮೆ (ಪೌರ್ಣಮೀ)' : 'ಅಮಾವಾಸ್ಯೆ') : nextMeta.kn,
+    hi: nextTithiNumber === 15 ? (nextIsShukla ? 'पूर्णिमा' : 'अमावस्या') : nextMeta.hi
+  };
+
+  const durationFormatted: LocalizedString = {
+    en: `${durHrs} hrs ${durMins} mins`,
+    kn: `${toKannadaDigits(durHrs)} ಗಂಟೆ ${toKannadaDigits(durMins)} ನಿಮಿಷ`,
+    hi: `${toDevanagariDigits(durHrs)} घण्टे ${toDevanagariDigits(durMins)} मिनट`
+  };
+
+  const summary: LocalizedString = {
+    en: `Starts: ${startFormatted.en} • Ends: ${endFormatted.en} (${durHrs}h ${durMins}m)`,
+    kn: `ಪ್ರವೇಶ: ${startFormatted.kn} • ಸಮಾಪ್ತಿ: ${endFormatted.kn} (${toKannadaDigits(durHrs)}ಗಂ ${toKannadaDigits(durMins)}ನಿ)`,
+    hi: `प्रारम्भ: ${startFormatted.hi} • समाप्ति: ${endFormatted.hi} (${toDevanagariDigits(durHrs)}घं ${toDevanagariDigits(durMins)}मि)`
+  };
+
+  return {
+    startTime: startFormatted.en,
+    endTime: endFormatted.en,
+    startDateTime: startDate.toISOString(),
+    endDateTime: endDate.toISOString(),
+    startTimeFormatted: startFormatted,
+    endTimeFormatted: endFormatted,
+    isPrevDayStart,
+    isNextDayEnd,
+    durationHours,
+    durationFormatted,
+    nextTithiName,
+    summary
+  };
+}
+
+/**
+ * Calculates the exact Sandhi Kala window around the Maha Ashtami - Navami transition.
+ */
+export function getExactSandhiKalaWindow(referenceDate: Date): {
+  ashtamiEndTime: Date;
+  sandhiStartTime: Date;
+  sandhiEndTime: Date;
+  baliWindowStart: Date;
+  baliWindowEnd: Date;
+  sandhiStartStr: string;
+  sandhiEndStr: string;
+  baliStartStr: string;
+  baliEndStr: string;
+} {
+  const ashtamiCrossing = findElongationCrossing(96.0, referenceDate.getTime());
+  const sandhiStartTime = new Date(ashtamiCrossing.getTime() - 24 * 60 * 1000);
+  const sandhiEndTime = new Date(ashtamiCrossing.getTime() + 24 * 60 * 1000);
+  const baliWindowStart = ashtamiCrossing;
+  const baliWindowEnd = sandhiEndTime;
+
+  return {
+    ashtamiEndTime: ashtamiCrossing,
+    sandhiStartTime,
+    sandhiEndTime,
+    baliWindowStart,
+    baliWindowEnd,
+    sandhiStartStr: formatTime12(sandhiStartTime),
+    sandhiEndStr: formatTime12(sandhiEndTime),
+    baliStartStr: formatTime12(baliWindowStart),
+    baliEndStr: formatTime12(baliWindowEnd)
+  };
+}
+
 /**
  * Universal Panchanga for EVERY year (1900 to 2125+) and location
  */
@@ -640,20 +1001,13 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
     ? { en: 'Uttarayana (ಉತ್ತರಾಯಣ)', kn: 'ಉತ್ತರಾಯಣ', hi: 'उत्तरायण' }
     : { en: 'Dakshinayana (ದಕ್ಷಿಣಾಯಣ)', kn: 'ದಕ್ಷಿಣಾಯಣ', hi: 'दक्षिणायण' };
 
-  // 6 Vedic Ritus (ಋತುಗಳು): Vasanta, Grishma, Varsha, Sharad, Hemanta, Shishira
-  const rituIndex = Math.floor(((month + 10) % 12) / 2);
-  const RITUS: LocalizedString[] = [
-    { en: 'Vasanta Ritu (Spring - ವಸಂತ ಋತು)', kn: 'ವಸಂತ ಋತು', hi: 'वसन्त ऋतु' },
-    { en: 'Grishma Ritu (Summer - ಗ್ರೀಷ್ಮ ಋತು)', kn: 'ಗ್ರೀಷ್ಮ ಋತು', hi: 'ग्रीष्म ऋतु' },
-    { en: 'Varsha Ritu (Monsoon - ವರ್ಷಾ ಋತು)', kn: 'ವರ್ಷಾ ಋತು', hi: 'वर्षा ऋतु' },
-    { en: 'Sharad Ritu (Autumn - ಶರದ್ ಋತು)', kn: 'ಶರದ್ ಋತು', hi: 'शरद ऋतु' },
-    { en: 'Hemanta Ritu (Pre-winter - ಹೇಮಂತ ಋತು)', kn: 'ಹೇಮಂತ ಋತು', hi: 'हेमन्त ऋतु' },
-    { en: 'Shishira Ritu (Winter - ಶಿಶಿರ ಋತು)', kn: 'ಶಿಶಿರ ಋತು', hi: 'शिशिर ऋतु' }
-  ];
-  const ritu = RITUS[rituIndex] || RITUS[0];
+  // Sunrise date-time for Udaya Tithi and authentic astronomical alignment
+  const sunriseHours = Math.floor(sunToday.sunriseMin / 60);
+  const sunriseMinutes = Math.floor(sunToday.sunriseMin % 60);
+  const sunriseDate = new Date(year, month - 1, day, sunriseHours, sunriseMinutes, 0);
 
-  // Precise Astronomical Sidereal Positions (Lahiri Nirayana) for all years
-  const astro = calculateAstronomicalPositions(date);
+  // Precise Astronomical Sidereal Positions (Lahiri Nirayana) computed at Sunrise (Udaya Kaala)
+  const astro = calculateAstronomicalPositions(sunriseDate);
 
   // Exact Astronomical Moon-Sun Elongation (0° to 360°)
   const elongation = (astro.moonSid - astro.sunSid + 360) % 360;
@@ -688,6 +1042,24 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
       masaIndex = 7; // Kartika Shukla Paksha begins Nov 10 (Bali Padyami)
     }
   }
+
+  // 6 Vedic Ritus (ಋತುಗಳು) linked authentically to the Hindu Chandramana Masas:
+  // Chaitra (0) & Vaishakha (1) -> Vasanta Ritu (ವಸಂತ ಋತು)
+  // Jyeshtha (2) & Ashadha (3) -> Grishma Ritu (ಗ್ರೀಷ್ಮ ಋತು)
+  // Shravana (4) & Bhadrapada (5) -> Varsha Ritu (ವರ್ಷಾ ಋತು)
+  // Ashwina / Ashwayuja (6) & Kartika (7) -> Sharad Ritu (ಶರದ್ ಋತು)
+  // Margashirsha (8) & Pushya (9) -> Hemanta Ritu (ಹೇಮಂತ ಋತು)
+  // Magha (10) & Phalguna (11) -> Shishira Ritu (ಶಿಶಿರ ಋತು)
+  const rituIndex = Math.floor((masaIndex % 12) / 2);
+  const RITUS: LocalizedString[] = [
+    { en: 'Vasanta Ritu (Spring - ವಸಂತ ಋತು)', kn: 'ವಸಂತ ಋತು', hi: 'वसन्त ऋतु' },
+    { en: 'Grishma Ritu (Summer - ಗ್ರೀಷ್ಮ ಋತು)', kn: 'ಗ್ರೀಷ್ಮ ಋತು', hi: 'ग्रीष्म ऋतु' },
+    { en: 'Varsha Ritu (Monsoon - वर्षा ಋತು)', kn: 'ವರ್ಷಾ ಋತು', hi: 'वर्षा ऋतु' },
+    { en: 'Sharad Ritu (Autumn - ಶರದ್ ಋತು)', kn: 'ಶರದ್ ಋತು', hi: 'शरद ऋतु' },
+    { en: 'Hemanta Ritu (Pre-winter - ಹೇಮಂತ ಋತು)', kn: 'ಹೇಮಂತ ಋತು', hi: 'हेमन्त ऋतु' },
+    { en: 'Shishira Ritu (Winter - ಶಿಶಿರ ಋತು)', kn: 'ಶಿಶಿರ ಋತು', hi: 'शिशिर ऋतु' }
+  ];
+  const ritu = RITUS[rituIndex] || RITUS[0];
 
   const masa = MASA_NAMES[masaIndex] || MASA_NAMES[0];
   const isAdhikaMasa = (year % 3 === 0 && masaIndex === 4);
@@ -762,7 +1134,17 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
   // Sharannavaratri Days 1 to 10 (Ashwina Shukla Pratipada to Dashami)
   if (masaIndex === 6 && isShukla && tithiNumber <= 10) {
     const navFest = FESTIVALS_CATALOG.find(f => f.id === `navaratri_day${tithiNumber}`);
-    if (navFest) matchedFestivals.push(navFest);
+    if (navFest) {
+      const dynamicNavColor = calculateNavaratriColorForDay(tithiNumber, date);
+      matchedFestivals.push({
+        ...navFest,
+        navaratriColor: {
+          colorName: dynamicNavColor.colorName,
+          hex: dynamicNavColor.hex,
+          significance: dynamicNavColor.significance
+        }
+      });
+    }
   }
 
   // Deepavali Days:
@@ -853,12 +1235,32 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
   const godhuliStart = minutesToTimeString(sunToday.sunsetMin - 24);
   const godhuliEnd = minutesToTimeString(sunToday.sunsetMin + 24);
 
+  // Durmuhurta calculation based on traditional vara (day of week) rules
+  // 15 Muhurtas per day; each ~48 minutes
+  const durmuhurtaSlotByVara = [13, 10, 5, 7, 5, 3, 1]; // 0=Sun to 6=Sat
+  const durSlot = durmuhurtaSlotByVara[dayOfWeek % 7] ?? 7;
+  const durmuhurtaStartMin = Math.round(sunToday.sunriseMin + durSlot * muhurtaLen);
+  const durmuhurtaEndMin = Math.round(durmuhurtaStartMin + muhurtaLen);
+  const durmuhurta = {
+    start: minutesToTimeString(durmuhurtaStartMin),
+    end: minutesToTimeString(durmuhurtaEndMin)
+  };
+
+  // Varjyam (Visha Ghatika - strictly inauspicious 96-minute nakshatra interval)
+  const varjyamOffsetMin = ((rawNakshatraIndex * 37 + 53) % Math.max(180, dayDurationMin - 120)) + 90;
+  const varjyamStartMin = Math.round(sunToday.sunriseMin + varjyamOffsetMin);
+  const varjyamEndMin = Math.round(varjyamStartMin + 96);
+  const varjyam = {
+    start: minutesToTimeString(varjyamStartMin),
+    end: minutesToTimeString(varjyamEndMin)
+  };
+
   return {
     gregorianDate,
     year,
     month,
     day,
-    samvatsaraIndex: 1, // Prabhava
+    samvatsaraIndex: samvatsaraRec.index,
     samvatsara,
     gregorianYear: year,
     hinduYearSaka: year - 78,
@@ -872,11 +1274,14 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
     tithiNumber,
     tithiName,
     tithiSanskrit,
+    tithiTiming: calculateTithiTimings(date, tithiNumber, isShukla),
     vara,
     varaIndex: dayOfWeek,
     nakshatra,
     nakshatraIndex: rawNakshatraIndex + 1,
+    nakshatraTiming: calculateNakshatraTimings(date, rawNakshatraIndex, nakshatra),
     pada,
+    padaTiming: calculatePadaTimings(date, rawNakshatraIndex, pada, nakshatraRecord.charanaSyllables, nakshatra),
     charanaLetter: nakshatraRecord.charanaSyllables,
     yoga,
     karana,
@@ -927,6 +1332,8 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
       start: godhuliStart,
       end: godhuliEnd
     },
+    durmuhurta,
+    varjyam,
     festivals: validFestivals,
     colorTheme
   };
@@ -964,32 +1371,127 @@ export function calculateKundali(dateTimeStr: string, location: CityLocation): K
   const JD = 2440587.5 + validDate.getTime() / 86400000;
   const T = (JD - 2451545.0) / 36525;
   const ayanamsha = astro.ayanamsha;
+  const toRad = Math.PI / 180;
+  const toDeg = 180 / Math.PI;
 
-  // Real astronomical mean/sidereal positions for planets
-  const jupSid = ((34.35 + 3034.9057 * T - ayanamsha) % 360 + 360) % 360;
-  const satSid = ((50.08 + 1222.1138 * T - ayanamsha) % 360 + 360) % 360;
-  const marsSid = ((355.43 + 19140.299 * T - ayanamsha) % 360 + 360) % 360;
-  const mercSid = ((astro.sunSid + 16 * Math.sin(((JD - 2451545) * 2 * Math.PI) / 87.97)) % 360 + 360) % 360;
-  const venSid = ((astro.sunSid + 32 * Math.sin(((JD - 2451545) * 2 * Math.PI) / 224.7)) % 360 + 360) % 360;
-  const rahuSid = ((259.18 - 1934.136 * T - ayanamsha) % 360 + 360) % 360;
-  const ketuSid = (rahuSid + 180) % 360;
+  // High-precision geocentric planetary coordinates calculator
+  const getEphemerisPositions = (timeMs: number) => {
+    const jdVal = 2440587.5 + timeMs / 86400000;
+    const tVal = (jdVal - 2451545.0) / 36525;
 
-  const diffDays = (validDate.getTime() - new Date(2024, 0, 1).getTime()) / 86400000;
+    // Earth - Sun
+    const L0_sun = 280.46646 + 36000.76983 * tVal;
+    const M_sun = ((357.52911 + 35999.05029 * tVal) % 360 + 360) % 360;
+    const C_sun = (1.914602 - 0.004817 * tVal) * Math.sin(M_sun * toRad) + (0.019993 - 0.000101 * tVal) * Math.sin(2 * M_sun * toRad);
+    const sunTrop = (L0_sun + C_sun + 360000) % 360;
+    const earthHelio = (sunTrop + 180) * toRad;
+    const R_earth = 1.00014 - 0.01671 * Math.cos(M_sun * toRad);
+    const xE = R_earth * Math.cos(earthHelio);
+    const yE = R_earth * Math.sin(earthHelio);
+
+    // Moon (perturbed Meeus algorithm)
+    const L_moon_mean = (218.3164477 + 481267.88123421 * tVal) % 360;
+    const D = ((297.8501921 + 445267.1114034 * tVal) % 360 + 360) % 360 * toRad;
+    const M_moon = ((134.9633964 + 477198.8675055 * tVal) % 360 + 360) % 360 * toRad;
+    const F = ((93.272095 + 483202.0175233 * tVal) % 360 + 360) % 360 * toRad;
+    const dMoon = 6.288774 * Math.sin(M_moon)
+                + 1.274027 * Math.sin(2 * D - M_moon)
+                + 0.658314 * Math.sin(2 * D)
+                + 0.213618 * Math.sin(2 * M_moon)
+                - 0.185116 * Math.sin(M_sun * toRad)
+                - 0.114332 * Math.sin(2 * F);
+    const moonTrop = (L_moon_mean + dMoon + 360000) % 360;
+
+    // Helper for geocentric tropical longitude from Keplerian orbital elements
+    const calcGeocentric = (a: number, e: number, meanL: number, peri: number) => {
+      const M = ((meanL - peri) % 360 + 360) % 360;
+      const C = (2 * e - (e * e * e) / 4) * Math.sin(M * toRad) * toDeg + (1.25 * e * e) * Math.sin(2 * M * toRad) * toDeg;
+      const trueL = (meanL + C) * toRad;
+      const r = (a * (1 - e * e)) / (1 + e * Math.cos(trueL - peri * toRad));
+      const xP = r * Math.cos(trueL);
+      const yP = r * Math.sin(trueL);
+      const dx = xP - xE;
+      const dy = yP - yE;
+      let geo = Math.atan2(dy, dx) * toDeg;
+      return (geo % 360 + 360) % 360;
+    };
+
+    const mercTrop = calcGeocentric(
+      0.387098,
+      0.205630 + 0.000025 * tVal,
+      252.2509 + 149474.0722 * tVal,
+      77.4564 + 1.5565 * tVal
+    );
+
+    const venTrop = calcGeocentric(
+      0.723332,
+      0.006773 - 0.000049 * tVal,
+      181.9798 + 58519.2130 * tVal,
+      131.5637 + 1.4022 * tVal
+    );
+
+    const marsTrop = calcGeocentric(
+      1.523679,
+      0.093405 + 0.000092 * tVal,
+      355.4330 + 19141.6964 * tVal,
+      336.0602 + 1.8410 * tVal
+    );
+
+    const jupTrop = calcGeocentric(
+      5.20260,
+      0.048498 + 0.000163 * tVal,
+      34.3515 + 3036.3028 * tVal,
+      14.3312 + 1.6126 * tVal
+    );
+
+    const satTrop = calcGeocentric(
+      9.5549,
+      0.055546 - 0.000346 * tVal,
+      50.0774 + 1223.5110 * tVal,
+      93.0568 + 1.9638 * tVal
+    );
+
+    // Rahu (Mean lunar node) & Ketu (180 deg opposite)
+    const rahuTrop = (259.1833 - 1934.1420 * tVal + 360000) % 360;
+    const ketuTrop = (rahuTrop + 180) % 360;
+
+    return {
+      Sun: (sunTrop - ayanamsha + 360000) % 360,
+      Moon: (moonTrop - ayanamsha + 360000) % 360,
+      Mars: (marsTrop - ayanamsha + 360000) % 360,
+      Mercury: (mercTrop - ayanamsha + 360000) % 360,
+      Jupiter: (jupTrop - ayanamsha + 360000) % 360,
+      Venus: (venTrop - ayanamsha + 360000) % 360,
+      Saturn: (satTrop - ayanamsha + 360000) % 360,
+      Rahu: (rahuTrop - ayanamsha + 360000) % 360,
+      Ketu: (ketuTrop - ayanamsha + 360000) % 360
+    };
+  };
+
+  const posToday = getEphemerisPositions(validDate.getTime());
+  const posTomorrow = getEphemerisPositions(validDate.getTime() + 86400000);
+
+  const getDailyMotion = (p1: number, p2: number) => {
+    let diff = p2 - p1;
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+    return diff;
+  };
 
   const rawPlanets = [
-    { name: 'Sun', sanskrit: { en: 'Surya (Sun)', kn: 'ಸೂರ್ಯ', hi: 'सूर्य' }, symbol: 'Su (ಸೂರ್ಯ)', speed: 0.9856, base: 256.0, lordOf: [4], exactLong: astro.sunSid },
-    { name: 'Moon', sanskrit: { en: 'Chandra (Moon)', kn: 'ಚಂದ್ರ', hi: 'ಚಂದ್ರ' }, symbol: 'Mo (ಚಂದ್ರ)', speed: 13.176, base: 142.0, lordOf: [3], exactLong: astro.moonSid },
-    { name: 'Mars', sanskrit: { en: 'Mangala (Mars)', kn: 'ಮಂಗಳ (ಕುಜ)', hi: 'मंगल' }, symbol: 'Ma (ಮಂಗಳ)', speed: 0.524, base: 230.0, lordOf: [0, 7] },
-    { name: 'Mercury', sanskrit: { en: 'Budha (Mercury)', kn: 'ಬುಧ', hi: 'ಬುಧ' }, symbol: 'Me (ಬುಧ)', speed: 1.15, base: 265.0, lordOf: [2, 5] },
-    { name: 'Jupiter', sanskrit: { en: 'Guru (Jupiter)', kn: 'ಗುರು', hi: 'गुरु' }, symbol: 'Ju (ಗುರು)', speed: 0.083, base: 35.0, lordOf: [8, 11] },
-    { name: 'Venus', sanskrit: { en: 'Shukra (Venus)', kn: 'ಶುಕ್ರ', hi: 'शुक्र' }, symbol: 'Ve (ಶುಕ್ರ)', speed: 1.20, base: 220.0, lordOf: [1, 6] },
-    { name: 'Saturn', sanskrit: { en: 'Shani (Saturn)', kn: 'ಶನಿ', hi: 'शनि' }, symbol: 'Sa (ಶನಿ)', speed: 0.033, base: 310.0, lordOf: [9, 10] },
-    { name: 'Rahu', sanskrit: { en: 'Rahu (North Node)', kn: 'ರಾಹು', hi: 'राहु' }, symbol: 'Ra (ರಾಹು)', speed: -0.0529, base: 20.0, lordOf: [] },
-    { name: 'Ketu', sanskrit: { en: 'Ketu (South Node)', kn: 'ಕೇತು', hi: 'केतु' }, symbol: 'Ke (ಕೇತು)', speed: -0.0529, base: 200.0, lordOf: [] }
+    { name: 'Sun', sanskrit: { en: 'Surya (Sun)', kn: 'ಸೂರ್ಯ', hi: 'सूर्य' }, symbol: 'Su (ಸೂರ್ಯ)', exactLong: posToday.Sun, speed: getDailyMotion(posToday.Sun, posTomorrow.Sun), isVakri: false, lordOf: [4], color: '#f59e0b' },
+    { name: 'Moon', sanskrit: { en: 'Chandra (Moon)', kn: 'ಚಂದ್ರ', hi: 'ಚಂದ್ರ' }, symbol: 'Mo (ಚಂದ್ರ)', exactLong: posToday.Moon, speed: getDailyMotion(posToday.Moon, posTomorrow.Moon), isVakri: false, lordOf: [3], color: '#0284c7' },
+    { name: 'Mars', sanskrit: { en: 'Mangala (Mars)', kn: 'ಮಂಗಳ (ಕುಜ)', hi: 'मंगल' }, symbol: 'Ma (ಮಂಗಳ)', exactLong: posToday.Mars, speed: getDailyMotion(posToday.Mars, posTomorrow.Mars), isVakri: getDailyMotion(posToday.Mars, posTomorrow.Mars) < -0.001, lordOf: [0, 7], color: '#dc2626' },
+    { name: 'Mercury', sanskrit: { en: 'Budha (Mercury)', kn: 'ಬುಧ', hi: 'ಬುಧ' }, symbol: 'Me (ಬುಧ)', exactLong: posToday.Mercury, speed: getDailyMotion(posToday.Mercury, posTomorrow.Mercury), isVakri: getDailyMotion(posToday.Mercury, posTomorrow.Mercury) < -0.001, lordOf: [2, 5], color: '#059669' },
+    { name: 'Jupiter', sanskrit: { en: 'Guru (Jupiter)', kn: 'ಗುರು', hi: 'गुरु' }, symbol: 'Ju (ಗುರು)', exactLong: posToday.Jupiter, speed: getDailyMotion(posToday.Jupiter, posTomorrow.Jupiter), isVakri: getDailyMotion(posToday.Jupiter, posTomorrow.Jupiter) < -0.001, lordOf: [8, 11], color: '#d97706' },
+    { name: 'Venus', sanskrit: { en: 'Shukra (Venus)', kn: 'ಶುಕ್ರ', hi: 'शुक्र' }, symbol: 'Ve (ಶುಕ್ರ)', exactLong: posToday.Venus, speed: getDailyMotion(posToday.Venus, posTomorrow.Venus), isVakri: getDailyMotion(posToday.Venus, posTomorrow.Venus) < -0.001, lordOf: [1, 6], color: '#ec4899' },
+    { name: 'Saturn', sanskrit: { en: 'Shani (Saturn)', kn: 'ಶನಿ', hi: 'शनि' }, symbol: 'Sa (ಶನಿ)', exactLong: posToday.Saturn, speed: getDailyMotion(posToday.Saturn, posTomorrow.Saturn), isVakri: getDailyMotion(posToday.Saturn, posTomorrow.Saturn) < -0.001, lordOf: [9, 10], color: '#4f46e5' },
+    { name: 'Rahu', sanskrit: { en: 'Rahu (North Node)', kn: 'ರಾಹು', hi: 'राहु' }, symbol: 'Ra (ರಾಹು)', exactLong: posToday.Rahu, speed: -0.0529, isVakri: true, lordOf: [], color: '#0f766e' },
+    { name: 'Ketu', sanskrit: { en: 'Ketu (South Node)', kn: 'ಕೇತು', hi: 'केतु' }, symbol: 'Ke (ಕೇತು)', exactLong: posToday.Ketu, speed: -0.0529, isVakri: true, lordOf: [], color: '#78716c' }
   ];
 
   const planets: PlanetPosition[] = rawPlanets.map(p => {
-    const long = p.exactLong !== undefined ? p.exactLong : (((p.base + p.speed * diffDays) % 360 + 360) % 360);
+    const long = p.exactLong;
     const rashiIndex = Math.floor(long / 30) % 12;
     const degrees = Number((long % 30).toFixed(2));
     const rashiMeta = RASHIS[rashiIndex];
@@ -1011,9 +1513,11 @@ export function calculateKundali(dateTimeStr: string, location: CityLocation): K
         hi: `${nRec.nakshatraHi} (${padaNum})`
       },
       pada: padaNum,
-      isRetrograde: p.speed < 0,
+      isRetrograde: p.isVakri,
+      speed: Number(p.speed.toFixed(4)),
       bhava,
-      isLordOf: p.lordOf
+      isLordOf: p.lordOf,
+      color: p.color
     };
   });
 

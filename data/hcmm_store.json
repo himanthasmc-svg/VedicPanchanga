@@ -1,0 +1,10 @@
+{
+  "logoUrl": "",
+  "mantrasList": [],
+  "booksList": [],
+  "customEvents": [],
+  "smsConfig": {
+    "twilioFrom": "AstroHimanth"
+  },
+  "emailConfig": {}
+}

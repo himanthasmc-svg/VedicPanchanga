@@ -27,19 +27,37 @@ import {
   SANKALPA_MANTRA_PARTS 
 } from '../utils/pdfData';
 import { getPanchangaForDate, getLocalizedPlaceName, lookupLocalizedPlaceName, CITIES } from '../utils/panchanga';
+import { 
+  KALASHA_SAMAGRI_LIST, 
+  KALASHA_STHAPANA_STEPS, 
+  AKHANDA_DEEPA_STHAPANA_DETAILS, 
+  VIJAYADASHAMI_VISARJANA_DETAILS 
+} from '../utils/navaratriRitualsData';
+import { VisarjanaMuhurtaCalculator } from './VisarjanaMuhurtaCalculator';
+import { RitualVisuals } from './RitualVisuals';
+import { PoojaDeepaGuidelinesSection } from './PoojaDeepaGuidelinesSection';
+import { PoojaAudioGuide } from './PoojaAudioGuide';
+import { DigitalOfferingLog } from './DigitalOfferingLog';
+import { Lock, Volume2, BookMarked, Sun, Moon, Compass } from 'lucide-react';
 
 interface SankalpaVidhiPageProps {
   currentLang: Language;
   selectedCity: CityLocation;
   onBackToCalendar: () => void;
   onSelectCity?: (city: CityLocation) => void;
+  onOpenGoogleMap?: () => void;
+  isGlobalLocked?: boolean;
+  onRequestUnlock?: (moduleName?: string) => void;
 }
 
 export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
   currentLang,
   selectedCity,
   onBackToCalendar,
-  onSelectCity
+  onSelectCity,
+  onOpenGoogleMap,
+  isGlobalLocked = false,
+  onRequestUnlock
 }) => {
   const todayStr = useMemo(() => {
     const d = new Date();
@@ -66,10 +84,11 @@ export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
   const [deityName, setDeityName] = useState<string>(() => DEFAULT_DEITY[currentLang] || DEFAULT_DEITY.kn);
   const [granthaName, setGranthaName] = useState<string>(() => DEFAULT_GRANTHA[currentLang] || DEFAULT_GRANTHA.kn);
 
-  // Active view tab for the PDF reference sections
-  const [activeTab, setActiveTab] = useState<'stotra' | 'vidhana' | 'samvatsara' | 'nakshatra' | 'sankhya' | 'peetha'>('stotra');
+  // Active view tab for the PDF reference sections & Sthapana rituals
+  const [activeTab, setActiveTab] = useState<'stotra' | 'audioGuide' | 'offeringLog' | 'vidhana' | 'kalasha' | 'akhandaDeepa' | 'deepaGuidelines' | 'visarjana' | 'visuals' | 'samvatsara' | 'nakshatra' | 'sankhya' | 'peetha'>('stotra');
   const [stotraLang, setStotraLang] = useState<Language>(currentLang);
   const [copiedStotra, setCopiedStotra] = useState(false);
+  const [pakshaOverride, setPakshaOverride] = useState<'auto' | 'Shukla' | 'Krishna'>('auto');
 
   const handleSwitchStotraLang = (lang: Language) => {
     setStotraLang(lang);
@@ -90,6 +109,11 @@ export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
     return getPanchangaForDate(d, selectedCity);
   }, [selectedDateStr, selectedCity]);
 
+  // Effective Paksha (either auto-astronomical or devotee manual vow override)
+  const effectivePaksha = useMemo<'Shukla' | 'Krishna'>(() => {
+    return pakshaOverride === 'auto' ? panchangDay.paksha : pakshaOverride;
+  }, [pakshaOverride, panchangDay.paksha]);
+
   // Localized Place Name in the active stotra language using localized dictionary lookup
   const resolvedCityName = useMemo(() => {
     if (customCityName.trim()) {
@@ -106,7 +130,7 @@ export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
         c2: panchangDay.samvatsara.hi,
         c3: panchangDay.ayana.hi,
         c4: `${panchangDay.masa.hi} ${panchangDay.isAdhikaMasa ? '(अधिक)' : ''}`,
-        c5: panchangDay.paksha === 'Shukla' ? 'शुक्ल' : 'कृष्ण',
+        c5: effectivePaksha === 'Shukla' ? 'शुक्ल' : 'कृष्ण',
         c6: panchangDay.tithiSanskrit ? panchangDay.tithiSanskrit.replace('ಂ', 'ं') : panchangDay.tithiName.hi,
         c7: panchangDay.vara.hi.split(' ')[0].replace('वार', ''),
         c8: panchangDay.nakshatra.hi.split('(')[0].trim(),
@@ -119,7 +143,7 @@ export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
         c2: panchangDay.samvatsara.en,
         c3: panchangDay.ayana.en.split(' ')[0],
         c4: `${panchangDay.masa.en} ${panchangDay.isAdhikaMasa ? '(Adhika)' : ''}`,
-        c5: panchangDay.paksha === 'Shukla' ? 'Shukla' : 'Krishna',
+        c5: effectivePaksha === 'Shukla' ? 'Shukla' : 'Krishna',
         c6: panchangDay.tithiName.en.split(' ')[0],
         c7: panchangDay.vara.en.split(' ')[0].replace('vara', ''),
         c8: panchangDay.nakshatra.en.split('(')[0].trim(),
@@ -132,13 +156,13 @@ export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
       c2: panchangDay.samvatsara.kn,
       c3: panchangDay.ayana.kn,
       c4: `${panchangDay.masa.kn} ${panchangDay.isAdhikaMasa ? '(ಅಧಿಕ)' : ''}`,
-      c5: panchangDay.paksha === 'Shukla' ? 'ಶುಕ್ಲ' : 'ಕೃಷ್ಣ',
+      c5: effectivePaksha === 'Shukla' ? 'ಶುಕ್ಲ' : 'ಕೃಷ್ಣ',
       c6: panchangDay.tithiSanskrit || panchangDay.tithiName.kn,
       c7: panchangDay.vara.kn.replace('ವಾರ', ''),
       c8: panchangDay.nakshatra.kn.split('(')[0].trim(),
       c9: panchangDay.suryaRashi.kn
     };
-  }, [stotraLang, resolvedCityName, panchangDay]);
+  }, [stotraLang, resolvedCityName, panchangDay, effectivePaksha]);
 
   const dashed1_City = dashedValues.c1;
   const dashed2_Samvatsara = dashedValues.c2;
@@ -176,17 +200,17 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
           <div>
             <div className="flex items-center gap-2 text-rose-200 text-xs font-mono font-bold uppercase tracking-widest mb-1">
               <BookOpen className="w-4 h-4" />
-              <span>SANKALPA VIDHI • AS PER ATTACHED PDF</span>
+              <span>SANKALPA & STHAPANA VIDHI • ಕಲಶ & ಅಖಂಡ ದೀಪ ಪ್ರತಿಷ್ಠಾಪನೆ</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight">
-              {currentLang === 'kn' ? 'ಸಂಕಲ್ಪ ಮಂತ್ರ ಮತ್ತು ಪೂಜಾ ವಿಧಾನ' : currentLang === 'hi' ? 'संकल्प मन्त्र एवं पूजन विधान' : 'Sankalpa Mantra & Pooja Vidhi'}
+              {currentLang === 'kn' ? 'ಸಂಕಲ್ಪ ಮತ್ತು ಸ್ಥಾಪನೆ (ಕಲಶ & ಅಖಂಡ ದೀಪ)' : currentLang === 'hi' ? 'संकल्प एवं स्थापना (कलश व अखण्ड दीप)' : 'Sankalpa & Sthapana (Kalasha & Akhanda Deepa)'}
             </h1>
             <p className="text-xs sm:text-sm text-rose-100 mt-1 max-w-2xl leading-relaxed">
               {currentLang === 'kn'
-                ? 'ದಿನಾಂಕ ಆಯ್ಕೆ ಮಾಡಿದಾಗ ೨, ೩, ೪, ೫, ೬, ೭, ೮, ೯ ವಿವರಗಳು ಹಿಂದೂ ಪಂಚಾಂಗದಂತೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ನೀಲಿ ಬಣ್ಣದಲ್ಲಿ ನಮೂದಾಗುತ್ತವೆ.'
+                ? 'ವೇದೋಕ್ತ ಸಂಕಲ್ಪ ಮಂತ್ರ, ಕಲಶ ಸ್ಥಾಪನೆ, ಅಖಂಡ ದೀಪ ಪ್ರತಿಷ್ಠಾಪನೆ ಹಾಗೂ ವಿಸರ್ಜನೆಯ ಸಂಪೂರ್ಣ ಶಾಸ್ತ್ರೋಕ್ತ ಮಾರ್ಗದರ್ಶಿ.'
                 : currentLang === 'hi'
-                ? 'दिनांक चुनने पर २, ३, ४, ५, ६, ७, ८, ९ क्रमांक के तिथि-वार-नक्षत्र विवरण स्वतः नीले रंग में प्रविष्ट हो जाते हैं।'
-                : 'Selecting any date automatically populates lines 2-9 in prominent blue color based on authentic astronomical panchang.'}
+                ? 'वेदोक्त संकल्प मन्त्र, कलश स्थापना, अखण्ड दीप प्रतिष्ठा एवं विसर्जन का सम्पूर्ण शास्त्रसम्मत विधान।'
+                : 'Complete Vedic Sankalpa Stotra, Kalasha Sthapana, Akhanda Deepa installation, and Visarjana guides.'}
             </p>
           </div>
 
@@ -295,82 +319,206 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
         </div>
       </div>
 
-      {/* Reference Tabs Navigation (Hidden in Print) */}
-      <div className="no-print flex items-center gap-2 overflow-x-auto pb-2 border-b border-stone-200 dark:border-stone-800 text-xs font-bold">
+      {/* Reference Tabs Navigation (Hidden in Print) - All tabs wrapped and fully visible with NO horizontal scroll */}
+      <div className="no-print flex flex-wrap items-center gap-2 pb-3 border-b border-stone-200 dark:border-stone-800 text-xs font-bold">
+        {/* Tab 1: Sankalpa Stotra */}
         <button
           onClick={() => setActiveTab('stotra')}
-          className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'stotra'
               ? 'bg-red-600 text-white shadow-md'
-              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-stone-200 dark:border-stone-700'
           }`}
         >
-          <Sparkles className="w-4 h-4" />
-          <span>ಸಂಕಲ್ಪ ಮಂತ್ರ (Auto-filled Stotra)</span>
+          <Sparkles className="w-4 h-4 text-amber-300" />
+          <span>
+            {stotraLang === 'kn' ? '೧. ಸಂಕಲ್ಪ ಮಂತ್ರ (Stotra)' : stotraLang === 'hi' ? '१. संकल्प मन्त्र' : '1. Sankalpa Stotra'}
+          </span>
         </button>
 
+        {/* Tab: Pooja Audio Guide */}
+        <button
+          onClick={() => setActiveTab('audioGuide')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
+            activeTab === 'audioGuide'
+              ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-300 font-bold'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-amber-300 dark:border-stone-700'
+          }`}
+        >
+          <Volume2 className="w-4 h-4 text-amber-400" />
+          <span>
+            {stotraLang === 'kn' ? '🔊 ಧ್ವನಿ ಮಾರ್ಗದರ್ಶಿ (Audio Guide)' : stotraLang === 'hi' ? '🔊 ध्वनि संदर्शिका (Audio Guide)' : '🔊 Pooja Audio Guide'}
+          </span>
+        </button>
+
+        {/* Tab: Digital Offering Log */}
+        <button
+          onClick={() => setActiveTab('offeringLog')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
+            activeTab === 'offeringLog'
+              ? 'bg-rose-700 text-white shadow-md ring-2 ring-rose-300 font-bold'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-rose-300 dark:border-stone-700'
+          }`}
+        >
+          <BookMarked className="w-4 h-4 text-rose-400" />
+          <span>
+            {stotraLang === 'kn' ? '📖 ನೈವೇದ್ಯ ಲಾಗ್ (Offering Log)' : stotraLang === 'hi' ? '📖 नैवेद्य अभिलेख (Offering Log)' : '📖 Offering Log'}
+          </span>
+        </button>
+
+        {/* Tab 2: Sankalpa Vidhana */}
         <button
           onClick={() => setActiveTab('vidhana')}
-          className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'vidhana'
               ? 'bg-red-600 text-white shadow-md'
-              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-stone-200 dark:border-stone-700'
           }`}
         >
-          <BookOpen className="w-4 h-4" />
-          <span>ಸಂಕಲ್ಪ ವಿಧಾನ (Instructions: Kn, Hi, En)</span>
+          <BookOpen className="w-4 h-4 text-amber-500" />
+          <span>
+            {stotraLang === 'kn' ? '೨. ಸಂಕಲ್ಪ ವಿಧಾನ (Vidhana)' : stotraLang === 'hi' ? '२. संकल्प विधान' : '2. Sankalpa Vidhana'}
+          </span>
         </button>
 
+        {/* Tab 3: Kalasha Sthapana & Visarjana */}
+        <button
+          onClick={() => setActiveTab('kalasha')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
+            activeTab === 'kalasha'
+              ? 'bg-red-600 text-white shadow-md ring-2 ring-amber-300'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-amber-300 dark:border-stone-700'
+          }`}
+        >
+          <span className="text-sm">🏺</span>
+          <span>
+            {stotraLang === 'kn' ? '೩. ಕಲಶ ಸ್ಥಾಪನೆ & ವಿಸರ್ಜನೆ' : stotraLang === 'hi' ? '३. कलश स्थापना एवं विसर्जन' : '3. Kalasha Sthapana & Visarjana'}
+          </span>
+        </button>
+
+        {/* Tab 4: Akhanda Deepa Sthapana & Visarjana */}
+        <button
+          onClick={() => setActiveTab('akhandaDeepa')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
+            activeTab === 'akhandaDeepa'
+              ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-300'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-amber-300 dark:border-stone-700'
+          }`}
+        >
+          <span className="text-sm">🪔</span>
+          <span>
+            {stotraLang === 'kn' ? '೪. ಅಖಂಡ ದೀಪ ಸ್ಥಾಪನೆ & ವಿಸರ್ಜನೆ' : stotraLang === 'hi' ? '४. अखण्ड दीप स्थापना एवं विसर्जन' : '4. Akhanda Deepa Sthapana & Visarjana'}
+          </span>
+        </button>
+
+        {/* Tab: Pooja Deepa Guidelines (4x4 Coordinate Grid) */}
+        <button
+          onClick={() => setActiveTab('deepaGuidelines')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
+            activeTab === 'deepaGuidelines'
+              ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-300 font-bold'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-amber-300 dark:border-stone-700'
+          }`}
+        >
+          <span className="text-sm">🧭</span>
+          <span>
+            {stotraLang === 'kn' ? 'ದೀಪ & ದಿಕ್ಕು ನಿಯಮಾವಳಿ (4×4 Grid)' : stotraLang === 'hi' ? 'दीप व दिशा नियम (4×4 Grid)' : 'Deepa & Direction Guide (4×4 Grid)'}
+          </span>
+        </button>
+
+        {/* Tab: Ritual Visuals (PDF Schematics) */}
+        <button
+          onClick={() => setActiveTab('visuals')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
+            activeTab === 'visuals'
+              ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-300 font-bold'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-amber-300 dark:border-stone-700'
+          }`}
+        >
+          <span className="text-sm">🎨</span>
+          <span>
+            {stotraLang === 'kn' ? 'ಪೂಜಾ ರೇಖಾಚಿತ್ರಗಳು (Ritual Visuals)' : stotraLang === 'hi' ? 'पूजन रेखाचित्र (Ritual Visuals)' : 'Ritual Visuals (PDF Schematics)'}
+          </span>
+        </button>
+
+        {/* Tab 5: 10th-Day Dashami Visarjana Muhurta Calculator */}
+        <button
+          onClick={() => setActiveTab('visarjana')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
+            activeTab === 'visarjana'
+              ? 'bg-red-700 text-white shadow-md ring-2 ring-amber-300'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-amber-300 dark:border-stone-700'
+          }`}
+        >
+          <span className="text-sm">🏺</span>
+          <span>
+            {stotraLang === 'kn' ? '೫. ದಶಮೀ ವಿಸರ್ಜನ ಮುಹೂರ್ತ ಗಣಕ' : stotraLang === 'hi' ? '५. दशमी विसर्जन मुहूर्त गणक' : '5. Dashami Visarjana Calculator'}
+          </span>
+        </button>
+
+        {/* Tab 6: 60 Samvatsaras */}
         <button
           onClick={() => setActiveTab('samvatsara')}
-          className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'samvatsara'
               ? 'bg-red-600 text-white shadow-md'
-              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-stone-200 dark:border-stone-700'
           }`}
         >
-          <Table className="w-4 h-4" />
-          <span>೬೦ ಸಂವತ್ಸರಗಳು (PDF Page 3)</span>
+          <Table className="w-4 h-4 text-amber-500" />
+          <span>
+            {stotraLang === 'kn' ? '೬. ೬೦ ಸಂವತ್ಸರಗಳು (PDF)' : stotraLang === 'hi' ? '६. ६० संवत्सर (PDF)' : '6. 60 Samvatsaras (PDF)'}
+          </span>
         </button>
 
+        {/* Tab 7: Rashi & Nakshatra */}
         <button
           onClick={() => setActiveTab('nakshatra')}
-          className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'nakshatra'
               ? 'bg-red-600 text-white shadow-md'
-              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-stone-200 dark:border-stone-700'
           }`}
         >
-          <Layers className="w-4 h-4" />
-          <span>ರಾಶಿ, ಅಧಿಪತಿ & ನಕ್ಷತ್ರ ಚರಣ (PDF Page 4)</span>
+          <Layers className="w-4 h-4 text-amber-500" />
+          <span>
+            {stotraLang === 'kn' ? '೭. ರಾಶಿ & ನಕ್ಷತ್ರ ಚರಣ (PDF)' : stotraLang === 'hi' ? '७. राशि व नक्षत्र चरण (PDF)' : '7. Rashi & Nakshatra (PDF)'}
+          </span>
         </button>
 
+        {/* Tab 8: Bharatiya Sankhya */}
         <button
           onClick={() => setActiveTab('sankhya')}
-          className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'sankhya'
               ? 'bg-red-600 text-white shadow-md'
-              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-stone-200 dark:border-stone-700'
           }`}
         >
-          <span>ಭಾರತೀಯ ಸಂಖ್ಯಾ ಶಾಸ್ತ್ರ (PDF Page 5)</span>
+          <span>
+            {stotraLang === 'kn' ? '೮. ಭಾರತೀಯ ಸಂಖ್ಯಾ ಶಾಸ್ತ್ರ (PDF)' : stotraLang === 'hi' ? '८. भारतीय संख्या शास्त्र (PDF)' : '8. Vedic Numerology (PDF)'}
+          </span>
         </button>
 
+        {/* Tab 9: Panchapeetha */}
         <button
           onClick={() => setActiveTab('peetha')}
-          className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'peetha'
               ? 'bg-red-600 text-white shadow-md'
-              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100'
+              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 border border-stone-200 dark:border-stone-700'
           }`}
         >
-          <span>ಪಂಚಪೀಠ ಪ್ರವರ (PDF Page 6)</span>
+          <span>
+            {stotraLang === 'kn' ? '೯. ಪಂಚಪೀಠ ಪ್ರವರ (PDF)' : stotraLang === 'hi' ? '९. पञ्चपीठ प्रवर (PDF)' : '9. Panchapeetha Pravara (PDF)'}
+          </span>
         </button>
       </div>
 
       {/* ========================================================================= */}
       {/* PRINTABLE SANKALPA STOTRA CONTAINER (Export to PDF Target) */}
       {/* ========================================================================= */}
+      {activeTab === 'stotra' && (
       <div 
         id="printable-sankalpa"
         className="rounded-2xl border-2 border-amber-300/80 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 sm:p-8 shadow-xl space-y-6"
@@ -449,6 +597,128 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
           </div>
         </div>
 
+        {/* Sensitive Customization Lock Warning Banner */}
+        {isGlobalLocked && (
+          <div className="no-print p-3.5 rounded-xl bg-amber-500/15 border-2 border-amber-400 dark:border-amber-700/80 text-amber-950 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="p-1.5 rounded-lg bg-amber-600 text-white shrink-0">
+                <Lock className="w-4 h-4" />
+              </span>
+              <div>
+                <strong className="block font-bold">
+                  {stotraLang === 'kn' ? 'ಆಡಳಿತಾತ್ಮಕ ಲಾಕ್ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿದೆ (Global Locked Mode Active)' : 'Master Administrative Lock Active'}
+                </strong>
+                <span className="text-[11px] text-stone-600 dark:text-stone-300">
+                  {stotraLang === 'kn'
+                    ? 'ಸಂಕಲ್ಪ ದೇವತಾ ಹೆಸರು, ಗ್ರಂಥ ಪಾರಾಯಣ ಹಾಗೂ ಕಸ್ಟಮ್ ಸ್ಥಳ ಸಂಪಾದನೆಗಳನ್ನು ರಕ್ಷಿಸಲಾಗಿದೆ. ಬದಲಾವಣೆ ಮಾಡಲು ಅನ್‌ಲಾಕ್ ಮಾಡಿ.'
+                    : 'Deity name, grantha, and custom location edits are protected. Authenticate with master password to modify.'}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onRequestUnlock?.('Sankalpa and Sthaapana')}
+              className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 shadow-xs cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>{stotraLang === 'kn' ? 'ಪಾಸ್‌ವರ್ಡ್ ಅನ್‌ಲಾಕ್' : 'Unlock Access'}</span>
+            </button>
+          </div>
+        )}
+
+        {/* Interactive Paksha & Vrata Selection Bar (Address Shukla / Krishna user customization) */}
+        <div className="no-print p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-stone-800 dark:to-stone-900 border-2 border-amber-300 dark:border-amber-700/70 shadow-sm space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 dark:text-amber-300">
+                <Compass className="w-4 h-4 text-amber-600" />
+                <span>
+                  {stotraLang === 'kn' ? 'ಪಕ್ಷ ಆಯ್ಕೆ & ವ್ರತ ನಿಯಂತ್ರಣ (Paksha Selection):' : stotraLang === 'hi' ? 'पक्ष चयन एवं व्रत नियंत्रण:' : 'Paksha Selection & Vrata Control:'}
+                </span>
+                <span className="text-[11px] px-2 py-0.5 rounded-md bg-stone-200 dark:bg-stone-700 text-stone-800 dark:text-stone-200 font-mono">
+                  {stotraLang === 'kn' ? 'ಖಗೋಳೀಯ ಉದಯ:' : 'Astronomical:'} {panchangDay.paksha === 'Shukla' ? (stotraLang === 'kn' ? 'ಶುಕ್ಲ ಪಕ್ಷ' : 'Shukla') : (stotraLang === 'kn' ? 'ಕೃಷ್ಣ ಪಕ್ಷ' : 'Krishna')} ({panchangDay.tithiName[stotraLang] || panchangDay.tithiName.kn})
+                </span>
+              </div>
+              <p className="text-[11px] text-stone-600 dark:text-stone-400 mt-0.5">
+                {stotraLang === 'kn'
+                  ? 'ನಿಮ್ಮ ವ್ರತ ಅಥವಾ ನವರಾತ್ರಿ/ಪೌರ್ಣಮಿ ಸಂಕಲ್ಪಕ್ಕೆ ಅನುಗುಣವಾಗಿ ಪಕ್ಷವನ್ನು ನೇರವಾಗಿ ಬದಲಾಯಿಸಬಹುದು.'
+                  : 'Toggle between Shukla Paksha or Krishna Paksha directly to match your specific Vrata oath.'}
+              </p>
+            </div>
+
+            {/* Paksha Mode Buttons */}
+            <div className="flex items-center gap-1.5 bg-white dark:bg-stone-800 p-1 rounded-xl border border-stone-300 dark:border-stone-700 text-xs font-bold shrink-0">
+              <button
+                type="button"
+                onClick={() => setPakshaOverride('auto')}
+                className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1 ${
+                  pakshaOverride === 'auto'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+                }`}
+                title="Automatically follow astronomical ephemeris for the selected date"
+              >
+                <span>⚡ Auto ({panchangDay.paksha === 'Shukla' ? (stotraLang === 'kn' ? 'ಶುಕ್ಲ' : 'Shukla') : (stotraLang === 'kn' ? 'ಕೃಷ್ಣ' : 'Krishna')})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPakshaOverride('Shukla')}
+                className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1 ${
+                  effectivePaksha === 'Shukla' && pakshaOverride === 'Shukla'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+                }`}
+                title="Force Shukla Paksha (Bright Fortnight) for your Sankalpa Stotra"
+              >
+                <Sun className="w-3.5 h-3.5 text-amber-300" />
+                <span>{stotraLang === 'kn' ? '🌕 ಶುಕ್ಲ ಪಕ್ಷ' : stotraLang === 'hi' ? '🌕 शुक्ल पक्ष' : '🌕 Shukla'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPakshaOverride('Krishna')}
+                className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1 ${
+                  effectivePaksha === 'Krishna' && pakshaOverride === 'Krishna'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+                }`}
+                title="Force Krishna Paksha (Dark Fortnight) for your Sankalpa Stotra"
+              >
+                <Moon className="w-3.5 h-3.5 text-stone-400" />
+                <span>{stotraLang === 'kn' ? '🌑 ಕೃಷ್ಣ ಪಕ್ಷ' : stotraLang === 'hi' ? '🌑 कृष्ण पक्ष' : '🌑 Krishna'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Jump Action Bar: Audio Guide & Offering Log */}
+          <div className="pt-2 border-t border-amber-200/80 dark:border-stone-700 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="font-semibold text-stone-700 dark:text-stone-300">
+              {stotraLang === 'kn' ? 'ತ್ವರಿತ ಪೂಜಾ ಸಹಾಯಕರು:' : 'Quick Ritual Aids:'}
+            </span>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('audioGuide')}
+                className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold transition-all flex items-center gap-1.5 shadow-xs"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>{stotraLang === 'kn' ? '🔊 ಧ್ವನಿ ಮಾರ್ಗದರ್ಶಿ ಆಲಿಸಿ' : '🔊 Play in Audio Guide'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('offeringLog')}
+                className="px-3 py-1 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-bold transition-all flex items-center gap-1.5 shadow-xs"
+              >
+                <BookMarked className="w-3.5 h-3.5" />
+                <span>{stotraLang === 'kn' ? '📖 ನೈವೇದ್ಯ ಲಾಗ್‌ನಲ್ಲಿ ದಾಖಲಿಸಿ' : '📖 Record in Offering Log'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Optional Editable Fields for Puja Devata & Grantha */}
         <div className="no-print grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-amber-50/50 dark:bg-stone-800/40 border border-amber-200 dark:border-stone-700 text-xs">
           <div>
@@ -458,8 +728,22 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
             <input
               type="text"
               value={deityName}
-              onChange={(e) => setDeityName(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-semibold"
+              readOnly={isGlobalLocked}
+              onClick={() => {
+                if (isGlobalLocked) onRequestUnlock?.('Sankalpa and Sthaapana');
+              }}
+              onChange={(e) => {
+                if (isGlobalLocked) {
+                  onRequestUnlock?.('Sankalpa and Sthaapana');
+                } else {
+                  setDeityName(e.target.value);
+                }
+              }}
+              className={`w-full px-3 py-1.5 rounded-lg border font-semibold ${
+                isGlobalLocked
+                  ? 'border-stone-300 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 text-stone-500 cursor-pointer'
+                  : 'border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100'
+              }`}
             />
           </div>
 
@@ -470,8 +754,22 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
             <input
               type="text"
               value={granthaName}
-              onChange={(e) => setGranthaName(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-semibold"
+              readOnly={isGlobalLocked}
+              onClick={() => {
+                if (isGlobalLocked) onRequestUnlock?.('Sankalpa and Sthaapana');
+              }}
+              onChange={(e) => {
+                if (isGlobalLocked) {
+                  onRequestUnlock?.('Sankalpa and Sthaapana');
+                } else {
+                  setGranthaName(e.target.value);
+                }
+              }}
+              className={`w-full px-3 py-1.5 rounded-lg border font-semibold ${
+                isGlobalLocked
+                  ? 'border-stone-300 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 text-stone-500 cursor-pointer'
+                  : 'border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100'
+              }`}
             />
           </div>
         </div>
@@ -649,9 +947,54 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
         </div>
 
       </div>
+      )}
 
       {/* ========================================================================= */}
-      {/* OTHER TABS FROM PDF (Hidden in Print) */}
+      {/* TAB: POOJA AUDIO GUIDE (7-Step Synchronous Chanting & Temple Bell SFX) */}
+      {/* ========================================================================= */}
+      {activeTab === 'audioGuide' && (
+        <div className="no-print space-y-6 animate-in fade-in">
+          <PoojaAudioGuide
+            language={stotraLang}
+            deityName={deityName}
+            granthaName={granthaName}
+            cityName={dashed1_City}
+            samvatsaraName={dashed2_Samvatsara}
+            ayanaName={dashed3_Ayana}
+            masaName={dashed4_Masa}
+            pakshaName={dashed5_Paksha}
+            tithiName={dashed6_Tithi}
+            varaName={dashed7_Vasara}
+            nakshatraName={dashed8_Nakshatra}
+            rashiName={dashed9_Rashi}
+          />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: DIGITAL OFFERING LOG (Historical Record of Deities, Pujas & Naivedya) */}
+      {/* ========================================================================= */}
+      {activeTab === 'offeringLog' && (
+        <div className="no-print space-y-6 animate-in fade-in">
+          <DigitalOfferingLog
+            language={stotraLang}
+            currentDeityName={deityName}
+            currentGranthaName={granthaName}
+            currentLocationName={resolvedCityName}
+            currentDateStr={selectedDateStr}
+            currentPaksha={effectivePaksha}
+            currentTithi={panchangDay.tithiName[stotraLang] || panchangDay.tithiName.kn}
+            currentNakshatra={panchangDay.nakshatra[stotraLang] || panchangDay.nakshatra.kn}
+            onSelectDeity={(deity) => {
+              setDeityName(deity);
+              setActiveTab('stotra');
+            }}
+          />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* OTHER TABS (Hidden in Print) */}
       {/* ========================================================================= */}
 
       {/* TAB 2: SANKALPA PURPOSE & INSTRUCTIONS (PDF Page 1) in Kn, Hi, En */}
@@ -695,7 +1038,554 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
         </div>
       )}
 
-      {/* TAB 3: 60 SAMVATSARAS TABLE (PDF Page 3) */}
+      {/* ========================================================================= */}
+      {/* TAB 3: KALASHA STHAPANA & VISARJANA VIDHI */}
+      {/* ========================================================================= */}
+      {activeTab === 'kalasha' && (
+        <div className="no-print rounded-2xl border-2 border-red-500/60 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 sm:p-8 space-y-6 shadow-xl animate-in fade-in">
+          
+          {/* Header Banner */}
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-red-800 via-rose-800 to-amber-800 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg border border-red-400/40">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-400 text-stone-950 flex items-center justify-center text-2xl font-black shadow-md border-2 border-white/50 shrink-0">
+                🏺
+              </div>
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300 bg-black/30 px-2 py-0.5 rounded">
+                  {stotraLang === 'kn' ? 'ವೇದೋಕ್ತ ಕಲಶ ಪ್ರತಿಷ್ಠಾಪನಾ & ವಿಸರ್ಜನಾ ಮಹಾವಿಧಾನ' : stotraLang === 'hi' ? 'वेदोक्त कलश प्रतिष्ठा एवं विसर्जन महाविधान' : 'Vedic Kalasha Sthapana & Visarjana Vidhi'}
+                </span>
+                <h3 className="font-serif font-black text-xl sm:text-2xl text-white mt-1">
+                  {stotraLang === 'kn' ? 'ಕಲಶ ಸ್ಥಾಪನೆ & ವಿಸರ್ಜನೆ ಸಂಪೂರ್ಣ ವಿಧಿ' : stotraLang === 'hi' ? 'कलश स्थापना एवं विसर्जन सम्पूर्ण विधान' : 'Complete Kalasha Sthapana & Visarjana Procedure'}
+                </h3>
+                <p className="text-xs text-rose-100 mt-0.5">
+                  {stotraLang === 'kn' 
+                    ? 'ತಾಮ್ರ, ಬೆಳ್ಳಿ ಅಥವಾ ಹಿತ್ತಾಳೆಯ ಕಲಶ ಪಾತ್ರೆ, ಸಪ್ತ ತೀರ್ಥ ಆವಾಹನೆ, ಪಲ್ಲವ-ತೆಂಗಿನಕಾಯಿ ಸ್ಥಾಪನೆ & ವಿಸರ್ಜನ ತೀರ್ಥ ಪ್ರೋಕ್ಷಣೆ' 
+                    : stotraLang === 'hi'
+                    ? 'ताम्र, रजत अथवा पीतल कलश, सप्त नदी आह्वान, पल्लव-श्रीफल प्रतिष्ठा एवं विसर्जन प्रोक्षण'
+                    : 'Copper, Silver, or Brass Kalasha, Sacred Water Invocation, Coconut Placement & Holy Visarjana'}
+                </p>
+              </div>
+            </div>
+
+            {/* Language Switcher */}
+            <div className="flex items-center gap-1.5 self-start sm:self-auto bg-black/30 p-1 rounded-xl border border-white/20">
+              <span className="text-[10px] font-bold uppercase text-amber-200 px-1">Lang:</span>
+              <button
+                type="button"
+                onClick={() => setStotraLang('kn')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${stotraLang === 'kn' ? 'bg-amber-400 text-stone-950 shadow-xs' : 'text-white hover:text-amber-200'}`}
+              >
+                ಕನ್ನಡ
+              </button>
+              <button
+                type="button"
+                onClick={() => setStotraLang('hi')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${stotraLang === 'hi' ? 'bg-amber-400 text-stone-950 shadow-xs' : 'text-white hover:text-amber-200'}`}
+              >
+                संस्कृत
+              </button>
+              <button
+                type="button"
+                onClick={() => setStotraLang('en')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${stotraLang === 'en' ? 'bg-amber-400 text-stone-950 shadow-xs' : 'text-white hover:text-amber-200'}`}
+              >
+                English
+              </button>
+            </div>
+          </div>
+
+          {/* RITUAL VISUALS: Responsive PDF Schematic for Kalasha Sthapana */}
+          <RitualVisuals activeVisual="kalasha" language={stotraLang} />
+
+          {/* Section 1: Required Materials (ಸಾಮಗ್ರಿಗಳು) */}
+          <div className="space-y-3">
+            <h4 className="font-serif font-black text-base text-stone-900 dark:text-stone-100 flex items-center gap-2 border-b border-stone-200 dark:border-stone-800 pb-2">
+              <span className="p-1 rounded-md bg-red-600 text-white text-xs">೧</span>
+              <span>
+                {stotraLang === 'kn' ? 'ಬೇಕಾಗುವ ಪೂಜಾ ಸಾಮಗ್ರಿಗಳು (Required Materials)' : stotraLang === 'hi' ? 'आवश्यक पूजन सामग्री (Required Materials)' : 'Essential Puja Materials & Vessels'}
+              </span>
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              {KALASHA_SAMAGRI_LIST.map((item) => (
+                <div 
+                  key={item.id}
+                  className="p-3 rounded-xl border border-amber-200 dark:border-stone-800 bg-amber-50/40 dark:bg-stone-850 space-y-1"
+                >
+                  <div className="font-bold text-stone-900 dark:text-stone-100 flex items-center justify-between">
+                    <span>{item.name[stotraLang]}</span>
+                    {item.essential && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 font-mono font-bold">
+                        {stotraLang === 'kn' ? 'ಮುಖ್ಯ' : 'Essential'}
+                      </span>
+                    )}
+                  </div>
+                  {item.notes && (
+                    <p className="text-[11px] text-stone-600 dark:text-stone-400">
+                      {item.notes[stotraLang]}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Section 2: Step-by-Step Kalasha Sthapana */}
+          <div className="space-y-4">
+            <h4 className="font-serif font-black text-base text-stone-900 dark:text-stone-100 flex items-center gap-2 border-b border-stone-200 dark:border-stone-800 pb-2">
+              <span className="p-1 rounded-md bg-red-600 text-white text-xs">೨</span>
+              <span>
+                {stotraLang === 'kn' ? 'ಕಲಶ ಪ್ರತಿಷ್ಠಾಪನಾ ಹಂತಗಳು (Step-by-Step Installation)' : stotraLang === 'hi' ? 'कलश प्रतिष्ठा सोपान (Step-by-Step Installation)' : 'Step-by-Step Kalasha Installation Procedure'}
+              </span>
+            </h4>
+
+            <div className="space-y-3">
+              {KALASHA_STHAPANA_STEPS.map((step) => (
+                <div 
+                  key={step.stepNumber}
+                  className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-850 shadow-2xs space-y-2"
+                >
+                  <div className="flex items-center gap-2 text-stone-900 dark:text-stone-100 font-bold text-sm">
+                    <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-mono shrink-0">
+                      {step.stepNumber}
+                    </span>
+                    <span className="font-serif">{step.title[stotraLang]}</span>
+                  </div>
+                  <p className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed pl-8">
+                    {step.instruction[stotraLang]}
+                  </p>
+
+                  {step.mantra && (
+                    <div className="mt-2 ml-8 p-3.5 rounded-xl bg-amber-50 dark:bg-stone-900 border border-amber-300 dark:border-amber-800/60 space-y-2 text-xs">
+                      <span className="text-[10px] font-mono font-bold uppercase text-amber-800 dark:text-amber-400 block">
+                        {stotraLang === 'kn' ? 'ಪವಿತ್ರ ಮಂತ್ರ (Chant during Step):' : 'Sacred Mantra:'}
+                      </span>
+                      <div className="font-serif font-bold text-red-950 dark:text-amber-200 whitespace-pre-line leading-relaxed">
+                        {stotraLang === 'hi' ? step.mantra.sanskritText : step.mantra.kannadaText}
+                      </div>
+                      <div className="text-[11px] text-stone-600 dark:text-stone-400 italic">
+                        <strong>Meaning:</strong> {step.mantra.meaning[stotraLang]}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Section 3: Sacred Shlokas (Kalasha Sthapana & Varuna Avahana) */}
+          <div className="p-5 rounded-2xl bg-amber-50/70 dark:bg-stone-850 border-2 border-amber-400/80 dark:border-amber-700/80 space-y-4">
+            <h4 className="font-serif font-black text-base text-amber-950 dark:text-amber-200 flex items-center gap-2">
+              <span>📜</span>
+              <span>
+                {stotraLang === 'kn' ? 'ಕಲಶ ಪೂಜೆಯ ಪ್ರಧಾನ ವೈದಿಕ ಶ್ಲೋಕಗಳು (Sacred Vedic Shlokas)' : stotraLang === 'hi' ? 'कलश पूजन के प्रधान वैदिक श्लोक' : 'Core Vedic Kalasha Shlokas'}
+              </span>
+            </h4>
+
+            {/* Shloka 1: Kalashasya Mukhe Vishnuh */}
+            <div className="p-4 rounded-xl bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-800 space-y-2 text-xs">
+              <span className="text-[10.5px] font-bold uppercase text-amber-800 dark:text-amber-400">
+                {stotraLang === 'kn' ? '೧. ಕಲಶ ದೇವತಾ ಸ್ವರೂಪ ಶ್ಲೋಕ:' : '1. Cosmic Deity Presence Shloka:'}
+              </span>
+              <p className="font-serif font-extrabold text-sm sm:text-base text-stone-900 dark:text-stone-100 whitespace-pre-line leading-relaxed">
+                {stotraLang === 'hi' 
+                  ? 'कलशस्य मुखे विष्णुः कण्ठे रुद्रः समाश्रितः ।\nमूले तत्र स्थितो ब्रह्मा मध्ये मातृगणाः स्मृताः ॥\nकुक्षौ तु सागराः सर्वे सप्तद्वीपा वसुंधरा ।\nऋग्वेदोऽथ यजुर्वेदः सामवेदो ह्यथर्वणः ॥\nअङ्गैश्च सहिताः सर्वे कलशाम्बुसमाश्रिताः ॥'
+                  : 'ಕಲಶಸ್ಯ ಮುಖೇ ವಿಷ್ಣುಃ ಕಂಠೇ ರುದ್ರಃ ಸಮಾಶ್ರಿತಃ |\nಮೂಲೇ ತತ್ರ ಸ್ಥಿತೋ ಬ್ರಹ್ಮಾ ಮಧ್ಯೇ ಮಾತೃಗಣಾಃ ಸ್ಮೃತಾಃ ||\nಕುಕ್ಷೌ ತು ಸಾಗರಾಃ ಸರ್ವೇ ಸಪ್ತದ್ವೀಪಾ ವಸುಂಧರಾ |\nಋಗ್ವೇದೋಽಥ ಯಜುರ್ವೇದಃ ಸಾಮವೇದೋ ಹ್ಯಥರ್ವಣಃ ||\nಅಂಗೈಶ್ಚ ಸಹಿತಾಃ ಸರ್ವೇ ಕಲಶಾಂಬು ಸಮಾಶ್ರಿತಾಃ ||'}
+              </p>
+              <p className="text-[11.5px] text-stone-600 dark:text-stone-400 leading-relaxed pt-1">
+                <strong>{stotraLang === 'kn' ? 'ಅರ್ಥ:' : 'Meaning:'}</strong>{' '}
+                {stotraLang === 'kn'
+                  ? 'ಕಲಶದ ಮುಖದಲ್ಲಿ ವಿಷ್ಣು, ಕಂಠದಲ್ಲಿ ಶಿವ, ಮೂಲದಲ್ಲಿ ಬ್ರಹ್ಮ, ಮಧ್ಯಭಾಗದಲ್ಲಿ ಸಕಲ ಮಾತೃಗಣಗಳು ನೆಲೆಸಿರುತ್ತಾರೆ. ಇದರ ಗರ್ಭದಲ್ಲಿ ಸಪ್ತ ಸಮುದ್ರಗಳು, ಸಪ್ತ ದ್ವೀಪಗಳು, ಪೃಥ್ವಿ ಹಾಗೂ ೪ ವೇದಗಳು ಸರ್ವಾಂಗ ಸಮೇತವಾಗಿ ಈ ಕಲಶೋದಕದಲ್ಲಿ ಸನ್ನಿಹಿತವಾಗಿರುತ್ತವೆ.'
+                  : stotraLang === 'hi'
+                  ? 'कलश के मुख में विष्णु, कण्ठ में रुद्र, मूल में ब्रह्मा एवं मध्य में समस्त मातृकाएं विराजमान हैं। इसके उदर में सातों समुद्र, सप्तद्वीप वसुन्धरा एवं चारों वेद सदेह वास करते हैं।'
+                  : 'Lord Vishnu resides at the rim, Lord Shiva at the neck, Lord Brahma at the base, and Mother Divine in the centre. The oceans, islands, Earth, and all four Vedas sanctify this holy water.'}
+              </p>
+            </div>
+
+            {/* Shloka 2: Gange Cha Yamune */}
+            <div className="p-4 rounded-xl bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-800 space-y-2 text-xs">
+              <span className="text-[10.5px] font-bold uppercase text-amber-800 dark:text-amber-400">
+                {stotraLang === 'kn' ? '೨. ಸಪ್ತ ಪವಿತ್ರ ನದಿಗಳ ತೀರ್ಥ ಆವಾಹನಾ ಶ್ಲೋಕ:' : '2. Sacred Rivers Invocation:'}
+              </span>
+              <p className="font-serif font-extrabold text-sm sm:text-base text-stone-900 dark:text-stone-100 whitespace-pre-line leading-relaxed">
+                {stotraLang === 'hi'
+                  ? 'गङ्गे च यमुने चैव गोदावरि सरस्वति ।\nनर्मदे सिन्धु कावेरि जलेऽस्मिन् सन्निधिं कुरु ॥'
+                  : 'ಗಂಗೇ ಚ ಯಮುನೇ ಚೈವ ಗೋದಾವರಿ ಸರಸ್ವತಿ |\nನರ್ಮದೇ ಸಿಂಧು ಕಾವೇರಿ ಜಲೇಸ್ಮಿನ್ ಸನ್ನಿಧಿಂ ಕುರು ||'}
+              </p>
+            </div>
+          </div>
+
+          {/* Section 4: Kalasha Visarjana (Udwasana) Vidhi */}
+          <div className="p-5 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-300 dark:border-stone-700 space-y-4">
+            <h4 className="font-serif font-black text-base text-stone-900 dark:text-stone-100 flex items-center gap-2">
+              <span className="p-1 rounded-md bg-emerald-600 text-white text-xs">೩</span>
+              <span>
+                {stotraLang === 'kn' ? 'ಕಲಶ ವಿಸರ್ಜನೆ (ಉದ್ವಾಸನೆ) ಹಾಗೂ ತೀರ್ಥ ಪ್ರೋಕ್ಷಣೆ ವಿಧಾನ' : stotraLang === 'hi' ? 'कलश विसर्जन (उद्वासन) एवं तीर्थ प्रोक्षण विधान' : 'Kalasha Visarjana (Udwasana) & House Sanctification'}
+              </span>
+            </h4>
+
+            <div className="space-y-3 text-xs leading-relaxed">
+              {VIJAYADASHAMI_VISARJANA_DETAILS.kalashaVisarjanaSteps.map((step) => (
+                <div key={step.step} className="p-3.5 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-1">
+                  <div className="font-bold text-stone-900 dark:text-stone-100 text-sm">
+                    {step.title[stotraLang]}
+                  </div>
+                  <p className="text-stone-600 dark:text-stone-400">
+                    {step.desc[stotraLang]}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Direct CTA to 10th-Day Dashami Visarjana Muhurta Calculator */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-red-700 via-amber-700 to-orange-700 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md mt-4">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🏺</span>
+                <div>
+                  <h5 className="font-bold text-sm">
+                    {stotraLang === 'kn' ? '೧೦ನೇ ದಿನದ ದಶಮೀ ವಿಸರ್ಜನ ಮುಹೂರ್ತ ಗಣಕ (Dashami Visarjana Calculator)' : stotraLang === 'hi' ? '१०वें दिन का दशमी विसर्जन मुहूर्त गणक' : '10th-Day Dashami Visarjana Muhurta Calculator'}
+                  </h5>
+                  <p className="text-xs text-amber-100">
+                    {stotraLang === 'kn'
+                      ? 'ಆಯ್ದ ನಗರದ ಸೂರ್ಯೋದಯ-ಸೂರ್ಯಾಸ್ತ ಆಧಾರಿತ ಪ್ರಾತಃಕಾಲ, ಅಭಿಜಿತ್ ಮತ್ತು ವಿಜಯ ಮುಹೂರ್ತಗಳ ನಿಖರ ಲೆಕ್ಕಾಚಾರ.'
+                      : 'Astronomical calculations for Pratahkaala, Abhijit and Vijaya exit windows based on city sunrise and sunset.'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('visarjana')}
+                className="px-4 py-2 bg-white text-stone-900 rounded-xl font-bold text-xs shrink-0 hover:bg-amber-100 transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <span>{stotraLang === 'kn' ? 'ಮುಹೂರ್ತ ಗಣಕ ತೆರೆಯಿರಿ' : 'Open Calculator'}</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: AKHANDA DEEPA STHAPANA & VISARJANA VIDHI */}
+      {/* ========================================================================= */}
+      {activeTab === 'akhandaDeepa' && (
+        <div className="no-print rounded-2xl border-2 border-amber-500/70 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 sm:p-8 space-y-6 shadow-xl animate-in fade-in">
+          
+          {/* Header Banner */}
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-700 via-orange-700 to-amber-800 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg border border-amber-400/40">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-400 text-stone-950 flex items-center justify-center text-2xl font-black shadow-md border-2 border-white/50 shrink-0">
+                🪔
+              </div>
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-200 bg-black/30 px-2 py-0.5 rounded">
+                  {AKHANDA_DEEPA_STHAPANA_DETAILS.title[stotraLang]}
+                </span>
+                <h3 className="font-serif font-black text-xl sm:text-2xl text-white mt-1">
+                  {stotraLang === 'kn' ? 'ಅಖಂಡ ದೀಪ ಪ್ರತಿಷ್ಠಾಪನೆ, ದಿಕ್ಕು & ಬೆಳಗಿಸುವ ಸಂಪೂರ್ಣ ವಿಧಿ' : stotraLang === 'hi' ? 'अखण्ड दीप स्थापना, दिशा एवं प्रज्वलन महाविधान' : 'Akhanda Deepa Sthapana & Direction Guide'}
+                </h3>
+                <p className="text-xs text-amber-100 mt-0.5">
+                  {AKHANDA_DEEPA_STHAPANA_DETAILS.subtitle[stotraLang]}
+                </p>
+              </div>
+            </div>
+
+            {/* Language Switcher */}
+            <div className="flex items-center gap-1.5 self-start sm:self-auto bg-black/30 p-1 rounded-xl border border-white/20">
+              <span className="text-[10px] font-bold uppercase text-amber-200 px-1">Lang:</span>
+              <button
+                type="button"
+                onClick={() => setStotraLang('kn')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${stotraLang === 'kn' ? 'bg-amber-400 text-stone-950 shadow-xs' : 'text-white hover:text-amber-200'}`}
+              >
+                ಕನ್ನಡ
+              </button>
+              <button
+                type="button"
+                onClick={() => setStotraLang('hi')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${stotraLang === 'hi' ? 'bg-amber-400 text-stone-950 shadow-xs' : 'text-white hover:text-amber-200'}`}
+              >
+                संस्कृत
+              </button>
+              <button
+                type="button"
+                onClick={() => setStotraLang('en')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${stotraLang === 'en' ? 'bg-amber-400 text-stone-950 shadow-xs' : 'text-white hover:text-amber-200'}`}
+              >
+                English
+              </button>
+            </div>
+          </div>
+
+          {/* RITUAL VISUALS: Responsive PDF Schematic for Akhanda Deepa & Vastu Compass */}
+          <RitualVisuals activeVisual="akhandaDeepa" language={stotraLang} />
+
+          {/* Direction Significance Banner (IMPORTANT) */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/15 border-2 border-amber-400 dark:border-amber-700/80 space-y-4 shadow-2xs">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl mt-0.5 shrink-0">🧭</span>
+              <div>
+                <h5 className="font-serif font-black text-sm uppercase tracking-wider text-amber-900 dark:text-amber-300 mb-1">
+                  {stotraLang === 'kn' ? 'ಪವಿತ್ರ ದಿಕ್ಕು & ವಾಸ್ತು ನಿಯಮ (Sacred Direction Guide):' : stotraLang === 'hi' ? 'पवित्र दिशा एवं वास्तु विधान:' : 'Sacred Direction & Vastu Rules:'}
+                </h5>
+                <p className="font-medium text-xs text-stone-800 dark:text-stone-200">
+                  {AKHANDA_DEEPA_STHAPANA_DETAILS.directionSignificance[stotraLang]}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Summary Grid for Seating & Hand Side Deepa Rules */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 text-xs">
+              <div className="p-3 rounded-xl bg-white dark:bg-stone-800 border border-amber-300 dark:border-stone-700">
+                <span className="font-bold text-amber-800 dark:text-amber-300 block mb-1">
+                  🏠 {stotraLang === 'kn' ? 'ದೇವರ ಕೋಣೆ ದಿಕ್ಕು:' : 'Pooja Room Direction:'}
+                </span>
+                <span className="font-black text-emerald-700 dark:text-emerald-400 block text-[11.5px]">
+                  {stotraLang === 'kn' ? 'ಈಶಾನ್ಯ ಕೋನ (North-East - ಈಶಾನ ಮೂಲೆ)' : 'North-East (Ishanya / Deva Moola)'}
+                </span>
+                <p className="text-[10.5px] text-stone-600 dark:text-stone-400 mt-1">
+                  {stotraLang === 'kn' ? 'ಪರ್ಯಾಯ: ಪೂರ್ವ ಅಥವಾ ಉತ್ತರ ಗೋಡೆ. ನೈಋತ್ಯ (ನೈಋತ್ಯ ಕೋನ) ಸಂಪೂರ್ಣ ನಿಷಿದ್ಧ.' : 'Alternative: East or North. Avoid South-West.'}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white dark:bg-stone-800 border border-amber-300 dark:border-stone-700">
+                <span className="font-bold text-amber-800 dark:text-amber-300 block mb-1">
+                  🧘 {stotraLang === 'kn' ? 'ಭಕ್ತರ ಮುಖಸ್ಥಿತಿ (Seating):' : 'Devotee Seating Direction:'}
+                </span>
+                <span className="font-black text-emerald-700 dark:text-emerald-400 block text-[11.5px]">
+                  {stotraLang === 'kn' ? 'ಪೂರ್ವ ಮುಖ (East Facing) — ಅತ್ಯುತ್ತಮ' : 'East-Facing (Purva Mukha) — Supreme'}
+                </span>
+                <p className="text-[10.5px] text-stone-600 dark:text-stone-400 mt-1">
+                  {stotraLang === 'kn' ? 'ಸೂರ್ಯನ ತೇಜಸ್ಸು, ಜ್ಞಾನ ಮತ್ತು ಆಯುಷ್ಯ ವೃದ್ಧಿ. (ದಕ್ಷಿಣ ಮುಖವಾಗಿ ಎಂದಿಗೂ ಕುಳಿತು ಪೂಜಿಸಬೇಡಿ).' : 'Channels solar prana and wisdom. (Never sit facing South).'}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white dark:bg-stone-800 border border-amber-300 dark:border-stone-700">
+                <span className="font-bold text-amber-800 dark:text-amber-300 block mb-1">
+                  🪔 {stotraLang === 'kn' ? 'ದೀಪದ ಬಲ-ಎಡ ಕೈ ನಿಯಮ:' : 'Deepa Right vs Left Hand:'}
+                </span>
+                <span className="font-black text-amber-900 dark:text-amber-200 block text-[11.5px]">
+                  {stotraLang === 'kn' ? 'ಎಡಗೈ ಕಡೆ = ಉತ್ತರ = ದೇವತೆಯ ಬಲ' : 'Left Hand = North = Deity’s Right'}
+                </span>
+                <p className="text-[10.5px] text-stone-600 dark:text-stone-400 mt-1">
+                  {stotraLang === 'kn' ? 'ತುಪ್ಪದ/ಅಖಂಡ ದೀಪವನ್ನು ನಿಮ್ಮ ಎಡಗೈ ಕಡೆ (ಉತ್ತರಕ್ಕೆ) ಇಡಿ. ಎಣ್ಣೆ ದೀಪವನ್ನು ಬಲಗೈ ಕಡೆ (ದಕ್ಷಿಣಕ್ಕೆ) ಇಡಿ.' : 'Place Ghee/Akhanda deepa on Left (North); Oil lamp on Right (South).'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 1. Required Materials (ಸಾಮಗ್ರಿಗಳು) */}
+          <div className="space-y-3">
+            <h4 className="font-serif font-black text-base text-stone-900 dark:text-stone-100 flex items-center gap-2 border-b border-stone-200 dark:border-stone-800 pb-2">
+              <span className="p-1 rounded-md bg-amber-600 text-white text-xs">೧</span>
+              <span>
+                {stotraLang === 'kn' ? 'ಬೇಕಾಗುವ ಸಾಮಗ್ರಿಗಳು (Essential Materials)' : stotraLang === 'hi' ? 'आवश्यक सामग्री (Essential Materials)' : 'Essential Materials for Akhanda Deepa'}
+              </span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {AKHANDA_DEEPA_STHAPANA_DETAILS.samagriList.map((item, idx) => (
+                <div 
+                  key={idx}
+                  className="p-3.5 rounded-xl border border-amber-200 dark:border-stone-800 bg-amber-50/40 dark:bg-stone-850 flex items-start gap-3 shadow-2xs"
+                >
+                  <span className="text-xl shrink-0 mt-0.5">{item.icon || '🪔'}</span>
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-stone-900 dark:text-stone-100 text-xs block">
+                      {item.name[stotraLang]}
+                    </span>
+                    <p className="text-[11.5px] text-stone-600 dark:text-stone-400 leading-snug">
+                      {item.details[stotraLang]}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Step-by-Step Installation & Lighting Procedure */}
+          <div className="space-y-3">
+            <h4 className="font-serif font-black text-base text-stone-900 dark:text-stone-100 flex items-center gap-2 border-b border-stone-200 dark:border-stone-800 pb-2">
+              <span className="p-1 rounded-md bg-amber-600 text-white text-xs">೨</span>
+              <span>
+                {stotraLang === 'kn' ? 'ದೀಪ ಪ್ರತಿಷ್ಠಾಪನೆ ಮತ್ತು ಬೆಳಗಿಸುವ ವಿಧಾನ (Installation & Lighting)' : stotraLang === 'hi' ? 'दीप स्थापना एवं प्रज्वलन विधि' : 'Installation & Consecration Procedure'}
+              </span>
+            </h4>
+
+            <div className="space-y-2.5 text-xs">
+              {AKHANDA_DEEPA_STHAPANA_DETAILS.stepByStepVidhi.map((step) => (
+                <div 
+                  key={step.stepNumber}
+                  className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-850 shadow-2xs space-y-1.5"
+                >
+                  <div className="flex items-center gap-2 text-stone-900 dark:text-stone-100 font-bold text-sm">
+                    <span className="w-6 h-6 rounded-full bg-amber-600 text-white text-xs flex items-center justify-center font-mono shrink-0">
+                      {step.stepNumber}
+                    </span>
+                    <span className="font-serif">{step.title[stotraLang]}</span>
+                  </div>
+                  <p className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed pl-8">
+                    {step.instruction[stotraLang]}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 3. Sacred Shlokas during Lighting */}
+          <div className="p-5 rounded-2xl bg-amber-50/70 dark:bg-stone-850 border-2 border-amber-400 dark:border-amber-700 space-y-3 shadow-2xs">
+            <h4 className="font-serif font-black text-base text-amber-950 dark:text-amber-200 flex items-center gap-2">
+              <span>🔥</span>
+              <span>
+                {stotraLang === 'kn' ? 'ದೀಪ ಹಚ್ಚುವಾಗ ಹೇಳಬೇಕಾದ ಶ್ಲೋಕ (Sacred Lighting Shlokas)' : stotraLang === 'hi' ? 'दीप प्रज्वलन मन्त्र' : 'Sacred Mantras during Deepa Prajwalana'}
+              </span>
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div className="p-4 rounded-xl bg-white dark:bg-stone-900 border border-amber-300 dark:border-stone-800 space-y-2">
+                <span className="text-[10px] font-bold uppercase text-amber-800 dark:text-amber-400">
+                  {stotraLang === 'kn' ? 'ಶ್ಲೋಕ ೧ (Deepa Jyoti Parabrahma):' : 'Shloka 1:'}
+                </span>
+                <p className="font-serif font-extrabold text-sm sm:text-base text-red-950 dark:text-amber-200 whitespace-pre-line leading-relaxed">
+                  {stotraLang === 'hi' 
+                    ? 'दीपज्योतिः परब्रह्म दीपज्योतिर्जनार्दनः ।\nदीपो हरतु मे पापं दीपज्योतिर्नमोऽस्तु ते ॥'
+                    : 'ದೀಪಜ್ಯೋತಿಃ ಪರಬ್ರಹ್ಮ ದೀಪಜ್ಯೋತಿರ್ಜನಾರ್ದನಃ |\nದೀಪೋ ಹರತು ಮೇ ಪಾಪಂ ದೀಪಜ್ಯೋತಿರ್ನಮೋಸ್ತು ತೇ ||'}
+                </p>
+                <p className="text-[11px] text-stone-600 dark:text-stone-400 pt-1">
+                  <strong>{stotraLang === 'kn' ? 'ಅರ್ಥ:' : 'Meaning:'}</strong>{' '}
+                  {stotraLang === 'kn'
+                    ? 'ದೀಪದ ಜ್ಯೋತಿಯೇ ಪರಬ್ರಹ್ಮ, ಜ್ಯೋತಿಯೇ ಜನಾರ್ದನ. ಈ ಜ್ಯೋತಿಯು ನನ್ನ ಸಮಸ್ತ ಪಾಪಗಳನ್ನು ಹೋಗಲಾಡಿಸಲಿ; ಪವಿತ್ರ ದೀಪಜ್ಯೋತಿಗೆ ನನ್ನ ನಮಸ್ಕಾರ.'
+                    : 'The flame of this sacred lamp is Supreme Brahman and Lord Janardana. May this effulgent flame dissolve all sins; salutations to the sacred Deepa Jyoti.'}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white dark:bg-stone-900 border border-amber-300 dark:border-stone-800 space-y-2">
+                <span className="text-[10px] font-bold uppercase text-amber-800 dark:text-amber-400">
+                  {stotraLang === 'kn' ? 'ಶ್ಲೋಕ ೨ (Shubham Karoti Kalyanam):' : 'Shloka 2:'}
+                </span>
+                <p className="font-serif font-extrabold text-sm sm:text-base text-red-950 dark:text-amber-200 whitespace-pre-line leading-relaxed">
+                  {stotraLang === 'hi'
+                    ? 'शुभं करोति कल्याणमारोग्यं धनसम्पदः ।\nशत्रुबुद्धिविनाशाय दीपज्योतिर्नमोऽस्तु ते ॥'
+                    : 'ಶುಭಂ ಕರೋತಿ ಕಲ್ಯಾಣಮಾರೋಗ್ಯಂ ಧನಸಂಪದಃ |\nಶತ್ರುಬುದ್ಧಿವಿನಾಶಾಯ ದೀಪಜ್ಯೋತಿರ್ನಮೋಸ್ತು ತೇ ||'}
+                </p>
+                <p className="text-[11px] text-stone-600 dark:text-stone-400 pt-1">
+                  <strong>{stotraLang === 'kn' ? 'ಅರ್ಥ:' : 'Meaning:'}</strong>{' '}
+                  {stotraLang === 'kn'
+                    ? 'ಶುಭ, ಕಲ್ಯಾಣ, ಉತ್ತಮ ಆರೋಗ್ಯ ಮತ್ತು ಸಂಪತ್ತನ್ನು ಕರುಣಿಸುವ ಹಾಗೂ ದುಷ್ಟಬುದ್ಧಿ-ಶತ್ರುಭಾವನೆಯನ್ನು ನಾಶಮಾಡುವ ಮಂಗಳ ಜ್ಯೋತಿಗೆ ನಮಸ್ಕಾರ.'
+                    : 'Bestowing auspiciousness, supreme welfare, radiant health, and abundant wealth while removing all negative thoughts; salutations to the divine flame.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Golden Rules for Maintenance */}
+          <div className="p-5 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-300 dark:border-stone-700 space-y-3 text-xs leading-relaxed">
+            <h4 className="font-serif font-black text-base text-stone-900 dark:text-stone-100 flex items-center gap-2">
+              <span className="p-1 rounded-md bg-amber-600 text-white text-xs">೪</span>
+              <span>
+                {stotraLang === 'kn' ? 'ಮುಖ್ಯವಾಗಿ ಗಮನಿಸಬೇಕಾದ ನಿಯಮಗಳು (Golden Rules)' : stotraLang === 'hi' ? 'महत्त्वपूर्ण सावधानियां एवं नियम' : 'Sacred Rules for Maintaining Akhanda Deepa'}
+              </span>
+            </h4>
+
+            <div className="space-y-2">
+              {AKHANDA_DEEPA_STHAPANA_DETAILS.goldenRules.map((rule) => (
+                <div key={rule.ruleNumber} className="p-3.5 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-1">
+                  <div className="font-bold text-stone-900 dark:text-stone-100">
+                    {rule.ruleNumber}. {rule.title[stotraLang]}
+                  </div>
+                  <p className="text-stone-600 dark:text-stone-400">
+                    {rule.instruction[stotraLang]}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 5. Visarjana */}
+          <div className="p-4 rounded-xl bg-amber-50 dark:bg-stone-850 border border-amber-300 dark:border-stone-700 text-xs text-amber-950 dark:text-amber-200 space-y-1.5">
+            <h5 className="font-serif font-black text-sm uppercase tracking-wider text-amber-900 dark:text-amber-300">
+              {stotraLang === 'kn' ? '೫. ಅಖಂಡ ದೀಪ ವಿಸರ್ಜನೆ (Deepa Visarjana):' : '5. Akhanda Deepa Visarjana:'}
+            </h5>
+            <p className="leading-relaxed">
+              {stotraLang === 'kn'
+                ? 'ವ್ರತದ ಕೊನೆಯಲ್ಲಿ ದೀಪವನ್ನು ಎಂದಿಗೂ ಬಾಯಿಯಿಂದ ಊದಿ ಆರಿಸಬಾರದು. ಎಣ್ಣೆ/ತುಪ್ಪ ತಾನಾಗಿಯೇ ಶಾಂತವಾಗಲು ಬಿಡಬೇಕು, ಅಥವಾ ಹೂವಿನಿಂದ ಹಾಲು/ತುಪ್ಪದ ಹನಿ ಚಿಮುಕಿಸಿ ಗೌರವಪೂರ್ವಕವಾಗಿ ಶಾಂತಗೊಳಿಸಬೇಕು. ಆಧಾರ ಪೀಠದ ಧಾನ್ಯಗಳನ್ನು ಪ್ರಸಾದವಾಗಿ ಅಡುಗೆಯಲ್ಲಿ ಬಳಸಬೇಕು.'
+                : 'At the conclusion of the vrata, the lamp must NEVER be blown out. Let it extinguish naturally as fuel finishes, or gently calm the flame using a flower dipped in milk/ghee. The foundation grains should be cooked as Prasad.'}
+            </p>
+
+            {/* Direct CTA to 4x4 Deepa & Direction Guidelines */}
+            <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-amber-300 dark:border-stone-700">
+              <span className="font-bold text-amber-900 dark:text-amber-300 text-xs">
+                {stotraLang === 'kn' ? 'ದೀಪದ ದಿಕ್ಕು, ಪೂಜಾ ಕೋಣೆ ಮತ್ತು ಎಡ/ಬಲ ನಿಯಮಾವಳಿ (4×4 Grid):' : 'Pooja Room, Seating Direction & Left/Right Deepa Guidelines (4×4 Grid):'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveTab('deepaGuidelines')}
+                className="px-3.5 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg font-bold text-xs shrink-0 transition-colors shadow-xs cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                <span>🧭 {stotraLang === 'kn' ? '4×4 ದೀಪ ಮಾರ್ಗದರ್ಶಿ ವೀಕ್ಷಿಸಿ' : 'View 4×4 Deepa Matrix'}</span>
+                <span>→</span>
+              </button>
+            </div>
+
+            {/* Direct CTA to 10th-Day Dashami Visarjana Muhurta Calculator */}
+            <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-amber-300 dark:border-stone-700">
+              <span className="font-bold text-amber-900 dark:text-amber-300 text-xs">
+                {stotraLang === 'kn' ? '೧೦ನೇ ದಿನದ ದಶಮೀ ವಿಸರ್ಜನ ಮುಹೂರ್ತ ಗಣಕ (Dashami Visarjana Muhurta Calculator):' : '10th-Day Dashami Visarjana Muhurta Calculator:'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveTab('visarjana')}
+                className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shrink-0 transition-colors shadow-xs cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                <span>🏺 {stotraLang === 'kn' ? 'ವಿಸರ್ಜನ ಮುಹೂರ್ತ ಲೆಕ್ಕಾಚಾರ' : 'Calculate Exit Times'}</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: POOJA DEEPA GUIDELINES (4x4 Coordinate Matrix of Room & Seating Directions) */}
+      {/* ========================================================================= */}
+      {activeTab === 'deepaGuidelines' && (
+        <div className="no-print space-y-6 animate-in fade-in">
+          <PoojaDeepaGuidelinesSection 
+            language={stotraLang} 
+            onNavigateToTab={(tab) => {
+              if (tab === 'visuals') setActiveTab('visuals');
+              else if (tab === 'akhandaDeepa') setActiveTab('akhandaDeepa');
+              else if (tab === 'visarjana') setActiveTab('visarjana');
+            }}
+          />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: 10TH-DAY DASHAMI VISARJANA MUHURTA CALCULATOR (Kannada, Sanskrit, English) */}
+      {/* ========================================================================= */}
+      {activeTab === 'visarjana' && (
+        <div className="no-print space-y-6 animate-in fade-in">
+          <VisarjanaMuhurtaCalculator
+            currentLang={currentLang}
+            selectedCity={selectedCity}
+            onOpenGoogleMap={onOpenGoogleMap}
+          />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: RITUAL VISUALS (Dedicated Full Schematics for Kalasha & Akhanda Deepa) */}
+      {/* ========================================================================= */}
+      {activeTab === 'visuals' && (
+        <div className="no-print space-y-6 animate-in fade-in">
+          <RitualVisuals activeVisual="both" language={stotraLang} />
+        </div>
+      )}
+
+      {/* TAB 6: 60 SAMVATSARAS TABLE (PDF Page 3) */}
       {activeTab === 'samvatsara' && (
         <div className="no-print rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-700 pb-3">

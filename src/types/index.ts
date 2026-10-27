@@ -26,6 +26,55 @@ export interface Festival {
   poojaSamagri?: LocalizedString[]; // Items required for Pooja and Kalasha Sthapana
   ritualTimings?: RitualTimingItem[]; // Chronological ritual guide with timings throughout the day
   isNavaratri?: boolean;
+  navaratriColor?: {
+    colorName: LocalizedString;
+    hex: string;
+    significance: LocalizedString;
+  };
+}
+
+export interface TithiTimingInfo {
+  startTime: string; // e.g. "Oct 18, 08:18 AM"
+  endTime: string;   // e.g. "Oct 19, 10:48 AM"
+  startDateTime: string; // ISO 8601
+  endDateTime: string;   // ISO 8601
+  startTimeFormatted: LocalizedString; // Localized formatted string
+  endTimeFormatted: LocalizedString;   // Localized formatted string
+  isPrevDayStart: boolean;
+  isNextDayEnd: boolean;
+  durationHours: number;
+  durationFormatted: LocalizedString; // e.g. "26 hrs 30 mins" / "೨೬ ಗಂಟೆ ೩೦ ನಿಮಿಷ"
+  nextTithiName: LocalizedString;
+  summary: LocalizedString;
+}
+
+export interface PadaTimingInfo {
+  padaNumber: number;
+  nakshatraName: LocalizedString;
+  startTime: string;
+  endTime: string;
+  startDateTime: string;
+  endDateTime: string;
+  startDateFormatted: LocalizedString;
+  endDateFormatted: LocalizedString;
+  durationMinutes: number;
+  durationHours: number;
+  durationFormatted: LocalizedString;
+  charanaLetter: string;
+}
+
+export interface NakshatraTimingInfo {
+  nakshatraNumber: number;
+  nakshatraName: LocalizedString;
+  startTime: string;
+  endTime: string;
+  startDateTime: string;
+  endDateTime: string;
+  startDateFormatted: LocalizedString;
+  endDateFormatted: LocalizedString;
+  durationMinutes: number;
+  durationHours: number;
+  durationFormatted: LocalizedString;
 }
 
 export interface PanchangaDay {
@@ -47,11 +96,14 @@ export interface PanchangaDay {
   tithiNumber: number; // 1 to 15
   tithiName: LocalizedString;
   tithiSanskrit: string;
+  tithiTiming?: TithiTimingInfo;
   vara: LocalizedString;
   varaIndex: number; // 0 (Sunday) - 6 (Saturday)
   nakshatra: LocalizedString;
   nakshatraIndex: number;
+  nakshatraTiming?: NakshatraTimingInfo;
   pada: number;
+  padaTiming?: PadaTimingInfo;
   charanaLetter: string;
   yoga: LocalizedString;
   karana: LocalizedString;
@@ -99,6 +151,14 @@ export interface PanchangaDay {
     end: string;
   };
   godhuliMuhurta: {
+    start: string;
+    end: string;
+  };
+  durmuhurta?: {
+    start: string;
+    end: string;
+  };
+  varjyam?: {
     start: string;
     end: string;
   };
@@ -161,6 +221,8 @@ export interface PlanetPosition {
   isRetrograde: boolean;
   bhava: number; // 1 to 12
   isLordOf: number[];
+  color?: string;
+  speed?: number; // Daily motion in degrees per day (negative indicates retrograde / vakri)
 }
 
 export interface KundaliData {

@@ -249,7 +249,16 @@ export const FESTIVALS_CATALOG: Festival[] = [
         }
       }
     ],
-    isNavaratri: true
+    isNavaratri: true,
+    navaratriColor: {
+      colorName: { en: 'Yellow (Haldi / Pitambari)', kn: 'ಹಳದಿ (ಪೀತಾಂಬರಿ)', hi: 'पीला (पीताम्बरी)' },
+      hex: '#eab308',
+      significance: {
+        en: 'Radiance, joyful beginnings, divine knowledge, and solar energy dedicated to Goddess Shailaputri.',
+        kn: 'ಜ್ಞಾನ, ತೇಜಸ್ಸು ಮತ್ತು ಶುಭಾರಂಭದ ಸಂಕೇತ; ಶೈಲಪುತ್ರಿ ದೇವಿಗೆ ಪ್ರಿಯವಾದ ಹಳದಿ ಬಣ್ಣ.',
+        hi: 'ऊर्जा, आनंद, ज्ञान एवं शुभता का प्रतीक; माँ शैलपुत्री का प्रिय पीत वर्ण।'
+      }
+    }
   },
   {
     id: 'navaratri_day2',
@@ -289,7 +298,16 @@ export const FESTIVALS_CATALOG: Festival[] = [
         hi: 'दुर्गा सप्तशती के तृतीय एवं चतुर्थ अध्याय का पाठ कर १०८ बार नवार्ण मन्त्र जपें।'
       }
     ],
-    isNavaratri: true
+    isNavaratri: true,
+    navaratriColor: {
+      colorName: { en: 'Green (Pachhe / Harit)', kn: 'ಹಸಿರು (ಪಚ್ಚೆ ವರ್ಣ)', hi: 'हरा (हरित वर्ण)' },
+      hex: '#16a34a',
+      significance: {
+        en: 'Penance, growth, auspicious renewal, and harmony dedicated to Goddess Brahmacharini.',
+        kn: 'ತಪಸ್ಸು, ಪ್ರಕೃತಿ ಸಮೃದ್ಧಿ ಹಾಗೂ ಮನಶ್ಶಾಂತಿಯ ಸಂಕೇತ; ಬ್ರಹ್ಮಚಾರಿಣಿ ದೇವಿಗೆ ಪ್ರಿಯವಾದ ಹಸಿರು ಬಣ್ಣ.',
+        hi: 'तपस्या, संवृद्धि, शांति एवं नवजीवन का प्रतीक; माँ ब्रह्मचारिणी का प्रिय हरा वर्ण।'
+      }
+    }
   },
   {
     id: 'navaratri_day3',
@@ -329,7 +347,16 @@ export const FESTIVALS_CATALOG: Festival[] = [
         hi: 'सप्तशती के पंचम अध्याय का पाठ कर गाय के दूध की खीर का भोग लगाएँ।'
       }
     ],
-    isNavaratri: true
+    isNavaratri: true,
+    navaratriColor: {
+      colorName: { en: 'Grey (Bhasma / Dhumra)', kn: 'ಬೂದು / ಕಂದು (ಧೂಮ್ರ ವರ್ಣ)', hi: 'धूसर (ग्रे / धूम्र वर्ण)' },
+      hex: '#64748b',
+      significance: {
+        en: 'Fearlessness, destruction of evil tendencies, and emotional balance dedicated to Goddess Chandraghanta.',
+        kn: 'ನಿರ್ಭಯತೆ, ಶತ್ರುನಾಶ ಮತ್ತು ಮನೋನಿಗ್ರಹದ ಸಂಕೇತ; ಚಂದ್ರಘಂಟಾ ದೇವಿಗೆ ಪ್ರಿಯವಾದ ಬಣ್ಣ.',
+        hi: 'निर्भयता, बुराई का शमन एवं संतुलन का प्रतीक; माँ चन्द्रघण्टा का प्रिय धूसर वर्ण।'
+      }
+    }
   },
   {
     id: 'navaratri_day4',
@@ -369,7 +396,16 @@ export const FESTIVALS_CATALOG: Festival[] = [
         hi: 'सप्तशती के षष्ठ अध्याय का पाठ करें।'
       }
     ],
-    isNavaratri: true
+    isNavaratri: true,
+    navaratriColor: {
+      colorName: { en: 'Orange (Kavadi / Kesari)', kn: 'ಕಿತ್ತಳೆ (ಕೇಸರಿ / ನಾರಂಗಿ)', hi: 'नारंगी (केसरिया)' },
+      hex: '#ea580c',
+      significance: {
+        en: 'Cosmic illumination, vitality, enthusiasm, and spiritual warmth dedicated to Goddess Kushmanda.',
+        kn: 'ಬ್ರಹ್ಮಾಂಡದ ಸೂರ್ಯ ತೇಜಸ್ಸು, ಉತ್ಸಾಹ ಮತ್ತು ಚೈತನ್ಯದ ಸಂಕೇತ; ಕೂಷ್ಮಾಂಡಾ ದೇವಿಯ ಪ್ರಿಯ ವರ್ಣ.',
+        hi: 'सौर तेज, स्फूर्ति, नवचेतना एवं उल्लास का प्रतीक; माँ कूष्माण्डा का प्रिय नारंगी वर्ण।'
+      }
+    }
   },
   {
     id: 'navaratri_day5',
@@ -409,7 +445,16 @@ export const FESTIVALS_CATALOG: Festival[] = [
         hi: 'सप्तम अध्याय का पाठ कर पीले पुष्पों से माँ की अर्चना करें।'
       }
     ],
-    isNavaratri: true
+    isNavaratri: true,
+    navaratriColor: {
+      colorName: { en: 'White (Shweta / Shubhra)', kn: 'ಬಿಳಿ (ಧವಳ ಶ್ವೇತ)', hi: 'श्वेत (सफेद)' },
+      hex: '#f8fafc',
+      significance: {
+        en: 'Pristine maternal love, peace, purity, and spiritual elevation dedicated to Goddess Skandamata.',
+        kn: 'ಮಾತೃ ವಾತ್ಸಲ್ಯ, ಪರಮ ಶಾಂತಿ ಹಾಗೂ ಶುದ್ಧತೆಯ ಸಂಕೇತ; ಸ್ಕಂದಮಾತೆಗೆ ಪ್ರಿಯವಾದ ಶ್ವೇತ ವರ್ಣ.',
+        hi: 'मातृत्व, वात्सल्य, परम शांति एवं शुचिता का प्रतीक; माँ स्कन्दमाता का प्रिय श्वेत वर्ण।'
+      }
+    }
   },
   {
     id: 'navaratri_day6',
@@ -449,7 +494,16 @@ export const FESTIVALS_CATALOG: Festival[] = [
         hi: 'अष्टम अध्याय का पाठ कर शुद्ध मधु (शहद) का नैवेद्य अर्पित करें।'
       }
     ],
-    isNavaratri: true
+    isNavaratri: true,
+    navaratriColor: {
+      colorName: { en: 'Red (Kunkuma / Rakta)', kn: 'ಕೆಂಪು (ಕುಂಕುಮ ರಕ್ತವರ್ಣ)', hi: 'लाल (रक्त वर्ण)' },
+      hex: '#dc2626',
+      significance: {
+        en: 'Warrior valor, intense passion, vanquishing enemies, and marital bliss dedicated to Goddess Katyayani.',
+        kn: 'ವೀರತೆ, ಸಾಹಸ, ಶತ್ರುನಾಶ ಮತ್ತು ಮಾಂಗಲ್ಯ ಭಾಗ್ಯದ ಸಂಕೇತ; ಕಾತ್ಯಾಯನಿ ದೇವಿಯ ಪ್ರಿಯ ಕೆಂಪು ಬಣ್ಣ.',
+        hi: 'शौर्य, पराक्रम, शत्रुनाश एवं सुखद वैवाहिक जीवन का प्रतीक; माँ कात्यायनी का प्रिय लाल वर्ण।'
+      }
+    }
   },
   {
     id: 'navaratri_day7',
@@ -489,7 +543,16 @@ export const FESTIVALS_CATALOG: Festival[] = [
         hi: 'नवम व दशम अध्याय का पाठ कर गुड़ का भोग लगाएँ।'
       }
     ],
-    isNavaratri: true
+    isNavaratri: true,
+    navaratriColor: {
+      colorName: { en: 'Royal Blue (Neela)', kn: 'ನೀಲಿ (ರಾಜ ನೀಲ)', hi: 'नीला (रॉयल ब्लू)' },
+      hex: '#1d4ed8',
+      significance: {
+        en: 'Immense cosmic depth, tranquility, supreme protection, and victory over darkness dedicated to Goddess Kalaratri.',
+        kn: 'ಅನಂತ ಆಕಾಶದ ಗಾಂಭೀರ್ಯ, ರಕ್ಷಣೆ ಮತ್ತು ಅಂಧಕಾರ ನಾಶದ ಸಂಕೇತ; ಕಾಳರಾತ್ರಿ ದೇವಿಯ ಪ್ರಿಯ ನೀಲಿ ಬಣ್ಣ.',
+        hi: 'गंभीरता, अभय, दिव्य संरक्षण एवं तमोनाश का प्रतीक; माँ कालरात्रि का प्रिय गहरा नील वर्ण।'
+      }
+    }
   },
   {
     id: 'navaratri_day8',
@@ -529,7 +592,16 @@ export const FESTIVALS_CATALOG: Festival[] = [
         hi: 'रात्रि में अष्टम अध्याय का पाठ कर कूष्माण्ड फल काटकर सात्त्विक बलि समर्पित करें।'
       }
     ],
-    isNavaratri: true
+    isNavaratri: true,
+    navaratriColor: {
+      colorName: { en: 'Pink (Gulabi / Patala)', kn: 'ಗುಲಾಬಿ (ಪಾಟಲ ವರ್ಣ)', hi: 'गुलाबी (पाटला वर्ण)' },
+      hex: '#db2777',
+      significance: {
+        en: 'Grace, compassion, hope, auspicious beauty, and self-purification dedicated to Goddess Mahagauri.',
+        kn: 'ದಯೆ, ಕರುಣೆ, ಸೌಂದರ್ಯ ಮತ್ತು ಆತ್ಮಶುದ್ಧಿಯ ಸಂಕೇತ; ಮಹಾಗೌರಿಗೆ ಪ್ರಿಯವಾದ ಗುಲಾಬಿ ಬಣ್ಣ.',
+        hi: 'करुणा, स्नेह, सौंदर्य, आशा एवं आत्मशुद्धि का प्रतीक; माँ महागौरी का प्रिय गुलाबी वर्ण।'
+      }
+    }
   },
   {
     id: 'navaratri_day9',
@@ -569,7 +641,16 @@ export const FESTIVALS_CATALOG: Festival[] = [
         hi: 'एकादश, द्वादश व त्रयोदश अध्याय का पाठ कर चण्डी पूर्णाहुति करें।'
       }
     ],
-    isNavaratri: true
+    isNavaratri: true,
+    navaratriColor: {
+      colorName: { en: 'Purple / Violet (Jamboola)', kn: 'ನೇರಳೆ (ಜಾಂಬೂಲ ವರ್ಣ)', hi: 'बैंगनी (जाम्बुल वर्ण)' },
+      hex: '#7c3aed',
+      significance: {
+        en: 'Mystical wisdom, supernatural attainment (Ashta Siddhis), and supreme spiritual sovereignty dedicated to Goddess Siddhidatri.',
+        kn: 'ಅಷ್ಟಸಿದ್ಧಿಗಳು, ದೈವಿಕ ಜ್ಞಾನ ಮತ್ತು ಆಧ್ಯಾತ್ಮಿಕ ಪರಿಪೂರ್ಣತೆಯ ಸಂಕೇತ; ಸಿದ್ಧಿದಾತ್ರಿ ದೇವಿಯ ಪ್ರಿಯ ನೇರಳೆ ಬಣ್ಣ.',
+        hi: 'अष्ट-सिद्धि, गूढ़ आध्यात्मिक ज्ञान एवं संप्रभुता का प्रतीक; माँ सिद्धिदात्री का प्रिय बैंगनी वर्ण।'
+      }
+    }
   },
   {
     id: 'navaratri_day10',
@@ -609,7 +690,16 @@ export const FESTIVALS_CATALOG: Festival[] = [
         hi: 'समापन स्तोत्र पाठ कर, उत्तर दिशा में कलश हिलाकर विधिपूर्वक विसर्जन सम्पन्न करें।'
       }
     ],
-    isNavaratri: true
+    isNavaratri: true,
+    navaratriColor: {
+      colorName: { en: 'Golden Yellow / Bright Amber', kn: 'ಚಿನ್ನದ ಹಳದಿ (ಸ್ವರ್ಣಾಂಬರಿ)', hi: 'स्वर्णिम पीत (अम्बर)' },
+      hex: '#d97706',
+      significance: {
+        en: 'Glorious triumph of righteousness, supreme prosperity, Vijaya, and auspicious completion.',
+        kn: 'ವಿಜಯೋತ್ಸವ, ಸಕಲ ಕಾರ್ಯ ಜಯ ಹಾಗೂ ಅಧರ್ಮದ ಮೇಲಿನ ಧರ್ಮದ ಶಾಶ್ವತ ಗೆಲುವಿನ ಸಂಕೇತ; ಅಪರಾಜಿತಾ ದೇವಿಯ ಸ್ವರ್ಣ ವರ್ಣ.',
+        hi: 'धर्म की विजय, अपराजिता शक्ति, समृद्धि एवं कार्यसिद्धि का प्रतीक; स्वर्ण पीत वर्ण।'
+      }
+    }
   },
 
   // -------------------------------------------------------------
@@ -1391,8 +1481,182 @@ export const FESTIVALS_CATALOG: Festival[] = [
       {
         en: '4. Pongal ingredients: Raw rice, Moong dal, Jaggery, Ghee, Cashews, Cardamom',
         kn: '೪. ಸಿಹಿ ಪೊಂಗಲ್ ಪದಾರ್ಥಗಳು: ಹೊಸ ಅಕ್ಕಿ, ಹೆಸರುಬೇಳೆ, ಬೆಲ್ಲ, ತುಪ್ಪ, ಗೋಡಂಬಿ, ದ್ರಾಕ್ಷಿ, ಏಲಕ್ಕಿ',
-        hi: '೪. खिचड़ी व पोंगल सामग्री (चावल, मूंग दाल, गुड़, घृत)'
+        hi: '४. खिचड़ी व पोंगल सामग्री (चावल, मूंग दाल, गुड़, घृत)'
+      }
+    ]
+  },
+  {
+    id: 'sri_rama_navami',
+    name: {
+      en: 'Sri Rama Navami (Chaitra Shukla 9)',
+      kn: 'ಶ್ರೀ ರಾಮನವಮಿ (ಚೈತ್ರ ಶುಕ್ಲ ನವಮಿ)',
+      hi: 'श्री राम नवमी (चैत्र शुक्ल नवमी)'
+    },
+    tagColor: '#ea580c',
+    badgeBg: 'bg-orange-500/15 text-orange-800 dark:text-orange-300 border-orange-500/30',
+    shortDesc: {
+      en: 'Celebration of the birth of Lord Sri Rama, seventh avatar of Vishnu, born at midday in Punarvasu Nakshatra.',
+      kn: 'ಮಧ್ಯಾಹ್ನ ಕರ್ಕಾಟಕ ಲಗ್ನ ಪುನರ್ವಸು ನಕ್ಷತ್ರದಲ್ಲಿ ಅವತರಿಸಿದ ಮರ್ಯಾದಾ ಪುರುಷೋತ್ತಮ ಶ್ರೀರಾಮಚಂದ್ರನ ಜನ್ಮದಿನೋತ್ಸವ; ಪಾನಕ-ಕೋಸಂಬರಿ ಸಮರ್ಪಣೆ.',
+      hi: 'मर्यादा पुरुषोत्तम भगवान श्री राम का मध्याह्न प्राकट्योत्सव एवं राम जन्मोत्सव।'
+    },
+    howCelebrated: {
+      en: 'Devotees chant Rama Nama, read the Valmiki Ramayana, prepare Panaka (jaggery-cardamom beverage), Majjige (spiced buttermilk), and Kosambari (soaked lentil salad) and offer to all.',
+      kn: 'ಮನೆಯಲ್ಲಿ ಸೀತಾ-ರಾಮ-ಲಕ್ಷ್ಮಣ-ಹನುಮಂತನ ಪೂಜೆ, ರಾಮ ರಕ್ಷಾ ಸ್ತೋತ್ರ ಪಠಣ, ತಂಪಾದ ಬೆಲ್ಲದ ಪಾನಕ, ಮಜ್ಜಿಗೆ ಹಾಗೂ ಹೆಸರುಬೇಳೆ ಕೋಸಂಬರಿ ನೈವೇದ್ಯ ಮಾಡಿ ಹಂಚುವುದು.',
+      hi: 'श्री राम रक्षा स्तोत्र, रामायण पाठ, मध्याह्न में आरती एवं शीतल पना-कोसम्बिरी प्रसाद वितरण।'
+    },
+    story: {
+      en: 'Born to King Dasharatha and Queen Kausalya in Ayodhya to destroy Adharma and protect righteousness, Lord Rama epitomizes truth, duty, and filial devotion.',
+      kn: 'ಅಧರ್ಮವನ್ನು ನಾಶಪಡಿಸಿ, ಸತ್ಯ ಮತ್ತು ಧರ್ಮವನ್ನು ನೆಲೆಗೊಳಿಸಲು ಅಯೋಧ್ಯೆಯ ದಶರಥ-ಕೌಸಲ್ಯೆಯರ ಪುತ್ರನಾಗಿ ಚೈತ್ರ ಶುಕ್ಲ ನವಮಿಯಂದು ಶ್ರೀರಾಮನು ಅವತರಿಸಿದನು.',
+      hi: 'अयोध्या में धर्म स्थापना हेतु दशरथ-कौशल्या के यहाँ भगवान विष्णु का श्रीराम रूप में अवतार।'
+    },
+    mantras: [
+      {
+        en: 'Sri Rama Rama Rameti Rame Rame Manorame, Sahasranama Tattulyam Rama Nama Varanane',
+        kn: 'ಶ್ರೀರಾಮ ರಾಮ ರಾಮೇತಿ ರಮೇ ರಾಮೇ ಮನೋರಮೇ | ಸಹಸ್ರನಾಮ ತತ್ತುಲ್ಯಂ ರಾಮನಾಮ ವರಾನನೇ ||',
+        hi: 'श्रीराम राम रामेति रमे रामे मनोरमे । सहस्रनाम तत्तुल्यं रामनाम वरानने ॥'
+      },
+      {
+        en: 'Om Sri Ramaya Namah',
+        kn: 'ಓಂ ಶ್ರೀ ರಾಮಾಯ ನಮಃ',
+        hi: 'ॐ श्री रामाय नमः'
+      }
+    ],
+    poojaVidhi: [
+      {
+        en: 'Midday Abhisheka with Panchamrita, chant Sri Rama Raksha Stotra at 12:00 PM, and distribute Panaka-Kosambari.',
+        kn: 'ಮಧ್ಯಾಹ್ನ ೧೨ ಗಂಟೆಗೆ ರಾಮನಿಗೆ ಪಂಚಾಮೃತಾಭಿಷೇಕ, ರಾಮರಕ್ಷಾ ಸ್ತೋತ್ರ ಪಾರಾಯಣ ಮತ್ತು ತೊಟ್ಟಿಲೋತ್ಸವ.',
+        hi: 'मध्याह्न १२ बजे श्रीराम का अभिषेक, जन्मोत्सव आरती एवं पना वितरण।'
+      }
+    ],
+    poojaSamagri: [
+      {
+        en: '1. Jaggery, lemon, and cardamom for sacred Panaka drink',
+        kn: '೧. ಬೆಲ್ಲ, ಏಲಕ್ಕಿ, ಶುಂಠಿ ಮತ್ತು ನಿಂಬೆಹಣ್ಣು (ಪಾನಕ ತಯಾರಿಸಲು)',
+        hi: '१. गुड़, नींबू एवं इलायची (शीतल पना हेतु)'
+      },
+      {
+        en: '2. Split yellow moong dal, cucumber, and green chilies for Kosambari',
+        kn: '೨. ಹೆಸರುಬೇಳೆ, ಸೌತೆಕಾಯಿ, ಹಸಿಮೆಣಸು, ಕೊತ್ತಂಬರಿ (ಕೋಸಂಬರಿಗಾಗಿ)',
+        hi: '२. मूंग दाल एवं ककड़ी (कोसम्बिरी हेतु)'
+      },
+      {
+        en: '3. Fresh Tulasi garlands and lotus flowers for Sri Rama idol',
+        kn: '೩. ತುಳಸಿ ಮಾಲೆ, ಕಮಲದ ಹೂವು ಮತ್ತು ಗಂಧ-ಅಕ್ಷತೆ',
+        hi: '३. तुलसी माला, कमल पुष्प एवं चन्दन'
+      }
+    ]
+  },
+  {
+    id: 'hanuman_jayanti',
+    name: {
+      en: 'Hanuman Jayanti (Chaitra Purnima)',
+      kn: 'ಹನುಮಜ್ಜಯಂತಿ (ಚೈತ್ರ ಹುಣ್ಣಿಮೆ)',
+      hi: 'हनुमान जन्मोत्सव (चैत्र पूर्णिमा)'
+    },
+    tagColor: '#dc2626',
+    badgeBg: 'bg-red-500/15 text-red-800 dark:text-red-300 border-red-500/30',
+    shortDesc: {
+      en: 'Birth celebration of Lord Hanuman, the supreme devotee of Lord Rama, born on Chaitra Purnima.',
+      kn: 'ಪರಮ ರಾಮಭಕ್ತ, ವಾಯುಪುತ್ರ, ಚಿರಂಜೀವಿ ಶ್ರೀ ಹನುಮಂತನ ಜಯಂತಿ; ಸಿಂಧೂರ ಪೂಜೆ ಮತ್ತು ವಡೆಮಾಲೆ ಸಮರ್ಪಣೆ.',
+      hi: 'परम रामभक्त, संकटमोचन श्री हनुमान का जन्मोत्सव; सिन्दूर एवं वड़ामाला अर्पण।'
+    },
+    howCelebrated: {
+      en: 'Chanting Hanuman Chalisa 108 times, offering betel leaf garlands (Tamla mala) or Vada mala, and applying sacred Sindhoora.',
+      kn: 'ಹನುಮಾನ್ ಚಾಲೀಸಾ ಪಠಣ, ವೀಳ್ಯದೆಲೆ ಹಾರ ಅಥವಾ ವಡೆಮಾಲೆ ಅರ್ಪಣೆ, ಸಿಂಧೂರ ಲೇಪನ ಮತ್ತು ಬಾಳೆಹಣ್ಣು-ಬೆಣ್ಣೆ ನೈವೇದ್ಯ.',
+      hi: 'हनुमान चालीसा, सुन्दरकाण्ड पाठ, सिन्दूर चोला एवं बूंदी/लड्डू भोग।'
+    },
+    story: {
+      en: 'Born to Anjana and Kesari with blessings of Vayu Deva, Hanuman personifies selfless service, unwavering loyalty, and limitless strength.',
+      kn: 'ಅಂಜನಾದೇವಿ ಮತ್ತು ಕೇಸರಿಯ ಪುತ್ರನಾಗಿ, ವಾಯುದೇವರ ಅಂಶದಿಂದ ಅವತರಿಸಿದ ಹನುಮಂತನು ಅಪ್ರತಿಮ ಭಕ್ತಿ ಮತ್ತು ಶೌರ್ಯದ ಪ್ರತೀಕ.',
+      hi: 'माता अञ्जना एवं केसरी के यहाँ वायुदेव के आशीर्वाद से संकटमोचन हनुमान का प्राकट्य।'
+    },
+    mantras: [
+      {
+        en: 'Manojavam Marutatulyavegam Jitendriyam Buddhimatam Varishtham, Vatatmajam Vanarayuthamukhyam Sriramadutam Sharanam Prapadye',
+        kn: 'ಮನೋಜವಂ ಮಾರುತತುಲ್ಯವೇಗಂ ಜಿತೇಂದ್ರಿಯಂ ಬುದ್ಧಿಮತಾಂ ವರಿಷ್ಠಮ್ | ವಾತಾತ್ಮಜಂ ವಾನರಯೂಥಮುಖ್ಯಂ ಶ್ರೀರಾಮದೂತಂ ಶರಣಂ ಪ್ರಪದ್ಯೇ ||',
+        hi: 'मनोजवं मारुततुल्यवेगं जितेन्द्रियं बुद्धिमतां वरिष्ठम् । वातात्मजं वानरयूथमुख्यं श्रीरामदूतं शरणं प्रपद्ये ॥'
+      }
+    ],
+    poojaVidhi: [
+      {
+        en: 'Abhisheka with sacred water, apply pure orange Sindhoora with jasmine oil, offer betel leaves garland, chant Hanuman Chalisa.',
+        kn: 'ಹನುಮಂತನಿಗೆ ಪಂಚಾಮೃತಾಭಿಷೇಕ, ಚಮೇಲಿ ತೈಲ ಸಹಿತ ಸಿಂಧೂರ ಲೇಪನ, ವೀಳ್ಯದೆಲೆ ಹಾರ ಸಮರ್ಪಿಸಿ ಹನುಮಾನ್ ಚಾಲೀಸಾ ಪಠಿಸಿ.',
+        hi: 'चमेली तेल व सिन्दूर का चोला चढ़ाएं, पान का बीड़ा व वड़ामाला अर्पित करें।'
+      }
+    ],
+    poojaSamagri: [
+      {
+        en: '1. Pure orange Sindhoora (Vermilion) and Jasmine oil',
+        kn: '೧. ಶುದ್ಧ ಕೇಸರಿ ಸಿಂಧೂರ ಮತ್ತು ಪರಿಮಳಯುಕ್ತ ಚಮೇಲಿ ಎಣ್ಣೆ',
+        hi: '१. सिन्दूर एवं चमेली का तेल'
+      },
+      {
+        en: '2. 108 fresh betel leaves with stalk for garland',
+        kn: '೨. ತೊಟ್ಟು ಇರುವ ೧೦೮ ತಾಜಾ ವೀಳ್ಯದೆಲೆಗಳು (ಹಾರ ತಯಾರಿಸಲು)',
+        hi: '२. १०८ ताजे पान के पत्ते (माला हेतु)'
+      },
+      {
+        en: '3. Bananas, butter, and Jaggery Boondi / Besan Laddus',
+        kn: '೩. ಬೆಣ್ಣೆ, ಬಾಳೆಹಣ್ಣು, ಕಡಲೆಹಿಟ್ಟಿನ ಬೂಂದಿ ಲಡ್ಡು',
+        hi: '३. बूंदी के लड्डू, माखन एवं केला'
+      }
+    ]
+  },
+  {
+    id: 'vara_mahalakshmi',
+    name: {
+      en: 'Vara Mahalakshmi Vrata (Shravana Shukla Friday)',
+      kn: 'ವರಮಹಾಲಕ್ಷ್ಮಿ ವ್ರತ (ಶ್ರಾವಣ ಶುಕ್ಲ ಶುಕ್ರವಾರ)',
+      hi: 'वरमहालक्ष्मी व्रत (श्रावण शुक्ल शुक्रवार)'
+    },
+    tagColor: '#ec4899',
+    badgeBg: 'bg-pink-500/15 text-pink-800 dark:text-pink-300 border-pink-500/30',
+    shortDesc: {
+      en: 'Auspicious Friday before Shravana Purnima: Women worship Goddess Lakshmi for health, wealth, and family longevity.',
+      kn: 'ಶ್ರಾವಣ ಮಾಸದ ಹುಣ್ಣಿಮೆಗೆ ಮುಂಚಿನ ಶುಕ್ರವಾರ ಜಗನ್ಮಾತೆ ವರಮಹಾಲಕ್ಷ್ಮಿಯ ಆರಾಧನೆ; ಸುಮಂಗಲೆಯರ ಪವಿತ್ರ ವ್ರತ ಮತ್ತು ನೋಂಪು.',
+      hi: 'श्रावण पूर्णिमा पूर्व शुक्रवार: सौभाग्य, आरोग्य व ऐश्वर्य हेतु माँ वरमहालक्ष्मी का महाव्रत।'
+    },
+    howCelebrated: {
+      en: 'Installing Lakshmi Kalasha draped with silk sari, tying sacred yellow nonbu thread (Dorak), exchanging tambula and sweets.',
+      kn: 'ಕಲಶದಲ್ಲಿ ದೇವಿಯ ಮುಖವಾಡವಿಟ್ಟು, ರೇಷ್ಮೆ ಸೀರೆ ಉಡಿಸಿ, ಅರಿಶಿನದ ದಾರ (ನೋಂಪಿನ ದಾರ) ಪೂಜಿಸಿ ಕೈಗೆ ಕಟ್ಟಿಕೊಳ್ಳುವುದು; ಮುತ್ತೈದೆಯರಿಗೆ ಬಾಗಿನ ನೀಡುವುದು.',
+      hi: 'कलश पर देवी का मुखौटा व रेशमी साड़ी पहनाकर पूजन, रक्षा सूत्र धारण एवं सुहागिनों को बायना।'
+    },
+    story: {
+      en: 'Revealed by Lord Shiva to Goddess Parvati, this vrata was observed by the pious Charumati who was blessed with immense prosperity.',
+      kn: 'ಪರಮೇಶ್ವರನು ಪಾರ್ವತಿ ದೇವಿಗೆ ಉಪದೇಶಿಸಿದ ವ್ರತ. ಸದಾಚಾರ ಸಂಪನ್ನೆಯಾದ ಚಾರುಮತಿಯು ಈ ವ್ರತವನ್ನಾಚರಿಸಿ ಸಕಲ ಸಂಪತ್ತು ಪಡೆದಳು.',
+      hi: 'भगवान शिव द्वारा माता पार्वती को उपदिष्ट व्रत; भक्त चारुमति को अष्टैश्वर्य की प्राप्ति।'
+    },
+    mantras: [
+      {
+        en: 'Lakshmi Ksheerasamudra Raja Tanayam Sriranga Dhaameshvareem, Dasibhoota Samasta Deva Vanitam Lokaika Deepankuram',
+        kn: 'ಲಕ್ಷ್ಮೀಂ ಕ್ಷೀರಸಮುದ್ರ ರಾಜತನಯಾಂ ಶ್ರೀರಂಗ ಧಾಮೇಶ್ವರೀಂ | ದಾಸೀಭೂತ ಸಮಸ್ತ ದೇವ ವನಿತಾಂ ಲೋಕೈಕ ದೀಪಾಂಕುರಾಮ್ ||',
+        hi: 'लक्ष्मीं क्षीरसमुद्र राजतनयां श्रीरङ्ग धामेश्वरीम् । दासीभूत समस्त देव वनितां लोकैक दीपाङ्कुराम् ॥'
+      }
+    ],
+    poojaVidhi: [
+      {
+        en: 'Kalasha Sthapana with coconut face idol, 16 Upacharas, tying 9-knot yellow thread, Bagina dana to married women.',
+        kn: 'ಬೆಳಗ್ಗೆ ಕಲಶ ಸ್ಥಾಪಿಸಿ ದೇವಿಗೆ ೧೬ ಉಪಚಾರಗಳ ಪೂಜೆ, ೯ ಗಂಟುಗಳ ವ್ರತದ ದಾರ ಕಂಕಣಧಾರಣೆ, ಮುತ್ತೈದೆಯರಿಗೆ ಬಾಗಿನ ಸಮರ್ಪಣೆ.',
+        hi: 'प्रातः कलश स्थापना, षोडशोपचार पूजन, नवग्रंथि युक्त रक्षा सूत्र धारण एवं बायना समर्पण।'
+      }
+    ],
+    poojaSamagri: [
+      {
+        en: '1. Silver/brass Lakshmi face idol and miniature silk sari',
+        kn: '೧. ಲಕ್ಷ್ಮಿ ದೇವಿಯ ಬೆಳ್ಳಿ ಅಥವಾ ಲೋಹದ ಮುಖವಾಡ ಮತ್ತು ರೇಷ್ಮೆ ಕಣ/ಸೀರೆ',
+        hi: '१. महालक्ष्मी का मुखौटा एवं चुनरी'
+      },
+      {
+        en: '2. Sacred yellow cotton thread with 9 knots (Nonbu Daara)',
+        kn: '೨. ಒಂಬತ್ತು ಗಂಟುಗಳಿರುವ ಅರಿಶಿನ ಹಚ್ಚಿದ ನೋಂಪಿನ ದಾರ (ಕಂಕಣ)',
+        hi: '२. नौ गांठों वाला पीला रक्षा सूत्र'
+      },
+      {
+        en: '3. Bagina set: Morada bagina with 5 auspicious items and blouse piece',
+        kn: '೩. ಮೊರದ ಬಾಗಿನ (ಅಕ್ಕಿ, ತೊಗರಿ, ಬೆಲ್ಲ, ಕುಂಕುಮ, ಗಾಜಿನ ಬಳೆ, ಕನ್ನಡಿ)',
+        hi: '३. सुहाग पिटारी एवं बायना सामग्री'
       }
     ]
   }
 ];
+
