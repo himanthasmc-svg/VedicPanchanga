@@ -35,6 +35,7 @@ import { MoonPhaseIcon } from './MoonPhaseIcon';
 import { NavaratriColorsFeature } from './NavaratriColorsFeature';
 import { NavaratriRitualsModal } from './NavaratriRitualsModal';
 import { AstroDetailWindows } from './AstroDetailWindows';
+import { InlineDayDetailPanel } from './InlineDayDetailPanel';
 import { Activity } from 'lucide-react';
 import { 
   fetchDailyAstrologicalTip, 
@@ -84,6 +85,34 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [isGeneratingInsight, setIsGeneratingInsight] = useState<boolean>(false);
   const [copiedTip, setCopiedTip] = useState<boolean>(false);
   const [isSpeakingTip, setIsSpeakingTip] = useState<boolean>(false);
+
+  // Inline Details State: Shows full details below the clicked button/cell instead of middle popup
+  const [inlineSelectedDay, setInlineSelectedDay] = useState<PanchangaDay | null>(null);
+  const [inlineSelectedFestival, setInlineSelectedFestival] = useState<Festival | null>(null);
+  const [inlineActiveTab, setInlineActiveTab] = useState<'panchanga' | 'moonGowri' | 'rituals' | 'festivalDetail' | 'dasha'>('panchanga');
+  const [inlineAnchor, setInlineAnchor] = useState<'quickToday' | 'grid' | 'festivalsList' | null>(null);
+
+  const handleDayClick = (dayObj: PanchangaDay, anchor: 'quickToday' | 'grid' | 'festivalsList' = 'grid') => {
+    setInlineSelectedDay(dayObj);
+    setInlineSelectedFestival(dayObj.festivals.length > 0 ? dayObj.festivals[0] : null);
+    setInlineActiveTab(dayObj.festivals.length > 0 ? 'festivalDetail' : 'panchanga');
+    setInlineAnchor(anchor);
+    setTimeout(() => {
+      const el = document.getElementById(`inline-anchor-${anchor}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 60);
+  };
+
+  const handleFestivalClick = (fest: Festival, dayObj: PanchangaDay, anchor: 'quickToday' | 'grid' | 'festivalsList' = 'grid') => {
+    setInlineSelectedDay(dayObj);
+    setInlineSelectedFestival(fest);
+    setInlineActiveTab('festivalDetail');
+    setInlineAnchor(anchor);
+    setTimeout(() => {
+      const el = document.getElementById(`inline-anchor-${anchor}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 60);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -613,9 +642,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
               <button
                 type="button"
-                onClick={() => onSelectDay(todayPanchangaDay)}
+                onClick={() => handleDayClick(todayPanchangaDay, 'quickToday')}
                 className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer ml-1"
-                title="Open detailed Day View with Timeline, Rituals & Muhurta"
+                title="Open detailed Day View with Timeline, Rituals & Muhurta below"
               >
                 <Clock className="w-3.5 h-3.5" />
                 <span>{currentLang === 'kn' ? 'ಇಂದಿನ ವಿವರ' : currentLang === 'hi' ? 'आज का विवरण' : "View Today's Details"}</span>
@@ -671,6 +700,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Inline Day Details anchored directly below Quick Today Card */}
+      <div id="inline-anchor-quickToday">
+        {inlineSelectedDay && inlineAnchor === 'quickToday' && (
+          <InlineDayDetailPanel
+            day={inlineSelectedDay}
+            festival={inlineSelectedFestival}
+            currentLang={currentLang}
+            initialTab={inlineActiveTab}
+            onClose={() => {
+              setInlineSelectedDay(null);
+              setInlineAnchor(null);
+            }}
+            onOpenDasha={onOpenKundali}
+          />
+        )}
       </div>
 
 
@@ -915,9 +961,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 key={panchangDay.gregorianDate}
                 onClick={() => {
                   setSelectedMoonDay(panchangDay);
-                  onSelectDay(panchangDay);
+                  handleDayClick(panchangDay, 'grid');
                 }}
-                className={`aspect-square sm:aspect-[1/1.05] p-1 sm:p-1.5 transition-all relative flex flex-col justify-between overflow-hidden cursor-pointer group border-t border-l ${
+                className={`min-h-[105px] xs:min-h-[115px] sm:min-h-[130px] md:min-h-[145px] p-1 sm:p-1.5 transition-all relative flex flex-col justify-between cursor-pointer group border-t border-l ${
                   panchangDay.colorTheme
                 } ${
                   isToday 
@@ -1017,10 +1063,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   })()}
                 </div>
 
-                {/* Festival Tags if any (Compact & Uniform) */}
+                {/* Festival Tags rendered cleanly & prominently on each date cell */}
                 {panchangDay.festivals.length > 0 && (
-                  <div className="space-y-0.5 overflow-hidden">
-                    {/* Special Navaratri Day Ritual Badge */}
+                  <div className="space-y-0.5 my-0.5">
+                    {/* Special Navaratri Day Ritual Badge if present */}
                     {panchangDay.festivals.some(f => f.isNavaratri || f.id.startsWith('navaratri_day')) && (() => {
                       const nFest = panchangDay.festivals.find(f => f.isNavaratri || f.id.startsWith('navaratri_day'))!;
                       const dNum = parseInt(nFest.id.replace('navaratri_day', ''), 10) || 1;
@@ -1028,23 +1074,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         dNum === 1 ? (currentLang === 'kn' ? '🏺 ಕಲಶ ಸ್ಥಾಪನೆ' : currentLang === 'hi' ? '🏺 कलश स्थापना' : '🏺 Kalasa Sthapana') :
                         dNum === 8 ? (currentLang === 'kn' ? '🗡️ ಸಂಧಿ / ಬಲಿ' : currentLang === 'hi' ? '🗡️ सन्धि / बलि' : '🗡️ Sandhi Bali') :
                         dNum === 9 ? (currentLang === 'kn' ? '🛠️ ಆಯುಧ ಪೂಜೆ' : currentLang === 'hi' ? '🛠️ आयुध पूजा' : '🛠️ Ayudha Puja') :
-                        dNum === 10 ? (currentLang === 'kn' ? '🏺 ಕಲಶ ವಿಸರ್ಜನೆ & ದಸರಾ' : currentLang === 'hi' ? '🏺 कलश विसर्जन व दशहरा' : '🏺 Kalasa Visarjana & Dasara') :
+                        dNum === 10 ? (currentLang === 'kn' ? '🏺 ದಸರಾ ವಿಜಯದಶಮಿ' : currentLang === 'hi' ? '🏺 दशहरा विजयादशमी' : '🏺 Dasara Vijayadashami') :
                         (currentLang === 'kn' ? `🌺 ನವರಾತ್ರಿ ${dNum}` : currentLang === 'hi' ? `🌺 नवरात्रि ${dNum}` : `🌺 Navaratri ${dNum}`);
 
                       return (
                         <div
+                          key={`nav-${dNum}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            const targetTab = dNum === 1 ? 'kalasha' : dNum === 8 ? 'kushmandaBali' : dNum === 9 ? 'ayudhaPuja' : dNum === 10 ? 'vijayadashami' : 'dailyDurga';
-                            if (onOpenNavaratriRituals) {
-                              onOpenNavaratriRituals(dNum, targetTab);
-                            } else {
-                              setRitualsModalDayNum(dNum);
-                              setRitualsModalTab(targetTab);
-                              setShowNavaratriRitualsModal(true);
-                            }
+                            handleFestivalClick(nFest, panchangDay, 'grid');
                           }}
-                          className="w-full text-[6px] xs:text-[6.5px] sm:text-[7.5px] font-bold px-1 py-0.2 rounded-xs truncate bg-gradient-to-r from-red-600 to-amber-600 text-white flex items-center gap-0.5 shadow-2xs hover:scale-[1.02] cursor-pointer transition-transform"
+                          className="w-full text-[6.5px] xs:text-[7.5px] sm:text-[8.5px] font-extrabold px-1 py-0.5 rounded-sm truncate bg-gradient-to-r from-red-600 to-amber-600 text-white flex items-center gap-1 shadow-2xs hover:scale-[1.02] cursor-pointer transition-transform"
                           title={nFest.name[currentLang]}
                         >
                           <span className="truncate">{ritualBadge}</span>
@@ -1052,30 +1092,45 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       );
                     })()}
 
-                    {/* Primary Festival Badge */}
-                    {panchangDay.festivals.slice(0, 1).map(fest => (
-                      <button
-                        key={fest.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectFestival(fest);
-                        }}
-                        className={`w-full text-left text-[6.5px] xs:text-[7px] sm:text-[8px] font-bold px-1 py-0.2 rounded-xs truncate transition-transform hover:scale-[1.01] border flex items-center gap-0.5 ${
-                          fest.badgeBg
-                        }`}
-                        title="Click to view Festival Story, Pooja Vidhi & Mantras"
-                      >
-                        <Sparkles className="w-2 h-2 shrink-0" />
-                        <span className="truncate">{fest.name[currentLang]}</span>
-                      </button>
-                    ))}
+                    {/* All Festivals on this Day (Deepavali, Naraka Chaturdashi, Dhanteras, Bali Padyami, etc.) */}
+                    {panchangDay.festivals
+                      .filter(f => !f.isNavaratri && !f.id.startsWith('navaratri_day'))
+                      .map(fest => {
+                        const isDeepavaliFest = ['deepavali', 'naraka_chaturdashi', 'dhanteras', 'bali_padyami', 'yama_dvitiya'].includes(fest.id);
+                        const festIcon = isDeepavaliFest ? '🪔' : '✨';
 
-                    {/* More Festivals Indicator if > 1 */}
-                    {panchangDay.festivals.length > 1 && (
-                      <span className="text-[6.5px] font-bold text-amber-700 dark:text-amber-400 block truncate leading-none">
-                        +{panchangDay.festivals.length - 1} more
-                      </span>
-                    )}
+                        const cellDisplayName = 
+                          fest.id === 'deepavali'
+                            ? (currentLang === 'kn' ? '🪔 ದೀಪಾವಳಿ ಲಕ್ಷ್ಮೀ ಪೂಜೆ' : currentLang === 'hi' ? '🪔 दीपावली लक्ष्मी पूजा' : '🪔 Deepavali Lakshmi Puja')
+                            : fest.id === 'naraka_chaturdashi'
+                            ? (currentLang === 'kn' ? '🪔 ನರಕ ಚತುರ್ದಶಿ (ಎಣ್ಣೆನೀರು)' : currentLang === 'hi' ? '🪔 नरक चतुर्दशी' : '🪔 Naraka Chaturdashi')
+                            : fest.id === 'dhanteras'
+                            ? (currentLang === 'kn' ? '🪔 ಧನ್ತೇರಸ್ (ಧನ್ವಂತರಿ)' : currentLang === 'hi' ? '🪔 धनतेरस (धन्वन्तरि)' : '🪔 Dhanteras')
+                            : fest.id === 'bali_padyami'
+                            ? (currentLang === 'kn' ? '🪔 ಬಲಿ ಪಾಡ್ಯಮಿ & ಗೋಪೂಜೆ' : currentLang === 'hi' ? '🪔 बलि प्रतिपदा व गोवर्धन' : '🪔 Bali Padyami & Go-Puja')
+                            : fest.id === 'yama_dvitiya'
+                            ? (currentLang === 'kn' ? '🪔 ಯಮ ಬಿದಿಗೆ (ಭಾಗಿನಿ)' : currentLang === 'hi' ? '🪔 यम द्वितीया (भाई दूज)' : '🪔 Yama Dvitiya / Bhai Dooj')
+                            : `${festIcon} ${fest.name[currentLang]}`;
+
+                        return (
+                          <button
+                            key={fest.id}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFestivalClick(fest, panchangDay, 'grid');
+                            }}
+                            className={`w-full text-left text-[6.5px] xs:text-[7.5px] sm:text-[8.5px] font-extrabold px-1 py-0.5 rounded-sm truncate transition-transform hover:scale-[1.02] border flex items-center gap-1 cursor-pointer shadow-2xs ${
+                              isDeepavaliFest
+                                ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-stone-950 border-amber-300 ring-1 ring-amber-400/80 font-black'
+                                : fest.badgeBg
+                            }`}
+                            title={`Click to view ${fest.name[currentLang]} below`}
+                          >
+                            <span className="truncate">{cellDisplayName}</span>
+                          </button>
+                        );
+                      })}
                   </div>
                 )}
 
@@ -1100,6 +1155,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             />
           ))}
         </div>
+      </div>
+
+      {/* Inline Details Section directly below the Calendar Grid */}
+      <div id="inline-anchor-grid">
+        {inlineSelectedDay && inlineAnchor === 'grid' && (
+          <InlineDayDetailPanel
+            day={inlineSelectedDay}
+            festival={inlineSelectedFestival}
+            currentLang={currentLang}
+            initialTab={inlineActiveTab}
+            onClose={() => {
+              setInlineSelectedDay(null);
+              setInlineAnchor(null);
+            }}
+            onOpenDasha={onOpenKundali}
+          />
+        )}
       </div>
 
       {/* Monthly Festivals Section Below Calendar */}
@@ -1129,7 +1201,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             {monthlyFestivals.map(({ festival, dayNum }) => (
               <div
                 key={festival.id}
-                onClick={() => onSelectFestival(festival)}
+                onClick={() => {
+                  const dayObj = monthDays.find(d => d.day === dayNum) || todayPanchangaDay;
+                  handleFestivalClick(festival, dayObj, 'festivalsList');
+                }}
                 className="group p-3 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-amber-400 dark:hover:border-amber-600 bg-amber-50/20 dark:bg-stone-800/40 hover:bg-white dark:hover:bg-stone-800 transition-all cursor-pointer shadow-2xs hover:shadow-md"
               >
                 <div className="flex items-start justify-between gap-2">
@@ -1153,12 +1228,29 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                 <div className="mt-2 pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between text-[11px] text-amber-700 dark:text-amber-300 font-semibold">
                   <span>
-                    {currentLang === 'kn' ? 'ಪೂಜಾ ವಿಧಾನ ಮತ್ತು ಕಥೆ ನೋಡಿ →' : currentLang === 'hi' ? 'पूजा विधि व कथा देखें →' : 'View Puja Vidhi & Katha →'}
+                    {currentLang === 'kn' ? 'ಪೂಜಾ ವಿಧಾನ ಮತ್ತು ಕಥೆ ಕೆಳಗೆ ವೀಕ್ಷಿಸಿ ↓' : currentLang === 'hi' ? 'पूजा विधि व कथा नीचे देखें ↓' : 'View Puja Vidhi & Katha Below ↓'}
                   </span>
                 </div>
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Inline Details Section directly below the Monthly Festivals */}
+      <div id="inline-anchor-festivalsList">
+        {inlineSelectedDay && inlineAnchor === 'festivalsList' && (
+          <InlineDayDetailPanel
+            day={inlineSelectedDay}
+            festival={inlineSelectedFestival}
+            currentLang={currentLang}
+            initialTab="festivalDetail"
+            onClose={() => {
+              setInlineSelectedDay(null);
+              setInlineAnchor(null);
+            }}
+            onOpenDasha={onOpenKundali}
+          />
         )}
       </div>
 

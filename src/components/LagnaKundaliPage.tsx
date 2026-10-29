@@ -91,6 +91,10 @@ import { ChandraKundaliChart } from './ChandraKundaliChart';
 import { BhavaExplorer } from './BhavaExplorer';
 import { DashaDashboard } from './DashaDashboard';
 import { CelestialSkyMandala3D } from './CelestialSkyMandala3D';
+import { calculateAllHousesDrishtiSummary, getAspectingHousesForGraha } from '../utils/grahaDrishti';
+import { DrishtiVisualizer } from './DrishtiVisualizer';
+import { GrahaRemedyNutritionView } from './GrahaRemedyNutritionView';
+import { getHouseCoord } from '../utils/drishtiCoordinates';
 
 interface LagnaKundaliPageProps {
   currentLang: Language;
@@ -134,6 +138,9 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
     return initialRemediesSubTab || 'upayas';
   });
   const [selectedBhavaNumber, setSelectedBhavaNumber] = useState<number>(1);
+  const [showAllHousesDrishtiTable, setShowAllHousesDrishtiTable] = useState<boolean>(false);
+  const [showAspectLines, setShowAspectLines] = useState<boolean>(true);
+  const [selectedDrishtiPlanet, setSelectedDrishtiPlanet] = useState<string>('Jupiter');
 
   useEffect(() => {
     if (initialSectionTab === 'dasha') {
@@ -635,6 +642,11 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
     const combinedStr = `${dateStr}T${timeStr}:00`;
     return calculateKundali(combinedStr, selectedCity);
   }, [dateStr, timeStr, selectedCity]);
+
+  // Compute All 12 Houses Graha Drishti & Mind-Body Nutrition Analysis
+  const allHousesDrishti = useMemo(() => {
+    return calculateAllHousesDrishtiSummary(kundaliData);
+  }, [kundaliData]);
 
   // Compute Vedic Remedies data based on the drawn Lagna Kundali
   const vedicRemediesData: VedicRemediesResult = useMemo(() => {
@@ -1909,6 +1921,17 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
           {/* Left: SVG Kundali Chart (7 Cols) */}
           <div className="lg:col-span-7 bg-white dark:bg-stone-900 rounded-2xl p-6 border border-amber-200/80 dark:border-stone-800 shadow-xl space-y-4">
             
+            {/* INTERACTIVE DRISHTI VISUALIZER */}
+            <DrishtiVisualizer
+              currentLang={currentLang}
+              kundaliData={kundaliData}
+              selectedPlanetName={selectedDrishtiPlanet}
+              onSelectPlanet={setSelectedDrishtiPlanet}
+              showAspectLines={showAspectLines}
+              onToggleAspectLines={setShowAspectLines}
+              onSelectHouse={setSelectedBhavaNumber}
+            />
+
             <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-600" />
@@ -1955,6 +1978,63 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                   <text x="14" y="254" fill="#b45309" fontSize="10" fontWeight="bold" textAnchor="middle" transform="rotate(-90, 14, 254)">N (North • ಉತ್ತರ)</text>
                   <text x="250" y="494" fill="#b45309" fontSize="11" fontWeight="bold" textAnchor="middle">W (West • ಪಶ್ಚಿಮ - ಅಸ್ತ)</text>
                   <text x="486" y="254" fill="#b45309" fontSize="10" fontWeight="bold" textAnchor="middle" transform="rotate(90, 486, 254)">S (South • ದಕ್ಷಿಣ)</text>
+
+                  {/* Aspect Ray Tracing Lines */}
+                  {showAspectLines && (() => {
+                    const originPlanet = kundaliData.planets.find(p => p.name.toLowerCase() === selectedDrishtiPlanet.toLowerCase()) || kundaliData.planets[0];
+                    const originBhava = originPlanet ? originPlanet.bhava : 1;
+                    const originCoord = getHouseCoord('north', originBhava, kundaliData);
+                    const aspects = getAspectingHousesForGraha(originPlanet.name, originBhava);
+
+                    return (
+                      <g className="drishti-aspect-rays">
+                        <defs>
+                          <marker id="aspect-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1 L 10 5 L 0 9 z" fill="#e11d48" />
+                          </marker>
+                          <radialGradient id="aspect-pulse" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.8" />
+                            <stop offset="100%" stopColor="#f43f5e" stopOpacity="0" />
+                          </radialGradient>
+                        </defs>
+
+                        {/* Origin House Highlight Ring */}
+                        <circle cx={originCoord.x} cy={originCoord.y} r="28" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.8" />
+
+                        {aspects.map((asp, i) => {
+                          const targetCoord = getHouseCoord('north', asp.targetBhava, kundaliData);
+                          const midX = (originCoord.x + targetCoord.x) / 2;
+                          const midY = (originCoord.y + targetCoord.y) / 2;
+
+                          return (
+                            <g key={i}>
+                              {/* Aspect Ray */}
+                              <line
+                                x1={originCoord.x}
+                                y1={originCoord.y}
+                                x2={targetCoord.x}
+                                y2={targetCoord.y}
+                                stroke="#e11d48"
+                                strokeWidth="2.5"
+                                strokeDasharray="6 4"
+                                markerEnd="url(#aspect-arrow)"
+                                opacity="0.9"
+                              />
+                              {/* Target House Pulsing Halo */}
+                              <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="url(#aspect-pulse)" opacity="0.6" />
+                              <circle cx={targetCoord.x} cy={targetCoord.y} r="22" fill="none" stroke="#e11d48" strokeWidth="2" strokeDasharray="3 3" />
+                              
+                              {/* Midpoint Aspect Badge */}
+                              <rect x={midX - 16} y={midY - 9} width="32" height="18" rx="6" fill="#be123c" />
+                              <text x={midX} y={midY + 4} fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">
+                                {asp.distance}th
+                              </text>
+                            </g>
+                          );
+                        })}
+                      </g>
+                    );
+                  })()}
                 </svg>
 
                 <div className="absolute inset-0 w-full h-full pointer-events-none">
@@ -2171,7 +2251,51 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
               </div>
             ) : (
               /* South Indian Fixed Zodiac Square Chart */
-              <div className="relative w-full aspect-square max-w-[330px] xs:max-w-[390px] sm:max-w-[500px] mx-auto bg-amber-50 rounded-xl p-1.5 sm:p-2 border-2 border-amber-600 shadow-xl">
+              <div className="relative w-full aspect-square max-w-[330px] xs:max-w-[390px] sm:max-w-[500px] mx-auto bg-amber-50 rounded-xl p-1.5 sm:p-2 border-2 border-amber-600 shadow-xl overflow-hidden select-none">
+                {/* South Indian Aspect Rays Overlay */}
+                {showAspectLines && (() => {
+                  const originPlanet = kundaliData.planets.find(p => p.name.toLowerCase() === selectedDrishtiPlanet.toLowerCase()) || kundaliData.planets[0];
+                  const originBhava = originPlanet ? originPlanet.bhava : 1;
+                  const originCoord = getHouseCoord('south', originBhava, kundaliData);
+                  const aspects = getAspectingHousesForGraha(originPlanet.name, originBhava);
+
+                  return (
+                    <svg viewBox="0 0 500 500" className="absolute inset-0 w-full h-full pointer-events-none z-20">
+                      <defs>
+                        <marker id="south-aspect-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                          <path d="M 0 1 L 10 5 L 0 9 z" fill="#e11d48" />
+                        </marker>
+                      </defs>
+                      <circle cx={originCoord.x} cy={originCoord.y} r="32" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.85" />
+                      {aspects.map((asp, i) => {
+                        const targetCoord = getHouseCoord('south', asp.targetBhava, kundaliData);
+                        const midX = (originCoord.x + targetCoord.x) / 2;
+                        const midY = (originCoord.y + targetCoord.y) / 2;
+                        return (
+                          <g key={i}>
+                            <line
+                              x1={originCoord.x}
+                              y1={originCoord.y}
+                              x2={targetCoord.x}
+                              y2={targetCoord.y}
+                              stroke="#e11d48"
+                              strokeWidth="2.5"
+                              strokeDasharray="6 4"
+                              markerEnd="url(#south-aspect-arrow)"
+                              opacity="0.9"
+                            />
+                            <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="#f43f5e" fillOpacity="0.15" stroke="#e11d48" strokeWidth="2" strokeDasharray="3 3" />
+                            <rect x={midX - 16} y={midY - 9} width="32" height="18" rx="6" fill="#be123c" />
+                            <text x={midX} y={midY + 4} fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">
+                              {asp.distance}th
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  );
+                })()}
+
                 <div className="w-full h-full grid grid-cols-4 grid-rows-4 gap-1 p-1 bg-amber-100/70 border border-amber-300">
                   {/* Row 1 */}
                   <div 
@@ -2609,6 +2733,305 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
           selectedBhavaNumber={selectedBhavaNumber}
           onSelectBhava={setSelectedBhavaNumber}
         />
+
+        {/* ========================================================================= */}
+        {/* ASTROLOGICAL REMEDY & NUTRITION MAPPING SYSTEM (PER GRAHA & HOUSE BALA)   */}
+        {/* ========================================================================= */}
+        <GrahaRemedyNutritionView
+          currentLang={currentLang}
+          kundaliData={kundaliData}
+          planetaryBalas={planetaryBalas}
+          selectedGrahaName={selectedDrishtiPlanet}
+          onSelectGraha={setSelectedDrishtiPlanet}
+        />
+
+        {/* ========================================================================= */}
+        {/* MASTER 12-HOUSES GRAHA DRISHTI & NUTRITIONAL HEALTH MATRIX (COLLAPSIBLE) */}
+        {/* ========================================================================= */}
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-rose-50/70 via-white to-amber-50/70 dark:from-stone-900 dark:via-stone-850 dark:to-stone-900 border-2 border-rose-300 dark:border-rose-900/60 shadow-xl space-y-4 page-break-inside-avoid">
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-600 to-amber-600 text-white flex items-center justify-center shadow-md shrink-0">
+                <Eye className="w-5 h-5 text-rose-100" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-800 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/70 px-2.5 py-0.5 rounded-full">
+                    Parashari Drishti Master Matrix
+                  </span>
+                  <span className="text-xs text-stone-400">•</span>
+                  <span className="text-xs font-mono font-bold text-stone-500">
+                    12 Bhavas Mind-Body Guide
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-serif font-black text-stone-900 dark:text-stone-100 mt-0.5">
+                  {currentLang === 'kn'
+                    ? '೧೨ ಭಾವಗಳ ಸಮಗ್ರ ಗ್ರಹ ದೃಷ್ಟಿ & ಆರೋಗ್ಯ-ಪೋಷಕಾಂಶ ಕೋಷ್ಟಕ'
+                    : currentLang === 'hi'
+                    ? '१२ भावों की समग्र ग्रह दृष्टि एवं स्वास्थ्य-पोषण तालिका'
+                    : 'Master 12-Houses Graha Drishti & Mind-Body Nutrition Matrix'}
+                </h3>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAllHousesDrishtiTable(prev => !prev)}
+              className="px-4 py-2 rounded-xl bg-stone-900 dark:bg-stone-800 hover:bg-stone-800 text-white font-bold text-xs flex items-center gap-2 shadow-xs cursor-pointer transition-all self-start sm:self-auto shrink-0"
+            >
+              <span>
+                {showAllHousesDrishtiTable
+                  ? (currentLang === 'kn' ? 'ಕೋಷ್ಟಕ ಮುಚ್ಚಿ (Hide Table)' : 'Hide Matrix')
+                  : (currentLang === 'kn' ? 'ಸಮಗ್ರ ೧೨ ಭಾವಗಳ ಕೋಷ್ಟಕ ವೀಕ್ಷಿಸಿ' : 'View All 12 Houses Matrix')}
+              </span>
+              {showAllHousesDrishtiTable ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
+
+          <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
+            {currentLang === 'kn'
+              ? 'ಪ್ರತಿಯೊಂದು ಭಾವದಲ್ಲಿ ಯಾವ ಗ್ರಹಗಳು ಸ್ಥಿತವಾಗಿವೆ (ಭಾವಸ್ಥ), ಆ ಭಾವದ ಮೇಲೆ ಯಾವ ಯಾವ ಗ್ರಹಗಳ ವಿಶೇಷ ಅಥವಾ ಸಪ್ತಮ ದೃಷ್ಟಿ ಬಿದ್ದಿದೆ, ಇದರಿಂದ ವ್ಯಕ್ತಿಯ ಶಾರೀರಿಕ ಅಂಗಗಳು, ರೋಗ ನಿರೋಧಕ ಶಕ್ತಿ, ಮನಸ್ಥಿತಿ ಮತ್ತು ಆಯುರ್ವೇದೀಯ ಆಹಾರ-ಪೋಷಕಾಂಶ ಪರಿಹಾರಗಳ ಸಂಕ್ಷಿಪ್ತ ದರ್ಶನ.'
+              : 'Detailed breakdown of occupant planets and incoming Parashari aspects for each house, detailing anatomical vulnerabilities, emotional temperament, and targeted dietary/nutritional remedies.'}
+          </p>
+
+          {/* Collapsible Content */}
+          {showAllHousesDrishtiTable && (
+            <div className="space-y-4 pt-2 border-t border-rose-200 dark:border-stone-800 animate-in fade-in">
+              
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto border border-rose-200 dark:border-stone-700 rounded-2xl bg-white dark:bg-stone-900 shadow-sm">
+                <table className="w-full text-left text-xs divide-y divide-stone-200 dark:divide-stone-800">
+                  <thead className="bg-rose-50/80 dark:bg-stone-850 text-stone-900 dark:text-stone-100 font-bold font-serif">
+                    <tr>
+                      <th className="p-3 w-16 text-center">ಭಾವ (H)</th>
+                      <th className="p-3 w-36">ರಾಶಿ & ಸ್ಥಿತಿ</th>
+                      <th className="p-3 w-40">ಭಾವಸ್ಥ ಗ್ರಹಗಳು</th>
+                      <th className="p-3">ದೃಷ್ಟಿ ಬೀರುವ ಗ್ರಹಗಳು (Drishtis)</th>
+                      <th className="p-3 w-48">ಶಾರೀರಿಕ ಅಂಗಗಳು & ಆರೋಗ್ಯ</th>
+                      <th className="p-3 w-48">ಮಾನಸಿಕ ಸ್ಥಿತಿ & ಆಹಾರ ಪರಿಹಾರ</th>
+                      <th className="p-3 w-24 text-center">ಕ್ರಮ (Action)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
+                    {allHousesDrishti.map((hAnalysis) => {
+                      const isCurrent = hAnalysis.bhava === selectedBhavaNumber;
+                      return (
+                        <tr
+                          key={hAnalysis.bhava}
+                          className={`transition-colors ${
+                            isCurrent
+                              ? 'bg-rose-50/80 dark:bg-rose-950/20 font-medium'
+                              : 'hover:bg-amber-500/5'
+                          }`}
+                        >
+                          {/* House Number */}
+                          <td className="p-3 text-center">
+                            <span className={`w-8 h-8 rounded-full font-mono font-bold text-xs inline-flex items-center justify-center ${
+                              isCurrent
+                                ? 'bg-rose-600 text-white shadow-xs'
+                                : 'bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200'
+                            }`}>
+                              #{hAnalysis.bhava}
+                            </span>
+                          </td>
+
+                          {/* Rashi & Category */}
+                          <td className="p-3">
+                            <div className="font-bold text-stone-900 dark:text-stone-100 font-serif">
+                              {hAnalysis.rashiName[currentLang]}
+                            </div>
+                            <span className="text-[10px] font-mono text-stone-500">
+                              {hAnalysis.overallDrishtiToneLocalized[currentLang]}
+                            </span>
+                          </td>
+
+                          {/* Occupant Planets */}
+                          <td className="p-3">
+                            {hAnalysis.occupantPlanets.length === 0 ? (
+                              <span className="text-stone-400 italic text-[11px]">ಖಾಲಿ (Empty)</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {hAnalysis.occupantPlanets.map((p) => (
+                                  <div
+                                    key={p.name}
+                                    className="flex items-center gap-1 bg-amber-50 dark:bg-stone-800 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-stone-700"
+                                  >
+                                    <SvgGrahaIcon name={p.name} size={18} isRetrograde={p.isRetrograde} />
+                                    <span className="text-[11px] font-bold text-stone-800 dark:text-stone-200">
+                                      {p.sanskritName[currentLang]}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Aspecting Grahas */}
+                          <td className="p-3">
+                            {hAnalysis.aspectingPlanets.length === 0 ? (
+                              <span className="text-stone-400 italic text-[11px]">ನೇರ ದೃಷ್ಟಿಯಿಲ್ಲ (None)</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {hAnalysis.aspectingPlanets.map((asp, idx) => (
+                                  <div
+                                    key={idx}
+                                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 border ${
+                                      asp.nature === 'benefic'
+                                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                                        : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-900'
+                                    }`}
+                                    title={asp.effectOnHouse[currentLang]}
+                                  >
+                                    <span>{asp.aspectingPlanet.sanskritName[currentLang]}</span>
+                                    <span className="font-mono text-[9px]">({asp.distanceFromPlanet}H)</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Physical Health */}
+                          <td className="p-3 text-[11px]">
+                            <div className="font-semibold text-stone-800 dark:text-stone-200 line-clamp-2">
+                              {hAnalysis.physicalImpact.governedOrgans[currentLang]}
+                            </div>
+                            <div className="text-stone-500 text-[10px] mt-0.5 line-clamp-1">
+                              {hAnalysis.physicalImpact.vulnerabilities[currentLang]}
+                            </div>
+                          </td>
+
+                          {/* Mental & Nutrition */}
+                          <td className="p-3 text-[11px]">
+                            <div className="text-stone-700 dark:text-stone-300 font-medium line-clamp-2">
+                              {hAnalysis.mentalImpact.temperament[currentLang]}
+                            </div>
+                            <div className="text-emerald-700 dark:text-emerald-400 text-[10px] font-bold mt-0.5 line-clamp-1">
+                              ಆಹಾರ: {hAnalysis.nutritionalTherapy.recommendedFoods[currentLang]}
+                            </div>
+                          </td>
+
+                          {/* Action Button */}
+                          <td className="p-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedBhavaNumber(hAnalysis.bhava);
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${
+                                isCurrent
+                                  ? 'bg-rose-600 text-white shadow-2xs'
+                                  : 'bg-stone-100 dark:bg-stone-800 hover:bg-rose-100 text-stone-700 dark:text-stone-300'
+                              }`}
+                            >
+                              {isCurrent ? 'ಆಯ್ಕೆಯಾಗಿದೆ' : 'ವೀಕ್ಷಿಸಿ'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile / Small Screen Card Grid View */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-3">
+                {allHousesDrishti.map((hAnalysis) => {
+                  const isCurrent = hAnalysis.bhava === selectedBhavaNumber;
+                  return (
+                    <div
+                      key={hAnalysis.bhava}
+                      className={`p-4 rounded-2xl border transition-all space-y-2.5 ${
+                        isCurrent
+                          ? 'bg-rose-50/90 dark:bg-stone-850 border-rose-400 dark:border-rose-800 shadow-md ring-2 ring-rose-400/50'
+                          : 'bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-7 h-7 rounded-full font-mono font-bold text-xs flex items-center justify-center ${
+                            isCurrent ? 'bg-rose-600 text-white' : 'bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200'
+                          }`}>
+                            #{hAnalysis.bhava}
+                          </span>
+                          <div>
+                            <span className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">
+                              {hAnalysis.bhavaName[currentLang]} ({hAnalysis.rashiName[currentLang]})
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedBhavaNumber(hAnalysis.bhava)}
+                          className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] cursor-pointer"
+                        >
+                          {isCurrent ? 'ಆಯ್ಕೆಯಾಗಿದೆ' : 'ವೀಕ್ಷಿಸಿ'}
+                        </button>
+                      </div>
+
+                      {/* Seated Grahas */}
+                      <div className="text-xs">
+                        <span className="text-[10px] font-bold uppercase text-stone-400 block mb-0.5">
+                          {currentLang === 'kn' ? 'ಭಾವಸ್ಥ ಗ್ರಹಗಳು:' : 'Occupant Grahas:'}
+                        </span>
+                        {hAnalysis.occupantPlanets.length === 0 ? (
+                          <span className="text-stone-400 italic text-[11px]">ಖಾಲಿ (Empty)</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {hAnalysis.occupantPlanets.map((p) => (
+                              <span key={p.name} className="px-2 py-0.5 rounded bg-amber-100 dark:bg-stone-800 text-amber-900 dark:text-amber-200 font-bold text-[11px]">
+                                {p.sanskritName[currentLang]}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Drishtis */}
+                      <div className="text-xs">
+                        <span className="text-[10px] font-bold uppercase text-rose-500 block mb-0.5">
+                          {currentLang === 'kn' ? 'ದೃಷ್ಟಿ ಬೀರುವ ಗ್ರಹಗಳು:' : 'Aspecting Grahas:'}
+                        </span>
+                        {hAnalysis.aspectingPlanets.length === 0 ? (
+                          <span className="text-stone-400 italic text-[11px]">ನೇರ ದೃಷ್ಟಿಯಿಲ್ಲ (None)</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {hAnalysis.aspectingPlanets.map((asp, idx) => (
+                              <span
+                                key={idx}
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  asp.nature === 'benefic'
+                                    ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
+                                    : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300'
+                                }`}
+                              >
+                                {asp.aspectingPlanet.sanskritName[currentLang]} ({asp.distanceFromPlanet}H)
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Physical & Nutrition summary */}
+                      <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/80 text-[11px] space-y-1">
+                        <div>
+                          <strong>ಅಂಗಗಳು:</strong> {hAnalysis.physicalImpact.governedOrgans[currentLang]}
+                        </div>
+                        <div className="text-emerald-700 dark:text-emerald-400 font-semibold">
+                          <strong>ಆಹಾರ:</strong> {hAnalysis.nutritionalTherapy.recommendedFoods[currentLang]}
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })}
+              </div>
+
+            </div>
+          )}
+
+        </div>
 
         {/* ========================================================================= */}
         {/* NEW SECTION: PLANETARY STRENGTH (BALA) BASED ON HOUSE PLACEMENT */}

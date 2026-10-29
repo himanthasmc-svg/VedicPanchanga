@@ -177,23 +177,23 @@ export const PoojaAudioGuide: React.FC<PoojaAudioGuideProps> = ({
       id: 'step-1-achamana',
       stepNumber: 1,
       title: {
-        kn: '೧. ಆಚಮನ ಮತ್ತು ಪ್ರಾಣಾಯಾಮ (Purification)',
-        hi: '१. आचमन एवं प्राणायाम (शुद्धिकरण)',
-        en: '1. Achamana & Pranayama (Purification)'
+        kn: '೧. ಶಿವ-ಶಕ್ತಿ ಆಚಮನ & ಪ್ರಾಣಾಯಾಮ (Purification)',
+        hi: '१. शिव-शक्ति आचमन एवं प्राणायाम (शुद्धिकरण)',
+        en: '1. Shiva-Shakti Achamana & Pranayama (Purification)'
       },
       ritualAction: {
-        kn: 'ಬಲ ಅಂಗೈಗೆ ಉದ್ಧರಣೆಯಿಂದ ಮೂರು ಬಾರಿ ಜಲ ಹಾಕಿ ಆಚಮನ ಮಾಡಿ, ಕಣ್ಣು, ಮೂಗು, ಕಿವಿ, ಭುಜಗಳನ್ನು ಸ್ಪರ್ಶಿಸಿ.',
-        hi: 'दाहिने हाथ में तीन बार जल लेकर आचमन करें एवं अंगों का स्पर्श कर पवित्र हों।',
-        en: 'Sip consecrated water 3 times from your right palm, then touch your sense organs for internal sanctification.'
+        kn: 'ಬಲ ಅಂಗೈಗೆ ಉದ್ಧರಣೆಯಿಂದ ಮೂರು ಬಾರಿ ಜಲ ಹಾಕಿ ಶಿವ-ಶಕ್ತಿ ಮಂತ್ರದಿಂದ ಆಚಮನ ಮಾಡಿ, ಅಂಗ-ಸ್ಪರ್ಶದಿಂದ ಪವಿತ್ರರಾಗಿ.',
+        hi: 'दाहिने हाथ में तीन बार जल लेकर शिव-शक्ति मन्त्रों से आचमन करें एवं अंगों का स्पर्श कर पवित्र हों।',
+        en: 'Sip consecrated water 3 times from your right palm while chanting Shiva-Devi mantras for internal purification.'
       },
-      sanskritMantra: 'ॐ केशवाय स्वाहा । ॐ नारायणाय स्वाहा । ॐ माधवाय स्वाहा । ॐ गोविन्दाय नमः...',
-      kannadaTranslit: 'ಓಂ ಕೇಶವಾಯ ಸ್ವಾಹಾ । ಓಂ ನಾರಾಯಣಾಯ ಸ್ವಾಹಾ । ಓಂ ಮಾಧವಾಯ ಸ್ವಾಹಾ । ಓಂ ಗೋವಿಂದಾಯ ನಮಃ...',
-      hindiTranslit: 'ॐ केशवाय स्वाहा । ॐ नारायणाय स्वाहा । ॐ माधवाय स्वाहा । ॐ गोविन्दाय नमः...',
-      englishMeaning: 'Salutations to Lord Keshava, Narayana, Madhava, and Govinda. May our body, mind, and speech be purified.',
+      sanskritMantra: 'ॐ शिवाय स्वाहा । ॐ महेश्वराय स्वाहा । ॐ शम्भवे स्वाहा ।\nॐ उमायै नमः । ॐ दुर्गायै नमः । ॐ पार्वत्यै नमः । ॐ भवान्यै नमः । ॐ चण्डिकायै नमः ॥',
+      kannadaTranslit: 'ಓಂ ಶಿವಾಯ ಸ್ವಾಹಾ । ಓಂ ಮಹೇಶ್ವರಾಯ ಸ್ವಾಹಾ । ಓಂ ಶಂಭವೇ ಸ್ವಾಹಾ ।\nಓಂ ಉಮಾಯೈ ನಮಃ । ಓಂ ದುರ್ಗಾಯೈ ನಮಃ । ಓಂ ಪಾರ್ವತ್ಯೈ ನಮಃ । ಓಂ ಭವಾನ್ಯೈ ನಮಃ । ಓಂ ಚಂಡಿಕಾಯೈ ನಮಃ ॥',
+      hindiTranslit: 'ॐ शिवाय स्वाहा । ॐ महेश्वराय स्वाहा । ॐ शम्भवे स्वाहा ।\nॐ उमायै नमः । ॐ दुर्गायै नमः । ॐ पार्वत्यै नमः । ॐ भवान्यै नमः । ॐ चण्डिकायै नमः ॥',
+      englishMeaning: 'Salutations to Lord Shiva, Maheshvara, and Shambhu through holy water sips. Salutations to Divine Mother Uma, Durga, Parvati, Bhavani, and Chandika. May our body, speech, and mind be consecrated.',
       audioSpeechText: {
-        kn: 'ಪ್ರಥಮವಾಗಿ ಆಚಮನ. ಓಂ ಕೇಶವಾಯ ಸ್ವಾಹಾ. ಓಂ ನಾರಾಯಣಾಯ ಸ್ವಾಹಾ. ಓಂ ಮಾಧವಾಯ ಸ್ವಾಹಾ. ಓಂ ಗೋವಿಂದಾಯ ನಮಃ. ಹಸ್ತ ತೊಳೆಯಿರಿ. ಪ್ರಾಣಾಯಾಮ ಮಾಡಿ ಮನಸ್ಸನ್ನು ಏಕಾಗ್ರಗೊಳಿಸಿ.',
-        hi: 'प्रथम चरण आचमन। ॐ केशवाय स्वाहा। ॐ नारायणाय स्वाहा। ॐ माधवाय स्वाहा। ॐ गोविन्दाय नमः। हाथ धोएं और प्राणायाम करें।',
-        en: 'Step one: Achamana. Om Keshavaya Svaha, Om Narayanaya Svaha, Om Madhavaya Svaha, Om Govindaya Namaha. Wash hands and calm the breath with Pranayama.'
+        kn: 'ಪ್ರಥಮವಾಗಿ ಶಿವ-ಶಕ್ತಿ ಆಚಮನ. ಓಂ ಶಿವಾಯ ಸ್ವಾಹಾ. ಓಂ ಮಹೇಶ್ವರಾಯ ಸ್ವಾಹಾ. ಓಂ ಶಂಭವೇ ಸ್ವಾಹಾ. ಹಸ್ತ ತೊಳೆಯಿರಿ. ಓಂ ಉಮಾಯೈ ನಮಃ. ಓಂ ದುರ್ಗಾಯೈ ನಮಃ. ಓಂ ಪಾರ್ವತ್ಯೈ ನಮಃ. ಪ್ರಾಣಾಯಾಮ ಮಾಡಿ ಶಿವ-ಶಕ್ತಿಯನ್ನು ಧ್ಯಾನಿಸಿ.',
+        hi: 'प्रथम चरण शिव-शक्ति आचमन। ॐ शिवाय स्वाहा। ॐ महेश्वराय स्वाहा। ॐ शम्भवे स्वाहा। हाथ धोएं। ॐ उमायै नमः, ॐ दुर्गायै नमः, ॐ पार्वत्यै नमः। प्राणायाम कर शिव-शक्ति का ध्यान करें।',
+        en: 'Step one: Shiva-Shakti Achamana. Om Shivaya Svaha, Om Maheshvaraya Svaha, Om Shambhave Svaha. Wash hands. Om Umayai Namaha, Om Durgayai Namaha, Om Parvatyai Namaha. Consecrate the breath with Pranayama.'
       },
       audioBellAtStart: true
     },
@@ -201,23 +201,23 @@ export const PoojaAudioGuide: React.FC<PoojaAudioGuideProps> = ({
       id: 'step-2-ghanta-deepa',
       stepNumber: 2,
       title: {
-        kn: '೨. ಘಂಟಾನಾದ & ದೀಪ ನಮಸ್ಕಾರ (Altar Sanctification)',
-        hi: '२. घण्टानाद एवं दीप नमस्कार (वेदी पावनिकरण)',
-        en: '2. Ghanta & Deepa Pranam (Altar Invocation)'
+        kn: '೨. ಘಂಟಾನಾದ & ಶಿವ-ಶಕ್ತಿ ದೀಪ ಪ್ರಣಾಮ (Altar Sanctification)',
+        hi: '२. घण्टानाद एवं शिव-शक्ति दीप प्रणाम (वेदी पावनिकरण)',
+        en: '2. Ghanta & Shiva-Shakti Deepa Pranam (Altar Invocation)'
       },
       ritualAction: {
-        kn: 'ಘಂಟೆ ಬಾರಿಸುತ್ತಾ ದೇವತೆಗಳನ್ನು ಆಹ್ವಾನಿಸಿ, ದೀಪದ ಜ್ಯೋತಿಗೆ ನಮಸ್ಕರಿಸಿ ದೇವಿಯ ಅನುಗ್ರಹ ಬೇಡಿ.',
-        hi: 'घण्टी बजाकर देवताओं का आह्वान करें और दीपक की ज्योति को प्रणाम करें।',
-        en: 'Ring the temple bell to welcome auspicious divinities, and offer reverence to the Sacred Lamp flame.'
+        kn: 'ಘಂಟೆ ಬಾರಿಸುತ್ತಾ ಶಿವ-ಶಕ್ತಿ ದೇವತೆಗಳನ್ನು ಆಹ್ವಾನಿಸಿ, ದೀಪದ ಜ್ಯೋತಿಯನ್ನು ಸದಾಶಿವ ಮತ್ತು ಪರಾಶಕ್ತಿಯ ಸ್ವರೂಪವೆಂದು ನಮಸ್ಕರಿಸಿ.',
+        hi: 'घण्टी बजाकर शिव-शक्ति का आह्वान करें और दीपक की ज्योति को साक्षात् पराशक्ति व सदाशिव मानकर प्रणाम करें।',
+        en: 'Ring the temple bell invoking Shiva and Devi Durga, venerating the sacred flame as embodiment of Parashakti and Sadashiva.'
       },
-      sanskritMantra: 'आगमनार्थं तु देवानां गमनार्थं तु रक्षसाम् । कुर्वे घण्टारवं तत्र देवताह्वान लक्षणम् ॥\nदीपज्योतिः परब्रह्म दीपज्योतिर्जनार्दनः । दीपो हरतु मे पापं दीपज्योतिर्नमोऽस्तु ते ॥',
-      kannadaTranslit: 'ಆಗಮನಾರ್ಥಂ ತು ದೇವಾನಾಂ ಗಮನಾರ್ಥಂ ತು ರಕ್ಷಸಾಮ್ । ಕುರ್ವೇ ಘಂಟಾರವಂ ತತ್ರ ದೇವತಾಹ್ವಾನ ಲಕ್ಷಣಮ್ ॥\nದೀಪಜ್ಯೋತಿಃ ಪರಬ್ರಹ್ಮ ದೀಪಜ್ಯೋತಿರ್ಜನಾರ್ದನಃ । ದೀಪೋ ಹರತು ಮೇ ಪಾಪಂ ದೀಪಜ್ಯೋತಿರ್ನಮೋಸ್ತು ತೇ ॥',
-      hindiTranslit: 'आगमनार्थं तु देवानां गमनार्थं तु रक्षसाम् । कुर्वे घण्टारवं तत्र देवताह्वान लक्षणम् ॥\nदीपज्योतिः परब्रह्म दीपज्योतिर्जनार्दनः । दीपो हरतु मे पापं दीपज्योतिर्नमोऽस्तु ते ॥',
-      englishMeaning: 'I ring the bell for the arrival of Devas and the dispelling of negative energies. O Light of the Lamp, embodiment of Supreme Divinity, remove our sins and illuminate our consciousness.',
+      sanskritMantra: 'आगमनार्थं तु देवानां गमनार्थं तु रक्षसाम् । कुर्वे घण्टारवं तत्र शिवशक्त्याह्वान लक्षणम् ॥\nदीपज्योतिः पराशक्तिः दीपज्योतिः सदाशिवः । दीपो हरतु मे पापं दीपज्योतिर्नमोऽस्तु ते ॥',
+      kannadaTranslit: 'ಆಗಮನಾರ್ಥಂ ತು ದೇವಾನಾಂ ಗಮನಾರ್ಥಂ ತು ರಕ್ಷಸಾಮ್ । ಕುರ್ವೇ ಘಂಟಾರವಂ ತತ್ರ ಶಿವಶಕ್ತ್ಯಾಹ್ವಾನ ಲಕ್ಷಣಮ್ ॥\nದೀಪಜ್ಯೋತಿಃ ಪರಾಶಕ್ತಿಃ ದೀಪಜ್ಯೋತಿಃ ಸದಾಶಿವಃ । ದೀಪೋ ಹರತು ಮೇ ಪಾಪಂ ದೀಪಜ್ಯೋತಿರ್ನಮೋಸ್ತು ತೇ ॥',
+      hindiTranslit: 'आगमनार्थं तु देवानां गमनार्थं तु रक्षसाम् । कुर्वे घण्टारवं तत्र शिवशक्त्याह्वान लक्षणम् ॥\nदीपज्योतिः पराशक्तिः दीपज्योतिः सदाशिवः । दीपो हरतु मे पापं दीपज्योतिर्नमोऽस्तु ते ॥',
+      englishMeaning: 'I ring the bell welcoming Lord Shiva, Devi Durga, and all benevolent divinities while expelling negativity. The light of the lamp is supreme Parashakti and Sadashiva. O Divine Flame, eradicate all darkness and sins.',
       audioSpeechText: {
-        kn: 'ಘಂಟಾನಾದ ಮತ್ತು ದೀಪ ನಮಸ್ಕಾರ. ಆಗಮನಾರ್ಥಂ ತು ದೇವಾನಾಂ ಗಮನಾರ್ಥಂ ತು ರಕ್ಷಸಾಮ್, ಕುರ್ವೇ ಘಂಟಾರವಂ ತತ್ರ ದೇವತಾಹ್ವಾನ ಲಕ್ಷಣಮ್. ದೀಪಜ್ಯೋತಿಃ ಪರಬ್ರಹ್ಮ ದೀಪಜ್ಯೋತಿರ್ ಜನಾರ್ದನಃ, ದೀಪೋ ಹರತು ಮೇ ಪಾಪಂ ದೀಪಜ್ಯೋತಿರ್ ನಮೋಸ್ತು ತೇ.',
-        hi: 'घण्टानाद एवं दीप नमस्कार। आगमनार्थं तु देवानां गमनार्थं तु रक्षसाम्, कुर्वे घण्टारवं तत्र देवताह्वान लक्षणम्। दीपज्योतिः परब्रह्म दीपज्योतिर्जनार्दनः, दीपो हरतु मे पापं दीपज्योतिर्नमोऽस्तु ते।',
-        en: 'Ghanta Nada and Deepa Pranam. We ring the bell for the arrival of Devas and removal of obstacles. Salutations to the Divine Flame representing Parabrahman and Janardana.'
+        kn: 'ಘಂಟಾನಾದ ಮತ್ತು ಶಿವ-ಶಕ್ತಿ ದೀಪ ಪ್ರಣಾಮ. ಆಗಮನಾರ್ಥಂ ತು ದೇವಾನಾಂ ಗಮನಾರ್ಥಂ ತು ರಕ್ಷಸಾಮ್, ಕುರ್ವೇ ಘಂಟಾರವಂ ತತ್ರ ಶಿವಶಕ್ತ್ಯಾಹ್ವಾನ ಲಕ್ಷಣಮ್. ದೀಪಜ್ಯೋತಿಃ ಪರಾಶಕ್ತಿಃ ದೀಪಜ್ಯೋತಿಃ ಸದಾಶಿವಃ, ದೀಪೋ ಹರತು ಮೇ ಪಾಪಂ ದೀಪಜ್ಯೋತಿರ್ ನಮೋಸ್ತು ತೇ.',
+        hi: 'घण्टानाद एवं शिव-शक्ति दीप प्रणाम। आगमनार्थं तु देवानां गमनार्थं तु रक्षसाम्, कुर्वे घण्टारवं तत्र शिवशक्त्याह्वान लक्षणम्। दीपज्योतिः पराशक्तिः दीपज्योतिः सदाशिवः, दीपो हरतु मे पापं दीपज्योतिर्नमोऽस्तु ते।',
+        en: 'Ghanta Nada and Shiva-Shakti Deepa Pranam. We ring the bell welcoming Lord Shiva and Mother Durga. The light of the sacred lamp is Parashakti and Sadashiva. Salutations to the Divine Flame.'
       },
       audioBellAtStart: true
     },
@@ -230,18 +230,18 @@ export const PoojaAudioGuide: React.FC<PoojaAudioGuideProps> = ({
         en: '3. Desha Kala Shubha Sankalpa (Vedic Oath)'
       },
       ritualAction: {
-        kn: 'ಬಲಗೈಯಲ್ಲಿ ಅಕ್ಷತೆ, ಪುಷ್ಪ, ಜಲ ಮತ್ತು ನಾಣ್ಯವನ್ನು ಹಿಡಿದು, ಗುರು-ಹಿರಿಯರನ್ನು ಸ್ಮರಿಸುತ್ತಾ ಸಂಕಲ್ಪವನ್ನು ಪಠಿಸಿ.',
-        hi: 'दाहिने हाथ में अक्षत, पुष्प, जल एवं द्रव्य लेकर श्रद्धापूर्वक संकल्प का पाठ करें।',
-        en: 'Hold sacred Akshata (uncooked rice), flower, water, and coin in your right palm while chanting this personalized Sankalpa.'
+        kn: 'ಬಲಗೈಯಲ್ಲಿ ಅಕ್ಷತೆ, ಬಿಲ್ವಪತ್ರೆ/ಹೂವು, ಜಲ ಹಿಡಿದು, ಶ್ರೀ ಸಾಂಬಸದಾಶಿವ ಮತ್ತು ಶ್ರೀ ದುರ್ಗಾ ಪರಮೇಶ್ವರಿಯ ಪ್ರೀತ್ಯರ್ಥ ಸಂಕಲ್ಪ ಪಠಿಸಿ.',
+        hi: 'दाहिने हाथ में अक्षत, बिल्वपत्र/पुष्प, जल लेकर श्री साम्बसदाशिव एवं श्री दुर्गा परमेश्वरी की प्रसन्नता हेतु संकल्प पाठ करें।',
+        en: 'Hold sacred Akshata, Bilva/flowers, and water in your right palm while chanting this personalized Sankalpa dedicated to Shiva-Devi.'
       },
-      sanskritMantra: `श्री गोविन्द गोविन्द... अद्य ब्रह्मणो द्वितीये परार्धे श्रीश्वेतवाराहकल्पे वैवस्वतमन्वन्तरे अष्टाविंशतितमे कलियुगे प्रथमचरणे जम्बूद्वीपे भारतवर्षे भरतखण्डे...\n${cityName} क्षेत्रे... ${samvatsaraName} संवत्सरे, ${ayanaName} अयने, ${masaName} मासे, ${pakshaName} पक्षे, ${tithiName} तिथौ, ${varaName} वासरे, ${nakshatraName} नक्षत्रे, ${rashiName} राशौ... श्री ${deityName} प्रीत्यर्थं श्री ${granthaName} पूजा कर्म करिष्ये ॥`,
-      kannadaTranslit: `ಶ್ರೀ ಗೋವಿಂದ ಗೋವಿಂದ... ಅದ್ಯ ಬ್ರಹ್ಮಣೋ ದ್ವಿತೀಯೇ ಪರಾರ್ಧೇ ಶ್ರೀಶ್ವೇತವಾರಾಹಕಲ್ಪೇ ವೈವಸ್ವತಮನ್ವಂತರೇ ಅಷ್ಟಾವಿಂಶತಿತಮೇ ಕಲಿಯುಗೇ ಪ್ರಥಮಚರಣೇ ಜಂಬೂದ್ವೀಪೇ ಭಾರತವರ್ಷೇ ಭರತಖಂಡೇ...\n${cityName} ಕ್ಷೇತ್ರೇ... ${samvatsaraName} ಸಂವತ್ಸರೇ, ${ayanaName} ಅಯನೇ, ${masaName} ಮಾಸೇ, ${pakshaName} ಪಕ್ಷೇ, ${tithiName} ತಿಥೌ, ${varaName} ವಾಸರೇ, ${nakshatraName} ನಕ್ಷತ್ರೇ, ${rashiName} ರಾಶೌ... ಶ್ರೀ ${deityName} ಪ್ರೀತ್ಯರ್ಥಂ ಶ್ರೀ ${granthaName} ಪೂಜಾ ಕರ್ಮ ಕರಿಷ್ಯೇ ॥`,
-      hindiTranslit: `श्री गोविन्द गोविन्द... अद्य ब्रह्मणो द्वितीये परार्धे श्रीश्वेतवाराहकल्पे वैवस्वतमन्वन्तरे अष्टाविंशतितमे कलियुगे प्रथमचरणे जम्बूद्वीपे भारतवर्षे भरतखण्डे...\n${cityName} क्षेत्रे... ${samvatsaraName} संवत्सरे, ${ayanaName} अयने, ${masaName} मासे, ${pakshaName} पक्षे, ${tithiName} तिथौ, ${varaName} वासरे, ${nakshatraName} नक्षत्रे, ${rashiName} राशौ... श्री ${deityName} प्रीत्यर्थं श्री ${granthaName} पूजा कर्म करिष्ये ॥`,
-      englishMeaning: `In this cosmic space and time, within ${cityName}, during ${samvatsaraName} year, ${ayanaName}, ${masaName} month, ${pakshaName}, on ${tithiName} tithi, ${varaName}, under ${nakshatraName} star, for the divine grace and pleasure of Sri ${deityName}, I solemnly perform this sacred puja and recitation of Sri ${granthaName}.`,
+      sanskritMantra: `ॐ नमः शिवाय । श्री साम्बसदाशिव दुर्गापरमेश्वर्यै नमः ।\nअद्य ब्रह्मणो द्वितीये परार्धे श्रीश्वेतवाराहकल्पे वैवस्वतमन्वन्तरे अष्टाविंशतितमे कलियुगे प्रथमचरणे जम्बूद्वीपे भारतवर्षे भरतखण्डे...\n${cityName} क्षेत्रे... ${samvatsaraName} संवत्सरे, ${ayanaName} अयने, ${masaName} मासे, ${pakshaName} पक्षे, ${tithiName} तिथौ, ${varaName} वासरे, ${nakshatraName} नक्षत्रे, ${rashiName} राशौ... श्री साम्बसदाशिव श्री ${deityName} प्रीत्यर्थं श्री ${granthaName} पूजा कर्म करिष्ये ॥`,
+      kannadaTranslit: `ಓಂ ನಮಃ ಶಿವಾಯ । ಶ್ರೀ ಸಾಂಬಸದಾಶಿವ ದುರ್ಗಾಪರಮೇಶ್ವರ್ಯೈ ನಮಃ ।\nಅದ್ಯ ಬ್ರಹ್ಮಣೋ ದ್ವಿತೀಯೇ ಪರಾರ್ಧೇ ಶ್ರೀಶ್ವೇತವಾರಾಹಕಲ್ಪೇ ವೈವಸ್ವತಮನ್ವಂತರೇ ಅಷ್ಟಾವಿಂಶತಿತಮೇ ಕಲಿಯುಗೇ ಪ್ರಥಮಚರಣೇ ಜಂಬೂದ್ವೀಪೇ ಭಾರತವರ್ಷೇ ಭರತಖಂಡೇ...\n${cityName} ಕ್ಷೇತ್ರೇ... ${samvatsaraName} ಸಂವತ್ಸರೇ, ${ayanaName} ಅಯನೇ, ${masaName} ಮಾಸೇ, ${pakshaName} ಪಕ್ಷೇ, ${tithiName} ತಿಥೌ, ${varaName} ವಾಸರೇ, ${nakshatraName} ನಕ್ಷತ್ರೇ, ${rashiName} ರಾಶೌ... ಶ್ರೀ ಸಾಂಬಸದಾಶಿವ ಶ್ರೀ ${deityName} ಪ್ರೀತ್ಯರ್ಥಂ ಶ್ರೀ ${granthaName} ಪೂಜಾ ಕರ್ಮ ಕರಿಷ್ಯೇ ॥`,
+      hindiTranslit: `ॐ नमः शिवाय । श्री साम्बसदाशिव दुर्गापरमेश्वर्यै नमः ।\nअद्य ब्रह्मणो द्वितीये परार्धे श्रीश्वेतवाराहकल्पे वैवस्वतमन्वन्तरे अष्टाविंशतितमे कलियुगे प्रथमचरणे जम्बूद्वीपे भारतवर्षे भरतखण्डे...\n${cityName} क्षेत्रे... ${samvatsaraName} संवत्सरे, ${ayanaName} अयने, ${masaName} मासे, ${pakshaName} पक्षे, ${tithiName} तिथौ, ${varaName} वासरे, ${nakshatraName} नक्षत्रे, ${rashiName} राशौ... श्री साम्बसदाशिव श्री ${deityName} प्रीत्यर्थं श्री ${granthaName} पूजा कर्म करिष्ये ॥`,
+      englishMeaning: `Om Namah Shivaya. Salutations to Sri Samba Sadashiva and Sri Durga Parameshwari. Within ${cityName}, during ${samvatsaraName} year, ${ayanaName}, ${masaName} month, ${pakshaName}, on ${tithiName} tithi, ${varaName}, under ${nakshatraName} star, for the supreme grace of Lord Shiva and Devi ${deityName}, I solemnly perform this sacred puja and recitation of Sri ${granthaName}.`,
       audioSpeechText: {
-        kn: `ದೇಶ ಕಾಲ ಶುಭ ಸಂಕಲ್ಪ. ಶ್ರೀ ಗೋವಿಂದ ಗೋವಿಂದ ಗೋವಿಂದ. ಶ್ರೀ ಪರಮೇಶ್ವರ ಪ್ರೀತ್ಯರ್ಥಂ, ಜಂಬೂದ್ವೀಪೇ ಭಾರತವರ್ಷೇ, ${cityName} ಕ್ಷೇತ್ರೇ, ${samvatsaraName} ಸಂವತ್ಸರೇ, ${ayanaName} ಅಯನೇ, ${masaName} ಮಾಸೇ, ${pakshaName} ಪಕ್ಷೇ, ${tithiName} ತಿಥೌ, ${varaName} ವಾಸರೇ, ${nakshatraName} ನಕ್ಷತ್ರೇ, ${rashiName} ರಾಶೌ ಸ್ಥಿತೇ ಚಂದ್ರೇ, ಶ್ರೀ ${deityName} ಪ್ರೀತ್ಯರ್ಥಂ, ಧರ್ಮಾರ್ಥ ಕಾಮಮೋಕ್ಷ ಚತುರ್ವಿಧ ಫಲ ಪುರುಷಾರ್ಥ ಸಿದ್ಧ್ಯರ್ಥಂ, ಶ್ರೀ ${granthaName} ಪಾರಾಯಣ ಪೂಜಾ ಸಂಕಲ್ಪಂ ಕರಿಷ್ಯೇ. ಜಲವನ್ನು ತಟ್ಟೆಯಲ್ಲಿ ಬಿಡಿ.`,
-        hi: `देश काल शुभ संकल्प। श्री गोविन्द गोविन्द गोविन्द। जम्बूद्वीपे भारतवर्षे, ${cityName} क्षेत्रे, ${samvatsaraName} संवत्सरे, ${ayanaName} अयने, ${masaName} मासे, ${pakshaName} पक्षे, ${tithiName} तिथौ, ${varaName} वासरे, ${nakshatraName} नक्षत्रे, ${rashiName} राशौ, श्री ${deityName} प्रीत्यर्थं, श्री ${granthaName} पूजन संकल्पं करिष्ये। जल पात्र में छोड़ें।`,
-        en: `Desha Kala Shubha Sankalpa. Sri Govinda, Govinda, Govinda. In the holy land of ${cityName}, in ${samvatsaraName} year, during ${ayanaName}, ${masaName} month, ${pakshaName}, on ${tithiName} tithi, under ${nakshatraName} star, for the divine grace of Sri ${deityName}, I undertake this auspicious ritual and chanting of ${granthaName}. Release water gently into the vessel.`
+        kn: `ದೇಶ ಕಾಲ ಶುಭ ಸಂಕಲ್ಪ. ಓಂ ನಮಃ ಶಿವಾಯ. ಶ್ರೀ ಸಾಂಬ ಸದಾಶಿವ ದುರ್ಗಾ ಪರಮೇಶ್ವರೀ ಚರಣಾರವಿಂದಯೋಃ ಪ್ರಣಾಮ. ಜಂಬೂದ್ವೀಪೇ ಭಾರತವರ್ಷೇ, ${cityName} ಕ್ಷೇತ್ರೇ, ${samvatsaraName} ಸಂವತ್ಸರೇ, ${ayanaName} ಅಯನೇ, ${masaName} ಮಾಸೇ, ${pakshaName} ಪಕ್ಷೇ, ${tithiName} ತಿಥೌ, ${varaName} ವಾಸರೇ, ${nakshatraName} ನಕ್ಷತ್ರೇ, ${rashiName} ರಾಶೌ ಸ್ಥಿತೇ ಚಂದ್ರೇ, ಶ್ರೀ ಸಾಂಬ ಸದಾಶಿವ ಶ್ರೀ ${deityName} ಪ್ರೀತ್ಯರ್ಥಂ, ಧರ್ಮಾರ್ಥ ಕಾಮಮೋಕ್ಷ ಫಲ ಸಿದ್ಧ್ಯರ್ಥಂ, ಶ್ರೀ ${granthaName} ಪಾರಾಯಣ ಪೂಜಾ ಸಂಕಲ್ಪಂ ಕರಿಷ್ಯೇ. ಜಲವನ್ನು ತಟ್ಟೆಯಲ್ಲಿ ಬಿಡಿ.`,
+        hi: `देश काल शुभ संकल्प। ॐ नमः शिवाय। श्री साम्ब सदाशिव दुर्गा परमेश्वरी चरणारविन्दयोः प्रणाम। जम्बूद्वीपे भारतवर्षे, ${cityName} क्षेत्रे, ${samvatsaraName} संवत्सरे, ${ayanaName} अयने, ${masaName} मासे, ${pakshaName} पक्षे, ${tithiName} तिथौ, ${varaName} वासरे, ${nakshatraName} नक्षत्रे, ${rashiName} राशौ, श्री साम्ब सदाशिव श्री ${deityName} प्रीत्यर्थं, श्री ${granthaName} पूजन संकल्पं करिष्ये। जल पात्र में छोड़ें।`,
+        en: `Desha Kala Shubha Sankalpa. Om Namah Shivaya. Salutations to Sri Samba Sadashiva and Sri Durga Parameshwari. In the sacred land of ${cityName}, in ${samvatsaraName} year, during ${ayanaName}, ${masaName} month, ${pakshaName}, on ${tithiName} tithi, under ${nakshatraName} star, for the divine love and grace of Lord Shiva and Devi ${deityName}, I undertake this auspicious puja and chanting of ${granthaName}. Release water gently into the vessel.`
       },
       audioBellAtStart: true
     },
@@ -249,23 +249,23 @@ export const PoojaAudioGuide: React.FC<PoojaAudioGuideProps> = ({
       id: 'step-4-kalasha-sthapana',
       stepNumber: 4,
       title: {
-        kn: '೪. ಕಲಶ ಸ್ಥಾಪನೆ & ವರುಣ ಆವಾಹನ (Kalasha Sthapana)',
-        hi: '४. कलश स्थापना एवं वरुण आह्वान (Kalasha Sthapana)',
-        en: '4. Kalasha Sthapana & Varuna Invocation'
+        kn: '೪. ಕಲಶ ಸ್ಥಾಪನೆ & ಶಿವ-ಗೌರೀ ವರುಣ ಆವಾಹನ (Kalasha Sthapana)',
+        hi: '४. कलश स्थापना एवं शिव-गौरी वरुण आह्वान (Kalasha Sthapana)',
+        en: '4. Kalasha Sthapana & Shiva-Gauri Invocation'
       },
       ritualAction: {
-        kn: 'ತಾಮ್ರ/ಹಿತ್ತಾಳೆ ಕಲಶಕ್ಕೆ ಗಂಗಾಜಲ ತುಂಬಿ, ಪಂಚಪಲ್ಲವ, ನಾಣ್ಯ, ಅಡಿಕೆ ಹಾಕಿ, ತೆಂಗಿನಕಾಯಿ ಪ್ರತಿಷ್ಠಾಪಿಸಿ ವರುಣ ದೇವರನ್ನು ಪ್ರಾರ್ಥಿಸಿ.',
-        hi: 'कलश में शुद्ध जल, पंचपल्लव, सुपारी, सिक्का डालकर नारियल स्थापित करें एवं वरुण देव की वन्दना करें।',
-        en: 'Fill copper/brass pot with sacred water, add 5 mango leaves, betel nut, coin, crown with coconut and invoke holy rivers.'
+        kn: 'ತಾಮ್ರ/ಹಿತ್ತಾಳೆ ಕಲಶಕ್ಕೆ ಗಂಗಾಜಲ ತುಂಬಿ, ಪಂಚಪಲ್ಲವ, ನಾಣ್ಯ, ಅಡಿಕೆ ಹಾಕಿ, ತೆಂಗಿನಕಾಯಿ ಪ್ರತಿಷ್ಠಾಪಿಸಿ ಶಿವ-ಶಕ್ತಿ ತೀರ್ಥ ಶಕ್ತಿಗಳನ್ನು ಆಹ್ವಾನಿಸಿ.',
+        hi: 'कलश में शुद्ध जल, पंचपल्लव, सुपारी, सिक्का डालकर नारियल स्थापित करें एवं शिव-गौरी व वरुण देव की वन्दना करें।',
+        en: 'Fill holy vessel with sacred water, add 5 mango leaves, betel nut, coin, crown with coconut, and invoke Shiva-Gauri and holy rivers.'
       },
-      sanskritMantra: 'कलशस्य मुखे विष्णुः कण्ठे रुद्रः समाश्रितः । मूले तत्र स्थितो ब्रह्मा मध्ये मातृगणाः स्मृताः ॥\nगङ्गे च यमुने चैव गोदावरि सरस्वति । नर्मदे सिन्धु कावेरि जलेऽस्मिन् सन्निधिं कुरु ॥',
-      kannadaTranslit: 'ಕಲಶಸ್ಯ ಮುಖೇ ವಿಷ್ಣುಃ ಕಂಠೇ ರುದ್ರಃ ಸಮಾಶ್ರಿತಃ । ಮೂಲೇ ತತ್ರ ಸ್ಥಿತೋ ಬ್ರಹ್ಮಾ ಮಧ್ಯೇ ಮಾತೃಗಣಾಃ ಸ್ಮೃತಾಃ ॥\nಗಂಗೇ ಚ ಯಮುನೇ ಚೈವ ಗೋದಾವರಿ ಸರಸ್ವತಿ । ನರ್ಮದೇ ಸಿಂಧು ಕಾವೇರಿ ಜಲೇಸ್ಮಿನ್ ಸನ್ನಿಧಿಂ ಕುರು ॥',
-      hindiTranslit: 'कलशस्य मुखे विष्णुः कण्ठे रुद्रः समाश्रितः । मूले तत्र स्थितो ब्रह्मा मध्ये मातृगणाः स्मृताः ॥\nगङ्गे च यमुने चैव गोदावरि सरस्वति । नर्मदे सिन्धु कावेरि जलेऽस्मिन् सन्निधिं कुरु ॥',
-      englishMeaning: 'In the mouth of the Kalasha dwells Vishnu, at the neck Rudra, at the base Brahma, and in the middle the Divine Mothers. May Ganga, Yamuna, Godavari, Saraswati, Narmada, Sindhu, and Kaveri enter this sacred water.',
+      sanskritMantra: 'कलशस्य मुखे रुद्रः कण्ठे गौरी समाश्रिता । मूले तत्र स्थितो ब्रह्मा मध्ये मातृगणाः स्मृताः ॥\nगङ्गे च यमुने चैव गोदावरि सरस्वति । नर्मदे सिन्धु कावेरि जलेऽस्मिन् सन्निधिं कुरु ॥\nॐ नमः शिवाय साम्बसदाशिवाय कलशदेवताभ्यो नमः ॥',
+      kannadaTranslit: 'ಕಲಶಸ್ಯ ಮುಖೇ ರುದ್ರಃ ಕಂಠೇ ಗೌರೀ ಸಮಾಶ್ರಿತಾ । ಮೂಲೇ ತತ್ರ ಸ್ಥಿತೋ ಬ್ರಹ್ಮಾ ಮಧ್ಯೇ ಮಾತೃಗಣಾಃ ಸ್ಮೃತಾಃ ॥\nಗಂಗೇ ಚ ಯಮುನೇ ಚೈವ ಗೋದಾವರಿ ಸರಸ್ವತಿ । ನರ್ಮದೇ ಸಿಂಧು ಕಾವೇರಿ ಜಲೇಸ್ಮಿನ್ ಸನ್ನಿಧಿಂ ಕುರು ॥\nಓಂ ನಮಃ ಶಿವಾಯ ಸಾಂಬಸದಾಶಿವಾಯ ಕಲಶದೇವತಾಭ್ಯೋ ನಮಃ ॥',
+      hindiTranslit: 'कलशस्य मुखे रुद्रः कण्ठे गौरी समाश्रिता । मूले तत्र स्थितो ब्रह्मा मध्ये मातृगणाः स्मृताः ॥\nगङ्गे च यमुने चैव गोदावरि सरस्वति । नर्मदे सिन्धु कावेरि जलेऽस्मिन् सन्निधिं कुरु ॥\nॐ नमः शिवाय साम्बसदाशिवाय कलशदेवताभ्यो नमः ॥',
+      englishMeaning: 'In the mouth of the Kalasha dwells Lord Rudra (Shiva), at the neck Mother Gauri (Devi), at the base Brahma, and in the middle the Divine Matrikas. May sacred Ganga, Yamuna, Godavari, Saraswati, Narmada, Sindhu, and Kaveri sanctify this water. Salutations to Samba Sadashiva.',
       audioSpeechText: {
-        kn: 'ಕಲಶ ಸ್ಥಾಪನೆ ಮತ್ತು ವರುಣ ಆವಾಹನ. ಕಲಶಸ್ಯ ಮುಖೇ ವಿಷ್ಣುಃ ಕಂಠೇ ರುದ್ರಃ ಸಮಾಶ್ರಿತಃ, ಮೂಲೇ ತತ್ರ ಸ್ಥಿತೋ ಬ್ರಹ್ಮಾ ಮಧ್ಯೇ ಮಾತೃಗಣಾಃ ಸ್ಮೃತಾಃ. ಗಂಗೇ ಚ ಯಮುನೇ ಚೈವ ಗೋದಾವರಿ ಸರಸ್ವತಿ, ನರ್ಮದೇ ಸಿಂಧು ಕಾವೇರಿ ಜಲೇಸ್ಮಿನ್ ಸನ್ನಿಧಿಂ ಕುರು. ಕಲಶಾಯ ನಮಃ, ಪ್ರಾರ್ಥಯಾಮಿ.',
-        hi: 'कलश स्थापना एवं वरुण आह्वान। कलशस्य मुखे विष्णुः कण्ठे रुद्रः समाश्रितः, मूल में ब्रह्मा और मध्य में मातृगण स्थित हैं। हे गङ्गा, यमुना, गोदावरी, सरस्वती, नर्मदा, सिन्धु और कावेरी, इस पवित्र जल में पधारें। कलश को प्रणाम करें।',
-        en: 'Kalasha Sthapana and Varuna Invocation. In the Kalasha reside Vishnu, Rudra, Brahma, and the Divine Mother Energies. We invoke the seven holy rivers Ganga, Yamuna, Godavari, Saraswati, Narmada, Sindhu, and Kaveri into this sanctified vessel.'
+        kn: 'ಕಲಶ ಸ್ಥಾಪನೆ ಮತ್ತು ಶಿವ-ಗೌರೀ ಆವಾಹನ. ಕಲಶಸ್ಯ ಮುಖೇ ರುದ್ರಃ ಕಂಠೇ ಗೌರೀ ಸಮಾಶ್ರಿತಾ, ಮೂಲೇ ತತ್ರ ಸ್ಥಿತೋ ಬ್ರಹ್ಮಾ ಮಧ್ಯೇ ಮಾತೃಗಣಾಃ ಸ್ಮೃತಾಃ. ಗಂಗೇ ಚ ಯಮುನೇ ಚೈವ ಗೋದಾವರಿ ಸರಸ್ವತಿ, ನರ್ಮದೇ ಸಿಂಧು ಕಾವೇರಿ ಜಲೇಸ್ಮಿನ್ ಸನ್ನಿಧಿಂ ಕುರು. ಓಂ ನಮಃ ಶಿವಾಯ, ಸಾಂಬಸದಾಶಿವ ಕಲಶದೇವತಾಭ್ಯೋ ನಮಃ, ಪ್ರಾರ್ಥಯಾಮಿ.',
+        hi: 'कलश स्थापना एवं शिव-गौरी आह्वान। कलशस्य मुखे रुद्रः कण्ठे गौरी समाश्रिता, मूल में ब्रह्मा और मध्य में मातृगण स्थित हैं। हे गङ्गा, यमुना, गोदावरी, सरस्वती, नर्मदा, सिन्धु और कावेरी, इस पावन जल में पधारें। ॐ नमः शिवाय, कलश देवता को प्रणाम करें।',
+        en: 'Kalasha Sthapana and Shiva-Gauri Invocation. In this sanctified vessel reside Lord Rudra, Mother Gauri, Brahma, and the Divine Mothers. We invoke the seven holy rivers Ganga, Yamuna, Godavari, Saraswati, Narmada, Sindhu, and Kaveri. Salutations to Samba Sadashiva.'
       },
       audioBellAtStart: true
     },
@@ -273,23 +273,23 @@ export const PoojaAudioGuide: React.FC<PoojaAudioGuideProps> = ({
       id: 'step-5-akhanda-deepa',
       stepNumber: 5,
       title: {
-        kn: '೫. ಅಖಂಡ ದೀಪ ಪ್ರತಿಷ್ಠಾಪನೆ & ಗಾಯತ್ರೀ (Akhanda Deepa)',
-        hi: '५. अखण्ड दीप प्रतिष्ठा एवं गायत्री (Akhanda Deepa)',
-        en: '5. Akhanda Deepa Installation & Gayatri'
+        kn: '೫. ಅಖಂಡ ದೀಪ ಪ್ರತಿಷ್ಠಾಪನೆ & ದುರ್ಗಾ-ಶಿವ ಗಾಯತ್ರೀ (Akhanda Deepa)',
+        hi: '५. अखण्ड दीप प्रतिष्ठा एवं दुर्गा-शिव गायत्री (Akhanda Deepa)',
+        en: '5. Akhanda Deepa & Durga-Shiva Gayatri'
       },
       ritualAction: {
-        kn: 'ಗೋಧಿ/ಅಕ್ಕಿ ಪೀಠದ ಮೇಲೆ ಹಿತ್ತಾಳೆಯ ದೀಪವನ್ನು ಪ್ರತಿಷ್ಠಾಪಿಸಿ, ತುಪ್ಪ/ಎಣ್ಣೆ ಹಾಕಿ, ಪೂರ್ವ ಅಥವಾ ಉತ್ತರ ಮುಖವಾಗಿ ಜ್ಯೋತಿ ಪ್ರಜ್ವಲಿಸಿ.',
-        hi: 'धान्य पीठ पर पीतल का दीप रखकर घृत अथवा तिल तैल भरकर पूर्व या उत्तर दिशा में अखण्ड ज्योति प्रज्वलित करें।',
-        en: 'Place brass lamp on grain altar, add pure cow ghee (left) or sesame oil (right), illuminate facing East or North.'
+        kn: 'ಧಾನ್ಯ ಪೀಠದ ಮೇಲೆ ದೀಪವನ್ನು ಪ್ರತಿಷ್ಠಾಪಿಸಿ, ತುಪ್ಪ/ಎಣ್ಣೆ ಹಾಕಿ, ಪೂರ್ವ ಅಥವಾ ಉತ್ತರ ಮುಖವಾಗಿ ದುರ್ಗಾ-ಶಿವ ಗಾಯತ್ರೀ ಜಪಿಸಿ ಜ್ಯೋತಿ ಬೆಳಗಿ.',
+        hi: 'धान्य पीठ पर दीप स्थापित कर घृत या तिल तैल भरकर पूर्व अथवा उत्तर दिशा में दुर्गा-शिव गायत्री जपते हुए अखण्ड ज्योति प्रज्वलित करें।',
+        en: 'Place lamp on grain altar, add cow ghee or sesame oil, and ignite facing East or North chanting the Durga-Shiva Gayatri.'
       },
-      sanskritMantra: 'शुभं करोति कल्याणमारोग्यं धनसम्पदः । शत्रुबुद्धि विनाशाय दीपज्योतिर्नमोऽस्तु ते ॥\nॐ महाज्वालाय विद्महे अग्निदेवाय धीमहि । तन्नो अग्निः प्रचोदयात् ॥',
-      kannadaTranslit: 'ಶುಭಂ ಕರೋತಿ ಕಲ್ಯಾಣಮಾರೋಗ್ಯಂ ಧನಸಂಪದಃ । ಶತ್ರುಬುದ್ಧಿ ವಿನಾಶಾಯ ದೀಪಜ್ಯೋತಿರ್ನಮೋಸ್ತು ತೇ ॥\nಓಂ ಮಹಾಜ್ವಾಲಾಯ ವಿದ್ಮಹೇ ಅಗ್ನಿದೇವಾಯ ಧೀಮಹಿ । ತನ್ನೋ ಅಗ್ನಿಃ ಪ್ರಚೋದಯಾತ್ ॥',
-      hindiTranslit: 'शुभं करोति कल्याणमारोग्यं धनसम्पदः । शत्रुबुद्धि विनाशाय दीपज्योतिर्नमोऽस्तु ते ॥\nॐ महाज्वालाय विद्महे अग्निदेवाय धीमहि । तन्नो अग्निः प्रचोदयात् ॥',
-      englishMeaning: 'Salutations to the sacred flame that bestows auspiciousness, radiant health, wealth, and dispels malevolent thoughts. Om, we meditate on the blazing Lord of Fire, may Agni enlighten our intellect.',
+      sanskritMantra: 'ॐ गिरिजायै च विद्महे शिवप्रियायै धीमहि । तन्नो दुर्गा प्रचोदयात् ॥\nॐ तत्पुरुषाय विद्महे महादेवाय धीमहि । तन्नो रुद्रः प्रचोदयात् ॥\nशुभं करोति कल्याणमारोग्यं धनसम्पदः । शत्रुबुद्धि विनाशाय दीपज्योतिर्नमोऽस्तु ते ॥',
+      kannadaTranslit: 'ಓಂ ಗಿರಿಜಾಯೈ ಚ ವಿದ್ಮಹೇ ಶಿವಪ್ರಿಯಾಯೈ ಧೀಮಹಿ । ತನ್ನೋ ದುರ್ಗಾ ಪ್ರಚೋದಯಾತ್ ॥\nಓಂ ತತ್ಪುರುಷಾಯ ವಿದ್ಮಹೇ ಮಹಾದೇವಾಯ ಧೀಮಹಿ । ತನ್ನೋ ರುದ್ರಃ ಪ್ರಚೋದಯಾತ್ ॥\nಶುಭಂ ಕರೋತಿ ಕಲ್ಯಾಣಮಾರೋಗ್ಯಂ ಧನಸಂಪದಃ । ಶತ್ರುಬುದ್ಧಿ ವಿನಾಶಾಯ ದೀಪಜ್ಯೋತಿರ್ನಮೋಸ್ತು ತೇ ॥',
+      hindiTranslit: 'ॐ गिरिजायै च विद्महे शिवप्रियायै धीमहि । तन्नो दुर्गा प्रचोदयात् ॥\nॐ तत्पुरुषाय विद्महे महादेवाय धीमहि । तन्नो रुद्रः प्रचोदयात् ॥\nशुभं करोति कल्याणमारोग्यं धनसम्पदः । शत्रुबुद्धि विनाशाय दीपज्योतिर्नमोऽस्तु ते ॥',
+      englishMeaning: 'Om, we meditate upon Goddess Girija, the beloved consort of Lord Shiva; may Divine Mother Durga inspire and illuminate our intellect. Om, we meditate upon Mahadeva Tatpurusha; may Lord Rudra guide our consciousness. Salutations to the sacred Flame.',
       audioSpeechText: {
-        kn: 'ಅಖಂಡ ದೀಪ ಪ್ರತಿಷ್ಠಾಪನೆ. ಶುಭಂ ಕರೋತಿ ಕಲ್ಯಾಣಮ್ ಆರೋಗ್ಯಂ ಧನಸಂಪದಃ, ಶತ್ರುಬುದ್ಧಿ ವಿನಾಶಾಯ ದೀಪಜ್ಯೋತಿರ್ ನಮೋಸ್ತು ತೇ. ಓಂ ಮಹಾಜ್ವಾಲಾಯ ವಿದ್ಮಹೇ ಅಗ್ನಿದೇವಾಯ ಧೀಮಹಿ, ತನ್ನೋ ಅಗ್ನಿಃ ಪ್ರಚೋದಯಾತ್. ಅಖಂಡ ಜ್ಯೋತಯೇ ನಮಃ.',
-        hi: 'अखण्ड दीप प्रतिष्ठा। शुभं करोति कल्याणमारोग्यं धनसम्पदः, शत्रुबुद्धि विनाशाय दीपज्योतिर्नमोऽस्तु ते। ॐ महाज्वालाय विद्महे अग्निदेवाय धीमहि, तन्नो अग्निः प्रचोदयात्। अखण्ड ज्योति को प्रणाम करें।',
-        en: 'Akhanda Deepa Installation. Shubham Karoti Kalyanam, Arogyam Dhana Sampadah. Salutations to the sacred light that brings peace, supreme health, and prosperity. May the divine flame of Agni protect our home.'
+        kn: 'ಅಖಂಡ ದೀಪ ಪ್ರತಿಷ್ಠಾಪನೆ ಮತ್ತು ದುರ್ಗಾ-ಶಿವ ಗಾಯತ್ರೀ. ಓಂ ಗಿರಿಜಾಯೈ ಚ ವಿದ್ಮಹೇ ಶಿವಪ್ರಿಯಾಯೈ ಧೀಮಹಿ, ತನ್ನೋ ದುರ್ಗಾ ಪ್ರಚೋದಯಾತ್. ಓಂ ತತ್ಪುರುಷಾಯ ವಿದ್ಮಹೇ ಮಹಾದೇವಾಯ ಧೀಮಹಿ, ತನ್ನೋ ರುದ್ರಃ ಪ್ರಚೋದಯಾತ್. ಶುಭಂ ಕರೋತಿ ಕಲ್ಯಾಣಮ್ ಆರೋಗ್ಯಂ ಧನಸಂಪದಃ, ಶತ್ರುಬುದ್ಧಿ ವಿನಾಶಾಯ ದೀಪಜ್ಯೋತಿರ್ ನಮೋಸ್ತು ತೇ. ಸಾಂಬಸದಾಶಿವ ದುರ್ಗಾಜ್ಯೋತಯೇ ನಮಃ.',
+        hi: 'अखण्ड दीप प्रतिष्ठा एवं दुर्गा-शिव गायत्री। ॐ गिरिजायै च विद्महे शिवप्रियायै धीमहि, तन्नो दुर्गा प्रचोदयात्। ॐ तत्पुरुषाय विद्महे महादेवाय धीमहि, तन्नो रुद्रः प्रचोदयात्। शुभं करोति कल्याणमारोग्यं धनसम्पदः, दीपज्योतिर्नमोऽस्तु ते। अखण्ड ज्योति को प्रणाम करें।',
+        en: 'Akhanda Deepa Installation and Durga-Shiva Gayatri. Om Girijayai Cha Vidmahe Shiva-Priyayai Dheemahi, Tanno Durgah Prachodayat. Om Tatpurushaya Vidmahe Mahadevaya Dheemahi, Tanno Rudrah Prachodayat. Shubham Karoti Kalyanam. Salutations to the Divine Flame representing Shiva and Durga.'
       },
       audioBellAtStart: true
     },
@@ -297,23 +297,23 @@ export const PoojaAudioGuide: React.FC<PoojaAudioGuideProps> = ({
       id: 'step-6-shodashopachara',
       stepNumber: 6,
       title: {
-        kn: '೬. ಷೋಡಶೋಪಚಾರ ಪೂಜಾ ಸಮರ್ಪಣೆ (16 Sacred Offerings)',
-        hi: '६. षोडशोपचार पूजा समर्पण (१६ पावन उपचार)',
-        en: '6. Shodashopachara Puja Samarpana (16 Upacharas)'
+        kn: '೬. ಶಿವ-ದುರ್ಗಾ ಷೋಡಶೋಪಚಾರ ಪೂಜಾ ಸಮರ್ಪಣೆ (16 Sacred Offerings)',
+        hi: '६. शिव-दुर्गा षोडशोपचार पूजा समर्पण (१६ पावन उपचार)',
+        en: '6. Shiva-Durga Shodashopachara Puja Samarpana (16 Upacharas)'
       },
       ritualAction: {
-        kn: 'ಧ್ಯಾಹನ, ಆವಾಹನ, ಆಸನ, ಪಾದ್ಯ, ಅರ್ಘ್ಯ, ಆಚಮನ, ಸ್ನಾನ, ವಸ್ತ್ರ, ಗಂಧ, ಪುಷ್ಪ, ಧೂಪ, ದೀಪ, ನೈವೇದ್ಯ, ತಾಂಬೂಲ ಸಮರ್ಪಿಸಿ.',
-        hi: 'ध्यान, आवाहन, आसन, पाद्य, अर्घ्य, आचमन, स्नान, वस्त्र, गन्ध, पुष्प, धूप, दीप, नैवेद्य एवं ताम्बूल अर्पित करें।',
-        en: 'Chant and offer each of the 16 traditional Vedic offerings with devotion to Sri Ishta Devata.'
+        kn: 'ಶಿವಲಿಂಗ ಹಾಗೂ ದುರ್ಗಾದೇವಿಯ ಮೂರ್ತಿಗೆ ಬಿಲ್ವಪತ್ರೆ, ಕುಂಕುಮ, ಹೂವು, ಧೂಪ, ದೀಪ, ನೈವೇದ್ಯ, ತಾಂಬೂಲ ಹಾಗೂ ಕರ್ಪೂರ ನೀರಾಜನ ಸಮರ್ಪಿಸಿ.',
+        hi: 'शिवलिंग एवं माँ दुर्गा को बिल्वपत्र, कुंकुम, पुष्प, धूप, दीप, नैवेद्य, ताम्बूल एवं कर्पूर आरती अर्पित करें।',
+        en: 'Offer Bilva leaves, Kumkum, flowers, incense, lamp, sweet Naivedya, betel leaves, and camphor Arati to Shiva and Devi.'
       },
-      sanskritMantra: 'ध्यायामि, आवाहयामि, आसनं समर्पयामि, पाद्यं, अर्घ्यं, आचमनीयं समर्पयामि, स्नानान्ते वस्त्रं, यज्ञोपवीतं, गन्धं, पुष्पं, धूपं, दीपं, नैवेद्यं, ताम्बूलं, मङ्गलनीराजनं समर्पयामि ॥',
-      kannadaTranslit: 'ಧ್ಯಾಯಾಮಿ, ಆವಾಹಯಾಮಿ, ಆಸನಂ ಸಮರ್ಪಯಾಮಿ, ಪಾದ್ಯಂ, ಅರ್ಘ್ಯಂ, ಆಚಮನೀಯಂ ಸಮರ್ಪಯಾಮಿ, ಸ್ನಾನಾಂತೇ ವಸ್ತ್ರಂ, ಯಜ್ಞೋಪವೀತಂ, ಗಂಧಂ, ಪುಷ್ಪಂ, ಧೂಪಂ, ದೀಪಂ, ನೈವೇದ್ಯಂ, ತಾಂಬೂಲಂ, ಮಂಗಳನೀರಾಜನಂ ಸಮರ್ಪಯಾಮಿ ॥',
-      hindiTranslit: 'ध्यायामि, आवाहयामि, आसनं समर्पयामि, पाद्यं, अर्घ्यं, आचमनीयं समर्पयामि, स्नानान्ते वस्त्रं, यज्ञोपवीतं, गन्धं, पुष्पं, धूपं, दीपं, नैवेद्यं, ताम्बूलं, मङ्गलनीराजनं समर्पयामि ॥',
-      englishMeaning: 'I meditate upon You, I welcome You, I offer seat, holy water for feet, hands, and sipping; holy bath, garments, sacred thread, sandalwood, flowers, incense, lamp, sweet food, and sacred waving of lights.',
+      sanskritMantra: 'ॐ श्री साम्बसदाशिवाय दुर्गापरमेश्वर्यै नमः ।\nध्यायामि, आवाहयामि, आसनार्थे बिल्वपत्राक्षतान् समर्पयामि, पाद्यं, अर्घ्यं, आचमनीयं समर्पयामि, स्नानान्ते दिव्यवस्त्रं, यज्ञोपवीतं, चन्दनं, कुङ्कुमं, बिल्वपत्र-पुष्पाणि पूजयामि, दिव्यधूपं, दीपं, महानेवेद्यं, ताम्बूलं, मङ्गलकर्पूरनीराजनಂ समर्पयामि ॥',
+      kannadaTranslit: 'ಓಂ ಶ್ರೀ ಸಾಂಬಸದಾಶಿವಾಯ ದುರ್ಗಾಪರಮೇಶ್ವರ್ಯೈ ನಮಃ ।\nಧ್ಯಾಯಾಮಿ, ಆವಾಹಯಾಮಿ, ಆಸನಾರ್ಥೇ ಬಿಲ್ವಪತ್ರಾಕ್ಷತಾನ್ ಸಮರ್ಪಯಾಮಿ, ಪಾದ್ಯಂ, ಅರ್ಘ್ಯಂ, ಆಚಮನೀಯಂ ಸಮರ್ಪಯಾಮಿ, ಸ್ನಾನಾಂತೇ ದಿವ್ಯವಸ್ತ್ರಂ, ಯಜ್ಞೋಪವೀತಂ, ಚಂದನಂ, ಕುಂಕುಮಂ, ಬಿಲ್ವಪತ್ರ-ಪುಷ್ಪಾಣಿ ಪೂಜಯಾಮಿ, ದಿವ್ಯಧೂಪಂ, ದೀಪಂ, ಮಹಾನೈವೇದ್ಯಂ, ತಾಂಬೂಲಂ, ಮಂಗಳಕರ್ಪೂರನೀರಾಜನಂ ಸಮರ್ಪಯಾಮಿ ॥',
+      hindiTranslit: 'ॐ श्री साम्बसदाशिवाय दुर्गापरमेश्वर्यै नमः ।\nध्यायामि, आवाहयामि, आसनार्थे बिल्वपत्राक्षतान् समर्पयामि, पाद्यं, अर्घ्यं, आचमनीयं समर्पयामि, स्नानान्ते दिव्यवस्त्रं, यज्ञोपवीतं, चन्दनं, कुङ्कुमं, बिल्वपत्र-पुष्पाणि पूजयामि, दिव्यधूपं, दीपं, महानेवेद्यं, ताम्बूलं, मङ्गलकर्पूरनीराजनಂ समर्पयामि ॥',
+      englishMeaning: 'Om, salutations to Sri Samba Sadashiva and Devi Durga Parameshwari. I meditate upon You, I welcome You, offering seat, holy water, divine garments, sacred Bilva leaves, flowers, sandalwood, incense, flame, sweet Naivedya, and camphor Arati.',
       audioSpeechText: {
-        kn: 'ಷೋಡಶೋಪಚಾರ ಸಮರ್ಪಣೆ. ಶ್ರೀ ಇಷ್ಟದೇವತಾಯೈ ನಮಃ. ಧ್ಯಾಯಾಮಿ. ಆವಾಹಯಾಮಿ. ಆಸನಾರ್ಥೇ ಅಕ್ಷತಾನ್ ಸಮರ್ಪಯಾಮಿ. ಪಾದ್ಯಂ ಸಮರ್ಪಯಾಮಿ. ಅರ್ಘ್ಯಂ ಸಮರ್ಪಯಾಮಿ. ಆಚಮನೀಯಂ ಸಮರ್ಪಯಾಮಿ. ಗಂಧಂ ಸಮರ್ಪಯಾಮಿ. ಪುಷ್ಪಾಣಿ ಪೂಜಯಾಮಿ. ಧೂಪಂ ಆಘ್ರಾಪಯಾಮಿ. ದೀಪಂ ದರ್ಶಯಾಮಿ. ನೈವೇದ್ಯಂ ನಿವೇದಯಾಮಿ. ತಾಂಬೂಲಂ ಸಮರ್ಪಯಾಮಿ. ಮಂಗಳ ನೀರಾಜನಂ ಸಮರ್ಪಯಾಮಿ.',
-        hi: 'षोडशोपचार पूजन। श्री इष्टदेवतायै नमः। ध्यायामि, आवाहयामि, आसनं समर्पयामि। पाद्यं, अर्घ्यं, आचमनीयं समर्पयामि। गन्धं, पुष्पं, धूपं, दीपं, नैवेद्यं, ताम्बूलं एवं मङ्गल आरती समर्पयामि।',
-        en: 'Shodashopachara Samarpana. Salutations to the Divine Deity. We offer Dhyana, Avahana, Asana, Padyam, Arghyam, Achamaniyam, Gandham, Pushpam, Dhoopam, Deepam, Naivedyam, and Mangala Arati.'
+        kn: 'ಶಿವ-ದುರ್ಗಾ ಷೋಡಶೋಪಚಾರ ಸಮರ್ಪಣೆ. ಓಂ ಶ್ರೀ ಸಾಂಬಸದಾಶಿವಾಯ ದುರ್ಗಾಪರಮೇಶ್ವರ್ಯೈ ನಮಃ. ಧ್ಯಾಯಾಮಿ. ಆವಾಹಯಾಮಿ. ಆಸನಾರ್ಥೇ ಬಿಲ್ವಪತ್ರಾಕ್ಷತಾನ್ ಸಮರ್ಪಯಾಮಿ. ಪಾದ್ಯಂ ಸಮರ್ಪಯಾಮಿ. ಅರ್ಘ್ಯಂ ಸಮರ್ಪಯಾಮಿ. ಆಚಮನೀಯಂ ಸಮರ್ಪಯಾಮಿ. ಗಂಧಂ ಚಂದನಂ ಸಮರ್ಪಯಾಮಿ. ಕುಂಕುಮಾರ್ಚನಂ ಬಿಲ್ವಪತ್ರಾಣಿ ಸಮರ್ಪಯಾಮಿ. ಧೂಪಂ ಆಘ್ರಾಪಯಾಮಿ. ದೀಪಂ ದರ್ಶಯಾಮಿ. ಮಹಾನೈವೇದ್ಯಂ ನಿವೇದಯಾಮಿ. ತಾಂಬೂಲಂ ಸಮರ್ಪಯಾಮಿ. ಮಂಗಳ ಕರ್ಪೂರ ನೀರಾಜನಂ ಪ್ರದರ್ಶಯಾಮಿ.',
+        hi: 'शिव-दुर्गा षोडशोपचार पूजन। ॐ श्री साम्बसदाशिवाय दुर्गापरमेश्वर्यै नमः। ध्यायामि, आवाहयामि, आसनार्थे बिल्वपत्र अक्षत समर्पयामि। पाद्यं, अर्घ्यं, आचमनीयं समर्पयामि। चन्दनं कुङ्कुमं बिल्वपत्राणि समर्पयामि। धूपं, दीपं, महानेवेद्यं, ताम्बूलं एवं मङ्गल कर्पूर आरती समर्पयामि।',
+        en: 'Shiva-Durga Shodashopachara Samarpana. Salutations to Sri Samba Sadashiva and Devi Durga. We offer Dhyana, Avahana, Asana, Padyam, Arghyam, Achamaniyam, Gandham, Kumkum, sacred Bilva leaves, flowers, Dhoopam, Deepam, sweet Naivedya, Tambula, and sacred Camphor Arati.'
       },
       audioBellAtStart: true
     },
@@ -321,23 +321,23 @@ export const PoojaAudioGuide: React.FC<PoojaAudioGuideProps> = ({
       id: 'step-7-visarjana-shanti',
       stepNumber: 7,
       title: {
-        kn: '೭. ಸಮರ್ಪಣ & ಶಾಂತಿ ಪಾಠ (Conclusion & Peace Prayer)',
-        hi: '७. समर्पण एवं शान्ति पाठ (कल्याण प्रार्थना)',
-        en: '7. Samarpana & Shanti Patha (Universal Peace)'
+        kn: '೭. ಶಿವ-ಶಕ್ತಿ ಸಮರ್ಪಣ & ಶಾಂತಿ ಪಾಠ (Conclusion & Peace Prayer)',
+        hi: '७. शिव-शक्ति समर्पण एवं शान्ति पाठ (कल्याण प्रार्थना)',
+        en: '7. Shiva-Shakti Samarpana & Shanti Patha (Universal Peace)'
       },
       ritualAction: {
-        kn: 'ಪೂಜೆಯ ಸಕಲ ಫಲವನ್ನು ಶ್ರೀ ಪರಮೇಶ್ವರಾರ್ಪಣ ಮಾಡಿ, ಪ್ರದಕ್ಷಿಣೆ ನಮಸ್ಕಾರ ಮಾಡಿ ಲೋಕಕಲ್ಯಾಣ ಶಾಂತಿ ಮಂತ್ರ ಪಠಿಸಿ.',
-        hi: 'सम्पूर्ण पूजा का फल परमात्मा को समर्पित करें एवं विश्व शान्ति की प्रार्थना करें।',
-        en: 'Surrender all fruits of the puja to Supreme Divinity, circumambulate clockwise and chant the Vedic Peace Invocations.'
+        kn: 'ಪೂಜೆಯ ಸಕಲ ಫಲವನ್ನು ಶ್ರೀ ಸಾಂಬಸದಾಶಿವ ಹಾಗೂ ಶ್ರೀ ದುರ್ಗಾಪರಮೇಶ್ವರಿಗೆ ಸಮರ್ಪಿಸಿ, ಪ್ರದಕ್ಷಿಣೆ ನಮಸ್ಕಾರ ಮಾಡಿ ಲೋಕಕಲ್ಯಾಣ ಶಾಂತಿ ಮಂತ್ರ ಪಠಿಸಿ.',
+        hi: 'सम्पूर्ण पूजा का फल श्री साम्बसदाशिव एवं माँ दुर्गा को समर्पित करें एवं विश्व शान्ति की प्रार्थना करें।',
+        en: 'Surrender all fruits of the puja to Sri Samba Sadashiva and Sri Durga Parameshwari, circumambulate clockwise and chant the Vedic Peace Invocations.'
       },
-      sanskritMantra: 'कायेन वाचा मनसेन्द्रियैर्वा बुध्यात्मना वा प्रकृतेः स्वभावात् । करोमि यद्यत् सकलं परस्मै नारायणायेति समर्पयामि ॥\nॐ द्यौः शान्तिरन्तरिक्षं शान्तिः पृथिवी शान्तिरापः शान्तिरोषधयः शान्तिः । ॐ शान्तिः शान्तिः शान्तिः ॥',
-      kannadaTranslit: 'ಕಾಯೇನ ವಾಚಾ ಮನಸೇಂದ್ರಿಯೈರ್ವಾ ಬುದ್ಧ್ಯಾತ್ಮನಾ ವಾ ಪ್ರಕೃತೇಃ ಸ್ವಭಾವಾತ್ । ಕರೋಮಿ ಯದ್ಯತ್ ಸಕಲಂ ಪರಸ್ಮೈ ನಾರಾಯಣಾಯೇತಿ ಸಮರ್ಪಯಾಮಿ ॥\nಓಂ ದ್ಯೌಃ ಶಾಂತಿಶ್ಚಾಂತರಿಕ್ಷಂ ಶಾಂತಿಃ ಪೃಥಿವೀ ಶಾಂತಿರಾಪಃ ಶಾಂತಿೋಷಧಯಃ ಶಾಂತಿಃ । ಓಂ ಶಾಂತಿಃ ಶಾಂತಿಃ ಶಾಂತಿಃ ॥',
-      hindiTranslit: 'कायेन वाचा मनसेन्द्रियैर्वा बुध्यात्मना वा प्रकृतेः स्वभावात् । करोमि यद्यत् सकलं परस्मै नारायणायेति समर्पयामि ॥\nॐ द्यौः शान्तिरन्तरिक्षं शान्तिः पृथिवी शान्तिरापः शान्तिरोषधयः शान्तिः । ॐ शान्तिः शान्तिः शान्तिः ॥',
-      englishMeaning: 'Whatever I perform with body, speech, mind, senses, or nature, I surrender it all to the Supreme Divine. May there be peace in heaven, peace in the atmosphere, peace on earth, peace in water, peace in herbs and plants. Om Peace, Peace, Peace.',
+      sanskritMantra: 'कायेन वाचा मनसेन्द्रियैर्वा बुध्यात्मना वा प्रकृतेः स्वभावात् । करोमि यद्यत् सकलं परस्मै शिवाय शक्त्यै इति समर्पयामि ॥\nसर्वं श्री साम्बसदाशिव दुर्गापरमेश्वरार्पणमस्तु ॥\nॐ द्यौः शान्तिरन्तरिक्षं शान्तिः पृथिवी शान्तिरापः शान್ತಿರೋಷಧಯಃ ಶಾಂತಿಃ । ॐ ಶಾಂತಿಃ ಶಾಂತಿಃ ಶಾಂತಿಃ ॥',
+      kannadaTranslit: 'ಕಾಯೇನ ವಾಚಾ ಮನಸೇಂದ್ರಿಯೈರ್ವಾ ಬುದ್ಧ್ಯಾತ್ಮನಾ ವಾ ಪ್ರಕೃತೇಃ ಸ್ವಭಾವಾತ್ । ಕರೋಮಿ ಯದ್ಯತ್ ಸಕಲಂ ಪರಸ್ಮೈ ಶಿವಾಯ ಶಕ್ತ್ಯೈ ಇತಿ ಸಮರ್ಪಯಾಮಿ ॥\nಸರ್ವಂ ಶ್ರೀ ಸಾಂಬಸದಾಶಿವ ದುರ್ಗಾಪರಮೇಶ್ವರಾರ್ಪಣಮಸ್ತು ॥\nಓಂ ದ್ಯೌಃ ಶಾಂತಿಶ್ಚಾಂತರಿಕ್ಷಂ ಶಾಂತಿಃ ಪೃಥಿವೀ ಶಾಂತಿರಾಪಃ ಶಾಂತಿೋಷಧಯಃ ಶಾಂತಿಃ । ಓಂ ಶಾಂತಿಃ ಶಾಂತಿಃ ಶಾಂತಿಃ ॥',
+      hindiTranslit: 'कायेन वाचा मनसेन्द्रियैर्वा बुध्यात्मना वा प्रकृतेः स्वभावात् । करोमि यद्यत् सकलं परस्मै शिवाय शक्त्यै इति समर्पयामि ॥\nसर्वं श्री साम्बसदाशिव दुर्गापरमेश्वरार्पणमस्तु ॥\nॐ द्यौः शान्तिरन्तरिक्षं शान्तिः पृथिवी शान्तिरापः शान्तिरोषधयः शान्तिः । ॐ शान्तिः शान्तिः शान्तिः ॥',
+      englishMeaning: 'Whatever I perform through body, speech, mind, intellect, or senses, I surrender it all to Lord Shiva and Divine Mother Shakti. Everything is offered to Sri Samba Sadashiva and Sri Durga Parameshwari. Om Peace in the heavens, peace on earth, peace in water, peace in all herbs and creation. Om Shantih, Shantih, Shantih.',
       audioSpeechText: {
-        kn: 'ಸಮರ್ಪಣ ಮತ್ತು ಶಾಂತಿ ಪಾಠ. ಕಾಯೇನ ವಾಚಾ ಮನಸೇಂದ್ರಿಯೈರ್ವಾ, ಬುದ್ಧ್ಯಾತ್ಮನಾ ವಾ ಪ್ರಕೃತೇಃ ಸ್ವಭಾವಾತ್, ಕರೋಮಿ ಯದ್ಯತ್ ಸಕಲಂ ಪರಸ್ಮೈ, ಶ್ರೀ ಪರಮೇಶ್ವರಾರ್ಪಣಮಸ್ತು. ಓಂ ದ್ಯೌಃ ಶಾಂತಿಃ, ಅಂತರಿಕ್ಷಂ ಶಾಂತಿಃ, ಪೃಥಿವೀ ಶಾಂತಿಃ, ಆಪಃ ಶಾಂತಿಃ, ಓಷಧಯಃ ಶಾಂತಿಃ. ಓಂ ಶಾಂತಿಃ ಶಾಂತಿಃ ಶಾಂತಿಃ. ಸರ್ವೇ ಜನಾಃ ಸುಖಿನೋ ಭವಂತು.',
-        hi: 'समर्पण एवं शान्ति पाठ। कायेन वाचा मनसेन्द्रियैर्वा, करोमि यद्यत् सकलं परस्मै नारायणायेति समर्पयामि। ॐ द्यौः शान्तिरन्तरिक्षं शान्तिः पृथिवी शान्तिः। ॐ शान्तिः शान्तिः शान्तिः। सर्वे भवन्तु सुखिनः।',
-        en: 'Samarpana and Shanti Patha. Whatever has been performed through body, speech, and mind is consecrated to the Divine. Om Peace in the heavens, peace in space, peace on earth, peace in the waters, peace in all beings. Om Shantih, Shantih, Shantih.'
+        kn: 'ಶಿವ-ಶಕ್ತಿ ಸಮರ್ಪಣ ಮತ್ತು ಶಾಂತಿ ಪಾಠ. ಕಾಯೇನ ವಾಚಾ ಮನಸೇಂದ್ರಿಯೈರ್ವಾ, ಬುದ್ಧ್ಯಾತ್ಮನಾ ವಾ ಪ್ರಕೃತೇಃ ಸ್ವಭಾವಾತ್, ಕರೋಮಿ ಯದ್ಯತ್ ಸಕಲಂ ಪರಸ್ಮೈ, ಶಿವಾಯ ಶಕ್ತ್ಯೈ ಇತಿ ಸಮರ್ಪಯಾಮಿ. ಸರ್ವಂ ಶ್ರೀ ಸಾಂಬಸದಾಶಿವ ದುರ್ಗಾಪರಮೇಶ್ವರಾರ್ಪಣಮಸ್ತು. ಓಂ ದ್ಯೌಃ ಶಾಂತಿಃ, ಅಂತರಿಕ್ಷಂ ಶಾಂತಿಃ, ಪೃಥಿವೀ ಶಾಂತಿಃ, ಆಪಃ ಶಾಂತಿಃ, ಓಷಧಯಃ ಶಾಂತಿಃ. ಓಂ ಶಾಂತಿಃ ಶಾಂತಿಃ ಶಾಂತಿಃ. ಸರ್ವೇ ಜನಾಃ ಸುಖಿನೋ ಭವಂತು.',
+        hi: 'शिव-शक्ति समर्पण एवं शान्ति पाठ। कायेन वाचा मनसेन्द्रियैर्वा, करोमि यद्यत् सकलं परस्मै शिवाय शक्त्यै इति समर्पयामि। सर्वं श्री साम्बसदाशिव दुर्गापरमेश्वरार्पणमस्तु। ॐ द्यौः शान्तिरन्तरिक्षं शान्तिः पृथिवी शान्तिः। ॐ शान्तिः शान्तिः शान्तिः। सर्वे भवन्तु सुखिनः।',
+        en: 'Shiva-Shakti Samarpana and Shanti Patha. Whatever has been performed through body, speech, and mind is consecrated to Shiva and Shakti. May all fruits be offered to Sri Samba Sadashiva and Sri Durga Parameshwari. Om Peace in heaven, peace on earth, peace in the waters, peace in all beings. Om Shantih, Shantih, Shantih.'
       },
       audioBellAtStart: true
     }

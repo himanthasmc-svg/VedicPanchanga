@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Compass, 
   Sparkles, 
@@ -15,12 +15,19 @@ import {
   HelpCircle,
   HeartHandshake,
   ShieldAlert,
-  ArrowRight
+  ArrowRight,
+  Eye,
+  Flame,
+  Zap,
+  Apple,
+  Pill,
+  Heart
 } from 'lucide-react';
 import { Language, KundaliData, PlanetPosition } from '../types';
 import { PlanetaryBalaBreakdown } from '../utils/planetaryBala';
 import { SvgGrahaIcon } from './RealisticGraha';
 import { getDetailedGrahaBhavaEffect } from '../utils/bhavaDetails';
+import { calculateHouseDrishti, HouseDrishtiAnalysis } from '../utils/grahaDrishti';
 
 export interface BhavaExplorerProps {
   currentLang: Language;
@@ -341,11 +348,16 @@ export const BhavaExplorer: React.FC<BhavaExplorerProps> = ({
   selectedBhavaNumber,
   onSelectBhava
 }) => {
-  const [activeTab, setActiveTab] = useState<'details' | 'nineBhavas' | 'planetsInHouse' | 'grahaEffects'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'drishtiRemedies' | 'nineBhavas' | 'planetsInHouse' | 'grahaEffects'>('details');
   const [selectedGraha, setSelectedGraha] = useState<string>('Sun');
   const [grahaViewScope, setGrahaViewScope] = useState<'currentBhava' | 'all12Bhavas'>('currentBhava');
 
   const selectedBhava = BHAVA_DETAILS.find(b => b.bhava === selectedBhavaNumber) || BHAVA_DETAILS[0];
+
+  // Graha Drishti and Mind-Body Nutrition & Vedic Remedies calculation
+  const houseDrishti = useMemo(() => {
+    return calculateHouseDrishti(kundaliData, selectedBhavaNumber);
+  }, [kundaliData, selectedBhavaNumber]);
 
   // Planets currently situated in this house in the native's chart
   const planetsInSelectedBhava = kundaliData.planets.filter(p => p.bhava === selectedBhavaNumber);
@@ -410,6 +422,21 @@ export const BhavaExplorer: React.FC<BhavaExplorerProps> = ({
             }`}
           >
             {currentLang === 'kn' ? 'ಆಯ್ದ ಭಾವ ವಿವರ' : 'House Deep-Dive'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('drishtiRemedies')}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 border ${
+              activeTab === 'drishtiRemedies'
+                ? 'bg-rose-700 text-white border-rose-500 shadow-xs'
+                : 'text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5 text-rose-500 dark:text-rose-300" />
+            <span>{currentLang === 'kn' ? 'ಗ್ರಹ ದೃಷ್ಟಿ & ಆರೋಗ್ಯ ಪರಿಹಾರ' : 'Drishti & Remedies'}</span>
+            <span className="w-4 h-4 rounded-full bg-rose-200 text-rose-900 dark:bg-rose-950 dark:text-rose-200 text-[10px] flex items-center justify-center font-mono font-bold">
+              {houseDrishti.aspectingPlanets.length}
+            </span>
           </button>
           <button
             type="button"
@@ -730,6 +757,556 @@ export const BhavaExplorer: React.FC<BhavaExplorerProps> = ({
               </div>
             )}
           </div>
+
+          {/* ========================================================================= */}
+          {/* TAB 1 EMBEDDED: GRAHA DRISHTI QUICK SUMMARY FOR CURRENT BHAVA */}
+          {/* ========================================================================= */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-rose-50/80 via-white to-amber-50/80 dark:from-stone-900 dark:via-stone-850 dark:to-stone-900 border-2 border-rose-300 dark:border-rose-900/60 shadow-md space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-200 dark:border-stone-800 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                  <Eye className="w-4 h-4" />
+                </div>
+                <div>
+                  <h5 className="font-serif font-bold text-sm sm:text-base text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                    <span>{currentLang === 'kn' ? 'ಈ ಭಾವದ ಮೇಲಿರುವ ಗ್ರಹ ದೃಷ್ಟಿಗಳು (Planetary Aspects on this House)' : 'Planetary Aspects (Drishti) on this House'}</span>
+                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300">
+                      {houseDrishti.aspectingPlanets.length} {currentLang === 'kn' ? 'ಗ್ರಹಗಳು' : 'Aspects'}
+                    </span>
+                  </h5>
+                  <p className="text-[11px] text-stone-600 dark:text-stone-400">
+                    {houseDrishti.overallDrishtiToneLocalized[currentLang]}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('drishtiRemedies')}
+                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer self-start sm:self-auto shrink-0"
+              >
+                <span>{currentLang === 'kn' ? 'ಸಂಪೂರ್ಣ ದೃಷ್ಟಿ & ಆಹಾರ-ಪರಿಹಾರ ವೀಕ್ಷಿಸಿ' : 'View Full Drishti & Remedies'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {houseDrishti.aspectingPlanets.length === 0 ? (
+              <p className="text-xs text-stone-600 dark:text-stone-400 italic">
+                {currentLang === 'kn'
+                  ? 'ಈ ಭಾವದ ಮೇಲೆ ಯಾವುದೇ ಇತರ ಗ್ರಹಗಳ ನೇರ ಪರಾಶರಿ ದೃಷ್ಟಿಯಿಲ್ಲ. ಈ ಭಾವದ ಫಲವು ಕೇವಲ ಭಾವಸ್ಥ ಗ್ರಹಗಳು ಮತ್ತು ಭಾವಾಧಿಪತಿಯ ಬಲದಿಂದ ನಿರ್ಧರಿತವಾಗುತ್ತದೆ.'
+                  : 'No external Grahas cast direct Parashari aspects onto this house. Results depend exclusively on occupant planets and the house lord.'}
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                {houseDrishti.aspectingPlanets.map((aspect, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-xl bg-white dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 shadow-2xs space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <SvgGrahaIcon name={aspect.aspectingPlanet.name} size={22} isRetrograde={aspect.aspectingPlanet.isRetrograde} />
+                        <span className="font-serif font-bold text-xs text-stone-900 dark:text-stone-100">
+                          {aspect.aspectingPlanet.sanskritName[currentLang]}
+                        </span>
+                        <span className="text-[10px] font-mono text-stone-500">
+                          (H#{aspect.aspectingPlanet.bhava})
+                        </span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                        aspect.nature === 'benefic'
+                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                          : 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
+                      }`}>
+                        {aspect.natureLocalized[currentLang]}
+                      </span>
+                    </div>
+
+                    <div className="text-[11px] font-mono font-bold text-amber-800 dark:text-amber-400">
+                      {aspect.aspectTypeLocalized[currentLang]}
+                    </div>
+
+                    <p className="text-[11px] text-stone-600 dark:text-stone-300 line-clamp-2">
+                      {aspect.effectOnHouse[currentLang]}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* NEW TAB: COMPREHENSIVE GRAHA DRISHTI, PHYSICAL & MENTAL EFFECTS & NUTRITION */}
+      {/* ========================================================================= */}
+      {activeTab === 'drishtiRemedies' && (
+        <div className="space-y-6 animate-in fade-in">
+          
+          {/* Header Banner */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-rose-900 via-stone-900 to-indigo-950 text-white border-2 border-rose-500/40 shadow-xl space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-rose-600 text-white">
+                    Bhava #{selectedBhavaNumber} Drishti Analysis
+                  </span>
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-200 border border-rose-400/40">
+                    {houseDrishti.overallDrishtiToneLocalized[currentLang]}
+                  </span>
+                  <span className="text-xs font-mono text-stone-300">
+                    Rashi: {houseDrishti.rashiName[currentLang]}
+                  </span>
+                </div>
+                <h4 className="text-xl sm:text-2xl font-serif font-black text-amber-300">
+                  {currentLang === 'kn'
+                    ? `${selectedBhavaNumber}ನೇ ಭಾವದ ಗ್ರಹ ದೃಷ್ಟಿ ವಿಶ್ಲೇಷಣೆ, ಮನೋ-ದೈಹಿಕ ಪ್ರಭಾವ ಮತ್ತು ಪೋಷಕಾಂಶ ಪರಿಹಾರಗಳು`
+                    : currentLang === 'hi'
+                    ? `${selectedBhavaNumber}वें भाव का ग्रह दृष्टि विश्लेषण, शारीरिक-मानसिक प्रभाव एवं पोषण उपचार`
+                    : `House #${selectedBhavaNumber} Planetary Drishti, Mind-Body Impacts & Nutritional Remedies`}
+                </h4>
+                <p className="text-xs sm:text-sm text-stone-200 mt-1 max-w-3xl leading-relaxed">
+                  {currentLang === 'kn'
+                    ? 'ಪರಾಶರ ಶಾಸ್ತ್ರದ ದೃಷ್ಟಿ ತತ್ವಗಳು (೭ನೇ ಪೂರ್ಣ ದೃಷ್ಟಿ, ಕುಜನ ೪/೮, ಗುರುವಿನ ೫/೯, ಶನಿಯ ೩/೧೦, ರಾಹು-ಕೇತುವಿನ ೫/೯ ದೃಷ್ಟಿ). ಈ ದೃಷ್ಟಿಗಳು ಈ ಭಾವದ ನೈಸರ್ಗಿಕ ಕಾರಕತ್ವ, ಭಾವಸ್ಥ ಗ್ರಹಗಳು ಮತ್ತು ಮಾನವ ಶರೀರದ ಅಂಗಾಂಗ-ಮನೋವೃತ್ತಿಗಳನ್ನು ಹೇಗೆ ಪ್ರಭಾವಿಸುತ್ತವೆ ಎಂಬುದರ ವಿವರ.'
+                    : 'Classical Parashari aspects (7th full aspect, Mars 4th/8th, Jupiter 5th/9th, Saturn 3rd/10th, Rahu/Ketu 5th/9th). How these glances alter the house’s energy, occupant planets, anatomical health, and psychological temperament.'}
+                </p>
+              </div>
+
+              {/* Score Badges */}
+              <div className="flex sm:flex-col gap-2 shrink-0">
+                <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-center">
+                  <span className="text-[10px] uppercase font-mono font-bold text-emerald-400 block">
+                    {currentLang === 'kn' ? 'ಶುಭ ದೃಷ್ಟಿಗಳು' : 'Benefic Drishtis'}
+                  </span>
+                  <span className="text-lg font-serif font-bold text-emerald-200">
+                    {houseDrishti.beneficAspectCount}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-center">
+                  <span className="text-[10px] uppercase font-mono font-bold text-rose-400 block">
+                    {currentLang === 'kn' ? 'ಕ್ರೂರ/ತೀವ್ರ ದೃಷ್ಟಿಗಳು' : 'Malefic Drishtis'}
+                  </span>
+                  <span className="text-lg font-serif font-bold text-rose-200">
+                    {houseDrishti.maleficAspectCount}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 1: Occupants & Aspects Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            
+            {/* Left: Occupant Grahas & Aspecting Grahas */}
+            <div className="space-y-4">
+              
+              {/* Occupant Grahas Card */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-stone-850 border border-amber-300 dark:border-stone-700 shadow-sm space-y-3">
+                <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-700 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    <h5 className="font-serif font-bold text-sm sm:text-base text-stone-900 dark:text-stone-100">
+                      {currentLang === 'kn' ? `ಭಾವ #${selectedBhavaNumber} ರಲ್ಲಿ ಸ್ಥಿತವಾಗಿರುವ ಗ್ರಹಗಳು (ಭಾವಸ್ಥ)` : `Planets Positioned Inside House #${selectedBhavaNumber}`}
+                    </h5>
+                  </div>
+                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200">
+                    {houseDrishti.occupantPlanets.length} {currentLang === 'kn' ? 'ಗ್ರಹ' : 'Grahas'}
+                  </span>
+                </div>
+
+                {houseDrishti.occupantPlanets.length === 0 ? (
+                  <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900 text-xs text-stone-600 dark:text-stone-400 italic">
+                    {currentLang === 'kn'
+                      ? 'ಈ ಭಾವದಲ್ಲಿ ಯಾವುದೇ ಗ್ರಹಗಳು ನೇರವಾಗಿ ಸ್ಥಿತವಾಗಿಲ್ಲ (ಖಾಲಿ ಭಾವ). ಈ ಭಾವದ ಫಲಿತಾಂಶವು ಭಾವಾಧಿಪತಿ (Lord) ಮತ್ತು ಈ ಭಾವದ ಮೇಲೆ ಬೀಳುವ ಗ್ರಹಗಳ ದೃಷ್ಟಿಯ ಮೇಲೆ ಸಂಪೂರ್ಣ ಅವಲಂಬಿತವಾಗಿರುತ್ತದೆ.'
+                      : 'This house is unoccupied in the native’s birth chart. Its manifestations are directed by its ruling lord and incoming planetary aspects.'}
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {houseDrishti.occupantPlanets.map((planet) => (
+                      <div
+                        key={planet.name}
+                        className="p-3 rounded-xl bg-amber-50/70 dark:bg-stone-900 border border-amber-200 dark:border-stone-700 flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <SvgGrahaIcon name={planet.name} size={28} isRetrograde={planet.isRetrograde} />
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">
+                                {planet.sanskritName[currentLang]} ({planet.name})
+                              </span>
+                              {planet.isRetrograde && (
+                                <span className="text-[10px] font-bold text-red-600 dark:text-red-400 font-mono">
+                                  [ವಕ್ರ - Retrograde]
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-stone-600 dark:text-stone-400">
+                              {planet.degrees}° • {planet.nakshatra[currentLang]} (Pada {planet.pada})
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="text-xs font-mono font-bold px-2 py-1 rounded-lg bg-white dark:bg-stone-800 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-stone-700">
+                          Lord of H#{planet.isLordOf.join(', ')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Aspecting Grahas Detailed List */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-stone-850 border border-rose-300 dark:border-stone-700 shadow-sm space-y-3">
+                <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-700 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-rose-600" />
+                    <h5 className="font-serif font-bold text-sm sm:text-base text-stone-900 dark:text-stone-100">
+                      {currentLang === 'kn' ? `ಈ ಭಾವದ ಮೇಲೆ ದೃಷ್ಟಿ ಬೀರುತ್ತಿರುವ ಗ್ರಹಗಳು (${houseDrishti.aspectingPlanets.length})` : `Planets Casting Drishti on House #${selectedBhavaNumber} (${houseDrishti.aspectingPlanets.length})`}
+                    </h5>
+                  </div>
+                  <span className="text-xs font-mono text-stone-500">
+                    Parashari Drishti
+                  </span>
+                </div>
+
+                {houseDrishti.aspectingPlanets.length === 0 ? (
+                  <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900 text-xs text-stone-600 dark:text-stone-400 italic">
+                    {currentLang === 'kn'
+                      ? 'ಈ ಕುಂಡಲಿಯಲ್ಲಿ ಯಾವುದೇ ಗ್ರಹವು ಈ ಭಾವದ ಮೇಲೆ ನೇರ ಪರಾಶರಿ ದೃಷ್ಟಿ ಬೀರುತ್ತಿಲ್ಲ.'
+                      : 'No other graha casts a direct classical aspect onto this house.'}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {houseDrishti.aspectingPlanets.map((aspect, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-2xl bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-2 hover:border-rose-400 transition-colors"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <SvgGrahaIcon name={aspect.aspectingPlanet.name} size={26} isRetrograde={aspect.aspectingPlanet.isRetrograde} />
+                            <div>
+                              <span className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">
+                                {aspect.aspectingPlanet.sanskritName[currentLang]} ({aspect.aspectingPlanet.name})
+                              </span>
+                              <span className="text-xs text-stone-500 ml-1.5 font-mono">
+                                Seated in House #{aspect.aspectingPlanet.bhava} ({aspect.aspectingPlanet.rashiName[currentLang]})
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-stone-200 dark:bg-stone-800 text-stone-800 dark:text-stone-200">
+                              {aspect.distanceFromPlanet}th Aspect
+                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              aspect.nature === 'benefic'
+                                ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
+                                : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300'
+                            }`}>
+                              {aspect.natureLocalized[currentLang]}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-xs font-mono font-bold text-rose-800 dark:text-rose-400">
+                          {aspect.aspectTypeLocalized[currentLang]}
+                        </div>
+
+                        <p className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                          {aspect.effectOnHouse[currentLang]}
+                        </p>
+
+                        {aspect.effectOnOccupants && (
+                          <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-950 dark:text-amber-200">
+                            <strong>{currentLang === 'kn' ? 'ಭಾವಸ್ಥ ಗ್ರಹಗಳ ಮೇಲಿನ ಪ್ರಭಾವ:' : 'Effect on Occupant Grahas:'}</strong> {aspect.effectOnOccupants[currentLang]}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Right: Physical Conditions & Mental Conditions */}
+            <div className="space-y-4">
+              
+              {/* Card 1: Physical Health & Vitality Impact */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-stone-850 border border-red-200 dark:border-stone-700 shadow-sm space-y-3.5">
+                <div className="flex items-center justify-between border-b border-red-100 dark:border-stone-700 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-red-600" />
+                    <div>
+                      <h5 className="font-serif font-bold text-base text-stone-900 dark:text-stone-100">
+                        {currentLang === 'kn' ? 'ಶಾರೀರಿಕ ಪರಿಸ್ಥಿತಿ & ಆರೋಗ್ಯದ ಮೇಲಿನ ಪ್ರಭಾವ' : 'Physical Conditions & Health Impact'}
+                      </h5>
+                      <span className="text-[11px] text-stone-500">
+                        Biological Doshas, Vital Organs & Immunity
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300">
+                    Anatomy
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="p-3 rounded-xl bg-red-50/60 dark:bg-stone-900 border border-red-100 dark:border-stone-800 space-y-1">
+                    <span className="font-bold text-red-800 dark:text-red-400 block uppercase tracking-wider text-[10px]">
+                      {currentLang === 'kn' ? 'ಈ ಭಾವಕ್ಕೆ ಸೇರಿದ ಶಾರೀರಿಕ ಅಂಗಗಳು:' : 'Governed Anatomical Organs:'}
+                    </span>
+                    <p className="text-stone-800 dark:text-stone-200 font-semibold">
+                      {houseDrishti.physicalImpact.governedOrgans[currentLang]}
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-orange-50/60 dark:bg-stone-900 border border-orange-100 dark:border-stone-800 space-y-1">
+                    <span className="font-bold text-orange-800 dark:text-orange-400 block uppercase tracking-wider text-[10px]">
+                      {currentLang === 'kn' ? 'ಜೀವಶಕ್ತಿ & ರೋಗನಿರೋಧಕ ಸಾಮರ್ಥ್ಯ (Vitality):' : 'Vitality & Immune Constitution:'}
+                    </span>
+                    <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                      {houseDrishti.physicalImpact.vitalityEffect[currentLang]}
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-stone-900 border border-amber-100 dark:border-stone-800 space-y-1">
+                    <span className="font-bold text-amber-800 dark:text-amber-400 block uppercase tracking-wider text-[10px]">
+                      {currentLang === 'kn' ? 'ಗಮನಿಸಬೇಕಾದ ಸಂಭವನೀಯ ದೈಹಿಕ ಸೂಕ್ಷ್ಮತೆಗಳು (Vulnerabilities):' : 'Potential Health Sensitivities:'}
+                    </span>
+                    <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                      {houseDrishti.physicalImpact.vulnerabilities[currentLang]}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Mental & Emotional Constitution Impact */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-stone-850 border border-purple-200 dark:border-stone-700 shadow-sm space-y-3.5">
+                <div className="flex items-center justify-between border-b border-purple-100 dark:border-stone-700 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-purple-600" />
+                    <div>
+                      <h5 className="font-serif font-bold text-base text-stone-900 dark:text-stone-100">
+                        {currentLang === 'kn' ? 'ಮಾನಸಿಕ & ಭಾವನಾತ್ಮಕ ಪ್ರಭಾವ (Mind & Temperament)' : 'Mental & Emotional Conditions Impact'}
+                      </h5>
+                      <span className="text-[11px] text-stone-500">
+                        Cognitive Clarity, Stress Coping & Emotions
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300">
+                    Psychology
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="p-3 rounded-xl bg-purple-50/60 dark:bg-stone-900 border border-purple-100 dark:border-stone-800 space-y-1">
+                    <span className="font-bold text-purple-800 dark:text-purple-400 block uppercase tracking-wider text-[10px]">
+                      {currentLang === 'kn' ? 'ಮನೋಧರ್ಮ & ಸ್ವಭಾವ (Innate Temperament):' : 'Innate Temperament & Disposition:'}
+                    </span>
+                    <p className="text-stone-800 dark:text-stone-200 font-semibold leading-relaxed">
+                      {houseDrishti.mentalImpact.temperament[currentLang]}
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-indigo-50/60 dark:bg-stone-900 border border-indigo-100 dark:border-stone-800 space-y-1">
+                    <span className="font-bold text-indigo-800 dark:text-indigo-400 block uppercase tracking-wider text-[10px]">
+                      {currentLang === 'kn' ? 'ಭಾವನಾತ್ಮಕ ಒಲವು & ಮನಸ್ಸಿನ ಪ್ರತಿಕ್ರಿಯೆಗಳು:' : 'Emotional Tendencies & Reactions:'}
+                    </span>
+                    <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                      {houseDrishti.mentalImpact.emotionalTendencies[currentLang]}
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-1">
+                    <span className="font-bold text-stone-700 dark:text-stone-300 block uppercase tracking-wider text-[10px]">
+                      {currentLang === 'kn' ? 'ಒತ್ತಡಕ್ಕೆ ಕಾರಣವಾಗುವ ಅಂಶಗಳು (Stress Triggers):' : 'Primary Stress Triggers:'}
+                    </span>
+                    <p className="text-stone-600 dark:text-stone-300 leading-relaxed font-medium">
+                      {houseDrishti.mentalImpact.stressTriggers[currentLang]}
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-stone-900 border border-emerald-100 dark:border-stone-800 space-y-1">
+                    <span className="font-bold text-emerald-800 dark:text-emerald-400 block uppercase tracking-wider text-[10px]">
+                      {currentLang === 'kn' ? 'ಬುದ್ಧಿಶಕ್ತಿ & ತೀರ್ಮಾನ ಸಾಮರ್ಥ್ಯ (Cognitive Strength):' : 'Cognitive & Intellectual Discernment:'}
+                    </span>
+                    <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                      {houseDrishti.mentalImpact.cognitiveStrength[currentLang]}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Section 2: Comprehensive Nutritional & Dietary Therapy Remedies */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-stone-900 dark:via-stone-850 dark:to-stone-900 border-2 border-emerald-400 dark:border-emerald-800 shadow-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-200 dark:border-stone-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shrink-0">
+                  <Apple className="w-5 h-5 text-emerald-100" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                      Ayurvedic Dietetics & Biochemical Nutrition
+                    </span>
+                  </div>
+                  <h4 className="text-lg sm:text-xl font-serif font-black text-stone-900 dark:text-stone-100">
+                    {currentLang === 'kn'
+                      ? 'ಆಹಾರ ಮತ್ತು ಪೋಷಕಾಂಶ ಚಿಕಿತ್ಸೆ (Nutritional & Dietary Therapy)'
+                      : currentLang === 'hi'
+                      ? 'आहार एवं पोषण उपचार (Nutritional & Dietary Remedies)'
+                      : 'Nutritional Therapy & Ayurvedic Dietary Remediation'}
+                  </h4>
+                </div>
+              </div>
+              <span className="text-xs font-mono font-bold text-emerald-800 dark:text-emerald-300">
+                Pitta-Vata-Kapha Harmonization
+              </span>
+            </div>
+
+            {/* 4 Pillars of Nutrition */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+              
+              {/* 1. Recommended Foods */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-stone-850 border border-emerald-200 dark:border-stone-700 shadow-xs space-y-2">
+                <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                  <Apple className="w-4 h-4 text-emerald-600" />
+                  <span>{currentLang === 'kn' ? 'ಸೇವಿಸಬೇಕಾದ ಸಾತ್ವಿಕ ಆಹಾರ' : 'Recommended Foods'}</span>
+                </div>
+                <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                  {houseDrishti.nutritionalTherapy.recommendedFoods[currentLang]}
+                </p>
+              </div>
+
+              {/* 2. Vitamins & Micronutrients */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-stone-850 border border-teal-200 dark:border-stone-700 shadow-xs space-y-2">
+                <div className="flex items-center gap-1.5 text-teal-700 dark:text-teal-400 font-bold text-xs uppercase tracking-wider">
+                  <Pill className="w-4 h-4 text-teal-600" />
+                  <span>{currentLang === 'kn' ? 'ಅಗತ್ಯ ವಿಟಮಿನ್‌ಗಳು & ಪೋಷಕಾಂಶ' : 'Vitamins & Minerals'}</span>
+                </div>
+                <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                  {houseDrishti.nutritionalTherapy.vitaminsAndNutrients[currentLang]}
+                </p>
+              </div>
+
+              {/* 3. Ayurvedic Herbs & Teas */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-stone-850 border border-amber-200 dark:border-stone-700 shadow-xs space-y-2">
+                <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-400 font-bold text-xs uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>{currentLang === 'kn' ? 'ಆಯುರ್ವೇದೀಯ ಗಿಡಮೂಲಿಕೆಗಳು' : 'Ayurvedic Herbs & Teas'}</span>
+                </div>
+                <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                  {houseDrishti.nutritionalTherapy.ayurvedicHerbs[currentLang]}
+                </p>
+              </div>
+
+              {/* 4. Foods to Strictly Avoid */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-stone-850 border border-rose-200 dark:border-stone-700 shadow-xs space-y-2">
+                <div className="flex items-center gap-1.5 text-rose-700 dark:text-rose-400 font-bold text-xs uppercase tracking-wider">
+                  <ShieldAlert className="w-4 h-4 text-rose-600" />
+                  <span>{currentLang === 'kn' ? 'ತ್ಯಜಿಸಬೇಕಾದ/ಮಿತಗೊಳಿಸಬೇಕಾದ ಆಹಾರ' : 'Foods to Avoid / Limit'}</span>
+                </div>
+                <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                  {houseDrishti.nutritionalTherapy.foodsToAvoid[currentLang]}
+                </p>
+              </div>
+
+            </div>
+
+            {/* Sacred Dietary Ritual */}
+            <div className="p-3.5 rounded-2xl bg-emerald-100/60 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/80 text-xs flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
+              <div className="text-stone-800 dark:text-stone-200">
+                <strong>{currentLang === 'kn' ? 'ಶಾಸ್ತ್ರೀಯ ಆಹಾರ ಸೇವನಾ ನಿಯಮ:' : 'Sacred Eating Discipline:'}</strong> {houseDrishti.nutritionalTherapy.dietaryRitual[currentLang]}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Classical Vedic Astrological Remedies */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-stone-900 dark:via-stone-850 dark:to-stone-900 border-2 border-amber-400 dark:border-amber-700 shadow-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200 dark:border-stone-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-600 text-white flex items-center justify-center shadow-md shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-amber-100" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 rounded-full">
+                      Vedic Parashari Remedies
+                    </span>
+                  </div>
+                  <h4 className="text-lg sm:text-xl font-serif font-black text-stone-900 dark:text-stone-100">
+                    {currentLang === 'kn'
+                      ? 'ವೈದಿಕ ಜ್ಯೋತಿಷ್ಯ ಪರಿಹಾರಗಳು (Mantras, Gemstone, Daanam & Rituals)'
+                      : currentLang === 'hi'
+                      ? 'वैदिक ज्योतिषीय उपाय (मन्त्र, रत्न, दान एवं साधना)'
+                      : 'Classical Vedic Astrological Remediation'}
+                  </h4>
+                </div>
+              </div>
+              <span className="text-xs font-mono font-bold text-amber-800 dark:text-amber-300">
+                Graha Shanti & Karma Alignment
+              </span>
+            </div>
+
+            {/* 4 Pillars of Astrological Remedies */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+              
+              {/* 1. Mantra */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-stone-850 border border-amber-200 dark:border-stone-700 shadow-xs space-y-2">
+                <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-400 font-bold text-xs uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>{currentLang === 'kn' ? 'ವೈದಿಕ ಮಂತ್ರ & ಜಪ' : 'Vedic Mantra & Japa'}</span>
+                </div>
+                <p className="text-stone-800 dark:text-stone-200 font-serif font-bold text-xs leading-relaxed">
+                  {houseDrishti.astrologicalRemedies.vedicMantra[currentLang]}
+                </p>
+              </div>
+
+              {/* 2. Gemstone & Rudraksha */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-stone-850 border border-purple-200 dark:border-stone-700 shadow-xs space-y-2">
+                <div className="flex items-center gap-1.5 text-purple-800 dark:text-purple-400 font-bold text-xs uppercase tracking-wider">
+                  <Award className="w-4 h-4 text-purple-600" />
+                  <span>{currentLang === 'kn' ? 'ರತ್ನ & ರುದ್ರಾಕ್ಷಿ ಧಾರಣೆ' : 'Gemstone & Rudraksha'}</span>
+                </div>
+                <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                  {houseDrishti.astrologicalRemedies.gemstoneAndRudraksha[currentLang]}
+                </p>
+              </div>
+
+              {/* 3. Daanam Charity */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-stone-850 border border-indigo-200 dark:border-stone-700 shadow-xs space-y-2">
+                <div className="flex items-center gap-1.5 text-indigo-800 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
+                  <HeartHandshake className="w-4 h-4 text-indigo-600" />
+                  <span>{currentLang === 'kn' ? 'ದಾನ-ಧರ್ಮ & ಶುಭ ದಿನ' : 'Auspicious Charity (Daanam)'}</span>
+                </div>
+                <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                  {houseDrishti.astrologicalRemedies.daanamCharity[currentLang]}
+                </p>
+              </div>
+
+              {/* 4. Spiritual Practice */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-stone-850 border border-rose-200 dark:border-stone-700 shadow-xs space-y-2">
+                <div className="flex items-center gap-1.5 text-rose-800 dark:text-rose-400 font-bold text-xs uppercase tracking-wider">
+                  <Flame className="w-4 h-4 text-rose-600" />
+                  <span>{currentLang === 'kn' ? 'ದೈನಂದಿನ ಆಧ್ಯಾತ್ಮಿಕ ಸಾಧನೆ' : 'Daily Spiritual Practice'}</span>
+                </div>
+                <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
+                  {houseDrishti.astrologicalRemedies.spiritualPractice[currentLang]}
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+
         </div>
       )}
 

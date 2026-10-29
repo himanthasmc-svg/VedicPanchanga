@@ -407,8 +407,8 @@ export default function App() {
           <CalendarView
             currentLang={currentLang}
             selectedCity={selectedCity}
-            onSelectDay={setSelectedDay}
-            onSelectFestival={setSelectedFestival}
+            onSelectDay={() => {}}
+            onSelectFestival={() => {}}
             onOpenMantras={() => setActiveView('mantras')}
             onOpenSankalpa={() => setActiveView('sankalpa')}
             onOpenKundali={() => setActiveView('kundali')}
