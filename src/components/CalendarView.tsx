@@ -955,6 +955,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               panchangDay.day === today.getDate();
 
             const isSunday = panchangDay.varaIndex === 0;
+            const hasFestivals = panchangDay.festivals.length > 0;
 
             return (
               <div
@@ -963,11 +964,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   setSelectedMoonDay(panchangDay);
                   handleDayClick(panchangDay, 'grid');
                 }}
-                className={`min-h-[105px] xs:min-h-[115px] sm:min-h-[130px] md:min-h-[145px] p-1 sm:p-1.5 transition-all relative flex flex-col justify-between cursor-pointer group border-t border-l ${
+                className={`min-h-[110px] xs:min-h-[120px] sm:min-h-[135px] md:min-h-[150px] p-1 sm:p-1.5 transition-all relative flex flex-col justify-between cursor-pointer group border-t border-l ${
                   panchangDay.colorTheme
                 } ${
                   isToday 
-                    ? 'ring-2 ring-amber-500 ring-inset bg-amber-50/60 dark:bg-amber-950/30' 
+                    ? 'ring-2 ring-amber-500 ring-inset bg-amber-50/70 dark:bg-amber-950/40' 
+                    : hasFestivals
+                    ? 'ring-1.5 ring-amber-400/80 bg-amber-50/40 dark:bg-amber-950/25 shadow-xs'
                     : ''
                 }`}
               >
@@ -1065,7 +1068,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                 {/* Festival Tags rendered cleanly & prominently on each date cell */}
                 {panchangDay.festivals.length > 0 && (
-                  <div className="space-y-0.5 my-0.5">
+                  <div className="space-y-1 my-1">
                     {/* Special Navaratri Day Ritual Badge if present */}
                     {panchangDay.festivals.some(f => f.isNavaratri || f.id.startsWith('navaratri_day')) && (() => {
                       const nFest = panchangDay.festivals.find(f => f.isNavaratri || f.id.startsWith('navaratri_day'))!;
@@ -1084,20 +1087,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             e.stopPropagation();
                             handleFestivalClick(nFest, panchangDay, 'grid');
                           }}
-                          className="w-full text-[6.5px] xs:text-[7.5px] sm:text-[8.5px] font-extrabold px-1 py-0.5 rounded-sm truncate bg-gradient-to-r from-red-600 to-amber-600 text-white flex items-center gap-1 shadow-2xs hover:scale-[1.02] cursor-pointer transition-transform"
+                          className="w-full text-left text-[7.5px] xs:text-[8.5px] sm:text-[9.5px] font-extrabold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white flex items-center gap-1 shadow-xs hover:scale-[1.02] cursor-pointer transition-transform border border-amber-300/60 leading-tight"
                           title={nFest.name[currentLang]}
                         >
-                          <span className="truncate">{ritualBadge}</span>
+                          <span className="line-clamp-2 break-words">{ritualBadge}</span>
                         </div>
                       );
                     })()}
 
-                    {/* All Festivals on this Day (Deepavali, Naraka Chaturdashi, Dhanteras, Bali Padyami, etc.) */}
+                    {/* All Festivals on this Day (Deepavali, Naraka Chaturdashi, Dhanteras, Bali Padyami, Sharad Purnima, Karwa Chauth, etc.) */}
                     {panchangDay.festivals
                       .filter(f => !f.isNavaratri && !f.id.startsWith('navaratri_day'))
                       .map(fest => {
                         const isDeepavaliFest = ['deepavali', 'naraka_chaturdashi', 'dhanteras', 'bali_padyami', 'yama_dvitiya'].includes(fest.id);
-                        const festIcon = isDeepavaliFest ? '🪔' : '✨';
+                        const isPurnimaFest = fest.id === 'sharad_purnima';
+                        const isChauthFest = fest.id === 'karwa_chauth';
+                        const festIcon = isDeepavaliFest ? '🪔' : isPurnimaFest ? '🌕' : isChauthFest ? '🌙' : '✨';
 
                         const cellDisplayName = 
                           fest.id === 'deepavali'
@@ -1109,7 +1114,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             : fest.id === 'bali_padyami'
                             ? (currentLang === 'kn' ? '🪔 ಬಲಿ ಪಾಡ್ಯಮಿ & ಗೋಪೂಜೆ' : currentLang === 'hi' ? '🪔 बलि प्रतिपदा व गोवर्धन' : '🪔 Bali Padyami & Go-Puja')
                             : fest.id === 'yama_dvitiya'
-                            ? (currentLang === 'kn' ? '🪔 ಯಮ ಬಿದಿಗೆ (ಭಾಗಿನಿ)' : currentLang === 'hi' ? '🪔 यम द्वितीया (भाई दूज)' : '🪔 Yama Dvitiya / Bhai Dooj')
+                            ? (currentLang === 'kn' ? '🪔 ಯಮ ಬಿದಿಗೆ (ಭಾಯಿ ದೂಜ್)' : currentLang === 'hi' ? '🪔 यम द्वितीया (भाई दूज)' : '🪔 Yama Dvitiya / Bhai Dooj')
+                            : fest.id === 'sharad_purnima'
+                            ? (currentLang === 'kn' ? '🌕 ಶರದ್ ಪೂರ್ಣಿಮಾ (ಹುಣ್ಣಿಮೆ)' : currentLang === 'hi' ? '🌕 शरद पूर्णिमा' : '🌕 Sharad Purnima')
+                            : fest.id === 'karwa_chauth'
+                            ? (currentLang === 'kn' ? '🌙 ಕರವಾ ಚೌತ್ (ಸಂಕಷ್ಟೀ)' : currentLang === 'hi' ? '🌙 करवा चौथ' : '🌙 Karwa Chauth')
                             : `${festIcon} ${fest.name[currentLang]}`;
 
                         return (
@@ -1120,14 +1129,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               e.stopPropagation();
                               handleFestivalClick(fest, panchangDay, 'grid');
                             }}
-                            className={`w-full text-left text-[6.5px] xs:text-[7.5px] sm:text-[8.5px] font-extrabold px-1 py-0.5 rounded-sm truncate transition-transform hover:scale-[1.02] border flex items-center gap-1 cursor-pointer shadow-2xs ${
+                            className={`w-full text-left text-[7px] xs:text-[8px] sm:text-[9px] font-extrabold px-1.5 py-0.5 rounded-md transition-all hover:scale-[1.02] border flex items-center gap-1 cursor-pointer shadow-xs leading-tight ${
                               isDeepavaliFest
-                                ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-stone-950 border-amber-300 ring-1 ring-amber-400/80 font-black'
-                                : fest.badgeBg
+                                ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-stone-950 border-amber-300 ring-1 ring-amber-400 font-black'
+                                : isPurnimaFest
+                                ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white border-sky-300 ring-1 ring-sky-400 font-black'
+                                : isChauthFest
+                                ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white border-rose-300 ring-1 ring-rose-400 font-black'
+                                : fest.badgeBg || 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-100 border-amber-300'
                             }`}
                             title={`Click to view ${fest.name[currentLang]} below`}
                           >
-                            <span className="truncate">{cellDisplayName}</span>
+                            <span className="line-clamp-2 break-words">{cellDisplayName}</span>
                           </button>
                         );
                       })}

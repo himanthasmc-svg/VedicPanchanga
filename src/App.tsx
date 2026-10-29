@@ -548,6 +548,12 @@ export default function App() {
               Lagna Kundali
             </button>
             <button 
+              onClick={() => setActiveView('kundali')} 
+              className="hover:text-emerald-600 transition-colors font-medium text-emerald-700 dark:text-emerald-400"
+            >
+              Vedic Yoga & Postures
+            </button>
+            <button 
               onClick={() => setActiveView('dasha')} 
               className="hover:text-amber-600 transition-colors font-medium text-amber-700 dark:text-amber-400"
             >

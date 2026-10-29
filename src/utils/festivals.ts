@@ -1657,6 +1657,119 @@ export const FESTIVALS_CATALOG: Festival[] = [
         hi: '३. सुहाग पिटारी एवं बायना सामग्री'
       }
     ]
+  },
+  {
+    id: 'sharad_purnima',
+    name: {
+      en: 'Sharad Purnima (Kojagiri Purnima / Maharasa)',
+      kn: 'ಶರದ್ ಪೂರ್ಣಿಮಾ (ಕೋelements / ಕೋಜಾಗರೀ ಹುಣ್ಣಿಮೆ)',
+      hi: 'शरद पूर्णिमा (कोजागरी पूर्णिमा / महारास)'
+    },
+    tagColor: '#38bdf8',
+    badgeBg: 'bg-sky-500/15 text-sky-800 dark:text-sky-300 border-sky-500/30',
+    shortDesc: {
+      en: 'Ashwina Purnima: Night of the celestial nectar (Amrita) shower under the full moon; Kojagari Lakshmi puja and Radha Krishna Maharasa celebration.',
+      kn: 'ಆಶ್ವಯುಜ ಮಾಸದ ಶರದ್ ಹುಣ್ಣಿಮೆ: ಚಂದ್ರನು ೧೬ ಕಲೆಗಳಿಂದ ಪ್ರಕಾಶಿಸುವ ರಾತ್ರಿ; ಅಮೃತವರ್ಷಿಣಿ ಕೀರ್/ಪಾಯಸ ನಿವೇದನೆ, ಕೋಜಾಗರೀ ಲಕ್ಷ್ಮೀ ಆರಾಧನೆ.',
+      hi: 'आश्विन पूर्णिमा: चन्द्रमा की षोडश कलाओं से अमृत वर्षा की पावन निशा; कोजागरी लक्ष्मी पूजन एवं श्रीराधा-कृष्ण महारास।'
+    },
+    howCelebrated: {
+      en: 'Preparing rice kheer/payasam and keeping it under direct moonlight throughout the night to absorb cosmic healing rays, performing Lakshmi and Chandra puja.',
+      kn: 'ಹಾಲು-ಅಕ್ಕಿ ಪಾಯಸ ತಯಾರಿಸಿ ರಾತ್ರಿಯಿಡೀ ಚಂದ್ರನ ಬೆಳಕಿನಲ್ಲಿಟ್ಟು ಬೆಳಗಿನ ಜಾವ ಪ್ರಸಾದವಾಗಿ ಸ್ವೀಕರಿಸುವುದು; ಚಂದ್ರ ಹಾಗೂ ಲಕ್ಷ್ಮೀದೇವಿಗೆ ದೀಪಾರ್ಪಣೆ.',
+      hi: 'खीर बनाकर रातभर चन्द्रमा की शीतल चाँदनी में रखना, माँ लक्ष्मी व चन्द्रदेव का पूजन तथा अमृतमयी खीर का प्रसाद ग्रहण।'
+    },
+    story: {
+      en: 'Goddess Lakshmi descends upon earth asking "Ko Jagarti?" (Who is awake?) and blesses vigilant devotees with enduring prosperity. Lord Krishna engaged in the Divine Maharasa with Gopis on this divine full moon night.',
+      kn: 'ಲಕ್ಷ್ಮೀದೇವಿಯು ರಾತ್ರಿ ಭೂಲೋಕಕ್ಕೆ ಆಗಮಿಸಿ "ಕೋ ಜಾಗರ್ತಿ?" (ಯಾರು ಜಾಗೃತರಾಗಿದ್ದಾರೆ?) ಎಂದು ಕೇಳಿ, ಜಾಗರಣೆ ಮಾಡಿ ಭಜಿಸುವ ಭಕ್ತರಿಗೆ ಅಷ್ಟೈಶ್ವರ್ಯ ನೀಡುತ್ತಾಳೆ.',
+      hi: 'माँ लक्ष्मी रात्रि में "को जागर्ति" कहकर पृथ्वी पर भ्रमण करती हैं और जाग्रत भक्तों को वरदान देती हैं। इसी रात्रि श्रीकृष्ण ने दिव्य महारास रचाया था।'
+    },
+    mantras: [
+      {
+        en: 'Om Shreem Hreem Kleem Kamale Kamalalaye Praseeda Praseeda Shreem Hreem Shreem Om Mahalakshmyai Namah',
+        kn: 'ಓಂ ಶ್ರೀಂ ಹ್ರೀಂ ಕ್ಲೀಂ ಕಮಲೇ ಕಮಲಾಲಯೇ ಪ್ರಸೀದ ಪ್ರಸೀದ ಶ್ರೀಂ ಹ್ರೀಂ ಶ್ರೀಂ ಓಂ ಮಹಾಲಕ್ಷ್ಮ್ಯೈ ನಮಃ',
+        hi: 'ॐ श्रीं ह्रीं क्लीं कमले कमलालये प्रसीद प्रसीद श्रीं ह्रीं श्रीं ॐ महालक्ष्मै नमः'
+      },
+      {
+        en: 'Dadhishankhatusharabham Ksheerodarnavasambhavam, Namami Shashinam Somam Shambhor Mukuta Bhooshanam',
+        kn: 'ದಧಿಶಂಖತುಷಾರಾಭಂ ಕ್ಷೀರೋದಾರ್ಣವಸಂಭವಮ್ | ನಮಾಮಿ ಶಶಿನಂ ಸೋಮಂ ಶಂಭೋರ್ಮುಕುಟಭೂಷಣಮ್ ||',
+        hi: 'दधिशङ्खतुषाराभं क्षीरोदार्णवसम्भवम् । नमामि शशिनं सोमं शम्भोर्मुकुटभूषणम् ॥'
+      }
+    ],
+    poojaVidhi: [
+      {
+        en: 'Evening Chandrodaya Puja: Offer milk Arghya to the Full Moon, light 16 ghee lamps, chant Sri Suktam and Lakshmi Ashtakam.',
+        kn: 'ಸಂಜೆ ಚಂದ್ರೋದಯದ ನಂತರ ಚಂದ್ರದೇವರಿಗೆ ಹಾಲು-ನೀರಿನ ಅರ್ಘ್ಯ ಸಮರ್ಪಿಸಿ, ೧೬ ತುಪ್ಪದ ದೀಪಗಳನ್ನು ಬೆಳಗಿ, ಶ್ರೀಸೂಕ್ತ ಪಠಿಸಿ.',
+        hi: 'संध्या समय चन्द्रोदय पर चन्द्रदेव को दुग्ध मिश्रित जल से अर्घ्य दें, १६ घी के दीपक प्रज्वलित करें एवं श्रीसूक्त का पाठ करें।'
+      }
+    ],
+    poojaSamagri: [
+      {
+        en: '1. Rice, full cream milk, rock sugar (Mishri), cardamom, saffron for sacred Amrit Kheer',
+        kn: '೧. ಅಕ್ಕಿ, ಶುದ್ಧ ಹಾಲು, ಕಲ್ಲುಸಕ್ಕರೆ, ಏಲಕ್ಕಿ, ಕೇಸರಿ (ಅಮೃತ ಪಾಯಸಕ್ಕಾಗಿ)',
+        hi: '१. चावल, गाय का शुद्ध दूध, मिश्री, इलायची, केसर (अमृत खीर हेतु)'
+      },
+      {
+        en: '2. 16 silver, brass or earthen deepas with cow ghee for 16 Kalas of Chandra',
+        kn: '೨. ಚಂದ್ರನ ೧೬ ಕಲೆಗಳ ಸಂಕೇತವಾಗಿ ೧೬ ದೀಪಗಳು ಮತ್ತು ಶುದ್ಧ ಹಸುವಿನ ತುಪ್ಪ',
+        hi: '२. १६ कलाओं के प्रतीक १६ दीपक एवं शुद्ध गाय का घी'
+      }
+    ]
+  },
+  {
+    id: 'karwa_chauth',
+    name: {
+      en: 'Karwa Chauth (Sankashti Ganesh Chaturthi Vrata)',
+      kn: 'ಕರವಾ ಚೌತ್ (ಸಂಕಷ್ಟಹರ ಗಣಪತಿ ಹಾಗೂ ಪತಿ ಸಂರಕ್ಷಣಾ ವ್ರತ)',
+      hi: 'करवा चौथ (करक चतुर्थी एवं संकष्टी गणेश चतुर्थी व्रत)'
+    },
+    tagColor: '#e11d48',
+    badgeBg: 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-500/30',
+    shortDesc: {
+      en: 'Ashwina/Kartika Krishna 4: Nirjala fasting observed by married women for longevity and prosperity of spouses, breaking fast upon Moonrise.',
+      kn: 'ಆಶ್ವಯುಜ ಕೃಷ್ಣ ಚತುರ್ಥಿ: ಪತಿಯ ದೀರ್ಘಾಯುಷ್ಯ, ಸೌಭಾಗ್ಯ ಹಾಗೂ ಸುಖ-ಶಾಂತಿಗಾಗಿ ಆಚರಿಸುವ ನಿರ್ಜಲ ಉಪವಾಸ; ಸಂಜೆ ಚಂದ್ರೋದಯ ನೋಡಿ ಅರ್ಘ್ಯ ಕೊಟ್ಟು ವ್ರತ ಸಂಪನ್ನ.',
+      hi: 'कार्तिक/आश्विन कृष्ण चतुर्थी: अखण्ड सौभाग्य एवं पति की दीर्घायु हेतु निर्जला व्रत; चन्द्रोदय पर अर्घ्य अर्पण कर व्रत पारण।'
+    },
+    howCelebrated: {
+      en: 'Pre-dawn Sargi meal, daylong Nirjala fast, Karwa Chauth Katha in the evening, viewing the moon and spouse through a sieve (Chhalni), offering Arghya from earthen Karwa.',
+      kn: 'ಬೆಳಗ್ಗೆ ಉಷಃಕಾಲದಲ್ಲಿ ಸಾತ್ವಿಕ ಆಹಾರ (ಸರ್ಗಿ), ದಿನವಿಡೀ ನಿರ್ಜಲ ಉಪವಾಸ, ಸಂಜೆ ಗೌರಿ-ಶಿವ-ಗಣೇಶ ಪೂಜೆ, ಚಂದ್ರೋದಯದ ನಂತರ ಜರಡಿಯ ಮೂಲಕ ಚಂದ್ರ ಮತ್ತು ಪತಿಯ ದರ್ಶನ ಪಡೆದು ಅರ್ಘ್ಯ.',
+      hi: 'प्रातः सरगी, दिनभर निर्जला उपवास, संध्या समय करवा चौथ कथा श्रवण, छन्नी से चन्द्रमा व पति का दर्शन तथा करवा से अर्घ्य।'
+    },
+    story: {
+      en: 'Queen Veeravati observed this sacred penance to restore life to her husband. Goddess Parvati imparted the vidhi to Lord Shiva for the victory and welfare of all devotees.',
+      kn: 'ವೀರಾವತಿ ದೇವಿಯು ಈ ವ್ರತವನ್ನು ಶ್ರದ್ಧೆಯಿಂದ ಆಚರಿಸಿ ತನ್ನ ಮೃತ ಪತಿಯನ್ನು ಮರಳಿ ಪಡೆದಳು. ಪಾರ್ವತಿ ದೇವಿಯು ಭಕ್ತರ ಕಲ್ಯಾಣಕ್ಕಾಗಿ ಈ ವ್ರತ ವಿಧಾನವನ್ನು ಉಪದೇಶಿಸಿದಳು.',
+      hi: 'पतिव्रता वीरावती ने कठिन तप और करवा चौथ व्रत के प्रभाव से अपने पति को यमराज से भी वापस पा लिया था।'
+    },
+    mantras: [
+      {
+        en: 'Om Namah Shivaya Sharvanyai Saubhagyadaayinyai Namah',
+        kn: 'ಓಂ ನಮಃ ಶಿವಾಯ ಶರ್ವಾಣ್ಯೈ ಸೌಭಾಗ್ಯದಾಯಿನ್ಯೈ ನಮಃ',
+        hi: 'ॐ नमः शिवाय शर्वाण्यै सौभाग्यदायिन्यै नमः'
+      },
+      {
+        en: 'Gaganarnava Manikyachandraya Rohinipate, Arghyam Grihana Devesha Mama Saubhagyavardhana',
+        kn: 'ಗಗನಾರ್ಣವಮಾಣಿಕ್ಯ ಚಂದ್ರಾಯ ರೋಹಿಣೀಪತೇ | ಅರ್ಘ್ಯಂ ಗೃಹಾಣ ದೇವೇಶ ಮಮ ಸೌಭಾಗ್ಯವರ್ಧನ ||',
+        hi: 'गगनार्णवमाणिक्य चन्द्राय रोहिणीपते । अर्घ्यं गृहाण देवेश मम सौभाग्यवर्धन ॥'
+      }
+    ],
+    poojaVidhi: [
+      {
+        en: 'Evening Puja: Worship Shiva-Parvati, Kartikeya, and Ganesha with Karwa. Await Moonrise, offer Arghya using Karwa spout, view husband through sieve, break fast.',
+        kn: 'ಸಂಜೆ ಪೂಜೆ: ಮಣ್ಣಿನ ಕರವಾದಲ್ಲಿ ನೀರು ತುಂಬಿ ಶಿವ-ಪಾರ್ವತಿ-ಗಣಪತಿಗೆ ಪೂಜೆ. ಚಂದ್ರೋದಯವಾದಾಗ ಜರಡಿಯಿಂದ ಚಂದ್ರನನ್ನು ನೋಡಿ ಅರ್ಘ್ಯ ನೀಡಿ ನೀರು ಕುಡಿಯುವುದು.',
+        hi: 'संध्या पूजन: शिव-पार्वती व गणेश जी का पूजन। चन्द्र दर्शन कर करवा की टोंटी से अर्घ्य दें, छन्नी से पति दर्शन कर जल ग्रहण करें।'
+      }
+    ],
+    poojaSamagri: [
+      {
+        en: '1. Earthen decorated Karwa pot with spout, sieve (Chhalni), brass Thali',
+        kn: '೧. ಮಣ್ಣಿನ ಕರವಾ (ಪಾತ್ರೆ), ಹಿತ್ತಾಳೆ ಆರತಿ ತಟ್ಟೆ, ದೀಪ ಮತ್ತು ಜರಡಿ',
+        hi: '१. टोंटीदार मिट्टी का करवा, छलनी, दीपक व थाली'
+      },
+      {
+        en: '2. Suhaag items: Sindoor, Bindi, Bangles, Mehndi, and yellow sacred thread',
+        kn: '೨. ಸೌಭಾಗ್ಯ ದ್ರವ್ಯಗಳು: ಕುಂಕುಮ, ಗಾಜಿನ ಬಳೆ, ಮೆಹಂದಿ, ಕಂಕಣ ದಾರ',
+        hi: '२. सुहाग पिटारी: सिन्दूर, रोली, बिंदी, चूड़ियाँ व मेहंदी'
+      }
+    ]
   }
 ];
+
 

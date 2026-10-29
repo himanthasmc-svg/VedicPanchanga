@@ -95,6 +95,7 @@ import { calculateAllHousesDrishtiSummary, getAspectingHousesForGraha } from '..
 import { DrishtiVisualizer } from './DrishtiVisualizer';
 import { GrahaRemedyNutritionView } from './GrahaRemedyNutritionView';
 import { getHouseCoord } from '../utils/drishtiCoordinates';
+import { VedicYogaPostureModule } from './VedicYogaPostureModule';
 
 interface LagnaKundaliPageProps {
   currentLang: Language;
@@ -103,7 +104,7 @@ interface LagnaKundaliPageProps {
   onBackToCalendar: () => void;
   userPassword?: string;
   onOpenAdmin?: () => void;
-  initialSectionTab?: 'chart' | 'dasha' | 'remedies';
+  initialSectionTab?: 'chart' | 'dasha' | 'remedies' | 'yoga';
   initialRemediesSubTab?: 'upayas' | 'dasha' | 'transits' | 'prashna' | 'compatibility';
 }
 
@@ -129,8 +130,9 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
   const [isExportingImage, setIsExportingImage] = useState<boolean>(false);
   const [balaFilter, setBalaFilter] = useState<'all' | 'strong' | 'moderate' | 'weak'>('all');
-  const [activeSectionTab, setActiveSectionTab] = useState<'chart' | 'remedies' | 'dasha'>(() => {
+  const [activeSectionTab, setActiveSectionTab] = useState<'chart' | 'remedies' | 'dasha' | 'yoga'>(() => {
     if (initialSectionTab === 'dasha') return 'remedies';
+    if (initialSectionTab === 'yoga') return 'yoga';
     return (initialSectionTab as any) === 'remedies' ? 'remedies' : 'chart';
   });
   const [remediesSubTab, setRemediesSubTab] = useState<'upayas' | 'dasha' | 'transits' | 'prashna' | 'compatibility'>(() => {
@@ -146,7 +148,7 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
     if (initialSectionTab === 'dasha') {
       setActiveSectionTab('remedies');
       setRemediesSubTab('dasha');
-    } else if (initialSectionTab === 'remedies' || initialSectionTab === 'chart') {
+    } else if (initialSectionTab === 'remedies' || initialSectionTab === 'chart' || initialSectionTab === 'yoga') {
       setActiveSectionTab(initialSectionTab);
     }
   }, [initialSectionTab]);
@@ -1631,6 +1633,19 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
             <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
             <span>{currentLang === 'kn' ? '೨. ವೈದಿಕ ಪರಿಹಾರಗಳು, ದಶಾ & ಗೋಚಾರ' : currentLang === 'hi' ? '२. वैदिक उपचार, दशा एवं गोचर' : '2. Vedic Remedies, Dasha & Gochar'}</span>
             {!isAstroUnlocked && <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-80" />}
+          </button>
+
+          {/* Tab 3: Vedic Yoga & Postures (Personalized Yogasanas based on Planetary Positions) */}
+          <button
+            onClick={() => setActiveSectionTab('yoga')}
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer border ${
+              activeSectionTab === 'yoga'
+                ? 'bg-emerald-700 text-white shadow-md border-emerald-600'
+                : 'bg-emerald-50/80 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 border-emerald-300/70 hover:bg-emerald-100'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
+            <span>{currentLang === 'kn' ? '೩. ವೈದಿಕ ಯೋಗಾಸನ & ಶಾರೀರಿಕ ಸಮತೋಲನ' : currentLang === 'hi' ? '३. वैदिक योगासन एवं शारीरिक संतुलन' : '3. Vedic Yoga & Postures'}</span>
           </button>
         </div>
 
@@ -5117,6 +5132,19 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
               )}
             </div>
           )
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 4: VEDIC YOGA & POSTURES (PHYSICAL BALANCING LINKED TO PLANETARY POSITIONS) */}
+        {/* ========================================================================= */}
+        {activeSectionTab === 'yoga' && (
+          <div className="space-y-6 animate-in fade-in">
+            <VedicYogaPostureModule
+              kundali={kundaliData}
+              currentLang={currentLang}
+              onBackToChart={() => setActiveSectionTab('chart')}
+            />
+          </div>
         )}
 
         {/* Printable Shanti Sloka & Blessing (Appears on print & PDF) */}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, 
   Sun, 
@@ -51,6 +51,18 @@ export const InlineDayDetailPanel: React.FC<InlineDayDetailPanelProps> = ({
   const [selectedFestivalIndex, setSelectedFestivalIndex] = useState<number>(0);
   const [checkedSamagri, setCheckedSamagri] = useState<Record<string, boolean>>({});
   const [selectedUserDirection, setSelectedUserDirection] = useState<'east' | 'north' | 'west' | 'south'>('east');
+
+  // Synchronize state when user clicks a new date or festival
+  useEffect(() => {
+    if (initialFestival) {
+      setActiveTab('festivalDetail');
+      const idx = day.festivals.findIndex(f => f.id === initialFestival.id);
+      if (idx >= 0) setSelectedFestivalIndex(idx);
+    } else if (initialTab) {
+      setActiveTab(initialTab);
+      setSelectedFestivalIndex(0);
+    }
+  }, [day.gregorianDate, initialFestival, initialTab]);
 
   // Active festival for festival tab
   const activeFestival = useMemo(() => {

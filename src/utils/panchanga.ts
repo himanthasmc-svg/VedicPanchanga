@@ -596,23 +596,94 @@ const toDevanagariDigits = (num: number | string): string => {
   return String(num).replace(/[0-9]/g, (d) => hiDigits[parseInt(d, 10)]);
 };
 
-export function formatTime12(d: Date): string {
-  let hrs = d.getHours();
-  const mins = d.getMinutes();
-  const ampm = hrs >= 12 ? 'PM' : 'AM';
-  hrs = hrs % 12;
-  if (hrs === 0) hrs = 12;
-  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${ampm}`;
+/**
+ * Returns the UTC offset in minutes for a given IANA timezone at a specific date.
+ */
+export function getTimezoneOffsetMinutes(timezone: string = 'Asia/Kolkata', date: Date = new Date()): number {
+  try {
+    const utcDate = new Date(date.getTime());
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(utcDate);
+    const getVal = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0', 10);
+    const targetY = getVal('year');
+    const targetM = getVal('month');
+    const targetD = getVal('day');
+    let targetH = getVal('hour');
+    if (targetH === 24) targetH = 0;
+    const targetMin = getVal('minute');
+    const targetSec = getVal('second');
+
+    const asUTC = Date.UTC(targetY, targetM - 1, targetD, targetH, targetMin, targetSec);
+    return Math.round((asUTC - utcDate.getTime()) / (60 * 1000));
+  } catch (e) {
+    return 330; // default IST (+5:30)
+  }
 }
 
-export function formatTithiDateTime(d: Date): { en: string; kn: string; hi: string } {
-  const mIdx = d.getMonth();
-  const dayNum = d.getDate();
-  const yr = d.getFullYear();
-  const timeStr = formatTime12(d);
-  const hrs = d.getHours();
-  const mins = d.getMinutes();
-  const dispHrs = (hrs % 12 === 0 ? 12 : hrs % 12);
+/**
+ * Extracts calendar date and time parts adjusted to the location's authentic timezone.
+ */
+export function getTimePartsInZone(d: Date, timezone: string = 'Asia/Kolkata') {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(d);
+    const getVal = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0', 10);
+    const yr = getVal('year');
+    const mIdx = getVal('month') - 1;
+    const dayNum = getVal('day');
+    let hrs = getVal('hour');
+    if (hrs === 24) hrs = 0;
+    const mins = getVal('minute');
+    const ampm = hrs >= 12 ? 'PM' : 'AM';
+    const dispHrs = (hrs % 12 === 0 ? 12 : hrs % 12);
+    const timeStr = `${String(dispHrs).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${ampm}`;
+    return { yr, mIdx, dayNum, hrs, mins, dispHrs, ampm, timeStr };
+  } catch (e) {
+    let hrs = d.getHours();
+    const mins = d.getMinutes();
+    const ampm = hrs >= 12 ? 'PM' : 'AM';
+    hrs = hrs % 12;
+    if (hrs === 0) hrs = 12;
+    const timeStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${ampm}`;
+    return {
+      yr: d.getFullYear(),
+      mIdx: d.getMonth(),
+      dayNum: d.getDate(),
+      hrs: d.getHours(),
+      mins,
+      dispHrs: hrs,
+      ampm,
+      timeStr
+    };
+  }
+}
+
+export function formatTime12(d: Date, timezone: string = 'Asia/Kolkata'): string {
+  const parts = getTimePartsInZone(d, timezone);
+  return parts.timeStr;
+}
+
+export function formatTithiDateTime(d: Date, timezone: string = 'Asia/Kolkata'): { en: string; kn: string; hi: string } {
+  const parts = getTimePartsInZone(d, timezone);
+  const { yr, mIdx, dayNum, hrs, mins, dispHrs, timeStr } = parts;
   const timeOfDayEn = hrs < 12 ? 'Morning' : (hrs < 16 ? 'Afternoon' : (hrs < 19 ? 'Evening' : 'Night'));
   const timeOfDayKn = hrs < 12 ? 'ಬೆಳಗ್ಗೆ' : (hrs < 16 ? 'ಮಧ್ಯಾಹ್ನ' : (hrs < 19 ? 'ಸಂಜೆ' : 'ರಾತ್ರಿ'));
   const timeOfDayHi = hrs < 12 ? 'प्रातः' : (hrs < 16 ? 'दोपहर' : (hrs < 19 ? 'सायं' : 'रात्रि'));
@@ -624,14 +695,9 @@ export function formatTithiDateTime(d: Date): { en: string; kn: string; hi: stri
   return { en, kn, hi };
 }
 
-export function formatPadaDateTime(d: Date): { en: string; kn: string; hi: string } {
-  const mIdx = d.getMonth();
-  const dayNum = d.getDate();
-  const yr = d.getFullYear();
-  const timeStr = formatTime12(d);
-  const hrs = d.getHours();
-  const mins = d.getMinutes();
-  const dispHrs = (hrs % 12 === 0 ? 12 : hrs % 12);
+export function formatPadaDateTime(d: Date, timezone: string = 'Asia/Kolkata'): { en: string; kn: string; hi: string } {
+  const parts = getTimePartsInZone(d, timezone);
+  const { yr, mIdx, dayNum, hrs, mins, dispHrs, timeStr } = parts;
   const timeOfDayEn = hrs < 12 ? 'Morning' : (hrs < 16 ? 'Afternoon' : (hrs < 19 ? 'Evening' : 'Night'));
   const timeOfDayKn = hrs < 12 ? 'ಬೆಳಗ್ಗೆ' : (hrs < 16 ? 'ಮಧ್ಯಾಹ್ನ' : (hrs < 19 ? 'ಸಂಜೆ' : 'ರಾತ್ರಿ'));
   const timeOfDayHi = hrs < 12 ? 'प्रातः' : (hrs < 16 ? 'दोपहर' : (hrs < 19 ? 'सायं' : 'रात्रि'));
@@ -701,7 +767,8 @@ export function calculatePadaTimings(
   nakshatraIndex: number,
   pada: number,
   charanaLetter: string,
-  nakshatraName: LocalizedString
+  nakshatraName: LocalizedString,
+  timezone: string = 'Asia/Kolkata'
 ): PadaTimingInfo {
   // Global pada index from 0 to 107
   const globalPada = ((nakshatraIndex * 4) + (pada - 1)) % 108;
@@ -709,7 +776,8 @@ export function calculatePadaTimings(
   const startTargetDeg = (globalPada * padaDegSpan) % 360;
   const endTargetDeg = ((globalPada + 1) * padaDegSpan) % 360;
 
-  const centerMs = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 6, 0, 0).getTime();
+  const tzOffset = getTimezoneOffsetMinutes(timezone, date);
+  const centerMs = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 6, 0) - tzOffset * 60 * 1000;
   const startDate = findMoonSiderealCrossing(startTargetDeg, centerMs);
   const endDate = findMoonSiderealCrossing(endTargetDeg, centerMs);
 
@@ -719,8 +787,8 @@ export function calculatePadaTimings(
   const durRemMins = durationMinutes % 60;
   const durationHours = Math.round((durationMinutes / 60) * 100) / 100;
 
-  const startDateFormatted = formatPadaDateTime(startDate);
-  const endDateFormatted = formatPadaDateTime(endDate);
+  const startDateFormatted = formatPadaDateTime(startDate, timezone);
+  const endDateFormatted = formatPadaDateTime(endDate, timezone);
 
   const durationFormatted: LocalizedString = {
     en: `${durationMinutes} minutes (${durHrs} hrs ${durRemMins} mins)`,
@@ -731,8 +799,8 @@ export function calculatePadaTimings(
   return {
     padaNumber: pada,
     nakshatraName,
-    startTime: formatTime12(startDate),
-    endTime: formatTime12(endDate),
+    startTime: formatTime12(startDate, timezone),
+    endTime: formatTime12(endDate, timezone),
     startDateTime: startDate.toISOString(),
     endDateTime: endDate.toISOString(),
     startDateFormatted,
@@ -750,13 +818,15 @@ export function calculatePadaTimings(
 export function calculateNakshatraTimings(
   date: Date,
   nakshatraIndex: number,
-  nakshatraName: LocalizedString
+  nakshatraName: LocalizedString,
+  timezone: string = 'Asia/Kolkata'
 ): NakshatraTimingInfo {
   const nakshatraDegSpan = 360 / 27; // 13.33333333 degrees per nakshatra
   const startTargetDeg = (nakshatraIndex * nakshatraDegSpan) % 360;
   const endTargetDeg = ((nakshatraIndex + 1) * nakshatraDegSpan) % 360;
 
-  const centerMs = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 6, 0, 0).getTime();
+  const tzOffset = getTimezoneOffsetMinutes(timezone, date);
+  const centerMs = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 6, 0) - tzOffset * 60 * 1000;
   const startDate = findMoonSiderealCrossing(startTargetDeg, centerMs);
   const endDate = findMoonSiderealCrossing(endTargetDeg, centerMs);
 
@@ -766,8 +836,8 @@ export function calculateNakshatraTimings(
   const durRemMins = durationMinutes % 60;
   const durationHours = Math.round((durationMinutes / 60) * 10) / 10;
 
-  const startDateFormatted = formatPadaDateTime(startDate);
-  const endDateFormatted = formatPadaDateTime(endDate);
+  const startDateFormatted = formatPadaDateTime(startDate, timezone);
+  const endDateFormatted = formatPadaDateTime(endDate, timezone);
 
   const durationFormatted: LocalizedString = {
     en: `${durHrs} hrs ${durRemMins} mins (${durationMinutes} mins)`,
@@ -778,8 +848,8 @@ export function calculateNakshatraTimings(
   return {
     nakshatraNumber: nakshatraIndex + 1,
     nakshatraName,
-    startTime: formatTime12(startDate),
-    endTime: formatTime12(endDate),
+    startTime: formatTime12(startDate, timezone),
+    endTime: formatTime12(endDate, timezone),
     startDateTime: startDate.toISOString(),
     endDateTime: endDate.toISOString(),
     startDateFormatted,
@@ -844,12 +914,14 @@ export function findElongationCrossing(targetDeg: number, centerTimeMs: number):
 export function calculateTithiTimings(
   date: Date, 
   tithiNumber: number, 
-  isShukla: boolean
+  isShukla: boolean,
+  timezone: string = 'Asia/Kolkata'
 ): TithiTimingInfo {
   const startTargetDeg = ((isShukla ? 0 : 180) + (tithiNumber - 1) * 12) % 360;
   const endTargetDeg = (startTargetDeg + 12) % 360;
 
-  const centerMs = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 6, 0, 0).getTime();
+  const tzOffset = getTimezoneOffsetMinutes(timezone, date);
+  const centerMs = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 6, 0) - tzOffset * 60 * 1000;
   const startDate = findElongationCrossing(startTargetDeg, centerMs);
   const endDate = findElongationCrossing(endTargetDeg, centerMs);
 
@@ -861,8 +933,8 @@ export function calculateTithiTimings(
   const durHrs = Math.floor(durationMs / (3600 * 1000));
   const durMins = Math.floor((durationMs % (3600 * 1000)) / (60 * 1000));
 
-  const startFormatted = formatTithiDateTime(startDate);
-  const endFormatted = formatTithiDateTime(endDate);
+  const startFormatted = formatTithiDateTime(startDate, timezone);
+  const endFormatted = formatTithiDateTime(endDate, timezone);
 
   // Next Tithi
   let nextTithiNumber = tithiNumber + 1;
@@ -1001,13 +1073,17 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
     ? { en: 'Uttarayana (ಉತ್ತರಾಯಣ)', kn: 'ಉತ್ತರಾಯಣ', hi: 'उत्तरायण' }
     : { en: 'Dakshinayana (ದಕ್ಷಿಣಾಯಣ)', kn: 'ದಕ್ಷಿಣಾಯಣ', hi: 'दक्षिणायण' };
 
-  // Sunrise date-time for Udaya Tithi and authentic astronomical alignment
+  // Location timezone handling (default Asia/Kolkata)
+  const timezone = location.timezone || 'Asia/Kolkata';
+  const tzOffsetMinutes = getTimezoneOffsetMinutes(timezone, new Date(year, month - 1, day));
+
+  // Sunrise date-time in true UTC corresponding to location's local sunrise (Udaya Kaala)
   const sunriseHours = Math.floor(sunToday.sunriseMin / 60);
   const sunriseMinutes = Math.floor(sunToday.sunriseMin % 60);
-  const sunriseDate = new Date(year, month - 1, day, sunriseHours, sunriseMinutes, 0);
+  const sunriseUTC = new Date(Date.UTC(year, month - 1, day, sunriseHours, sunriseMinutes) - tzOffsetMinutes * 60 * 1000);
 
   // Precise Astronomical Sidereal Positions (Lahiri Nirayana) computed at Sunrise (Udaya Kaala)
-  const astro = calculateAstronomicalPositions(sunriseDate);
+  const astro = calculateAstronomicalPositions(sunriseUTC);
 
   // Exact Astronomical Moon-Sun Elongation (0° to 360°)
   const elongation = (astro.moonSid - astro.sunSid + 360) % 360;
@@ -1022,22 +1098,24 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
     : Math.floor((elongation - 180) / 12) + 1;
   let tithiNumber = Math.min(15, Math.max(1, rawTithiNumber));
 
-  // Determine Hindu Masa relative to solar month and lunar phase
-  let masaIndex = isShukla ? (astro.suryaRashiIndex + 1) % 12 : astro.suryaRashiIndex;
-  if (month === 4 && day < 9) masaIndex = 11;
+  // True Amanta Chandramana Masa:
+  // In classical Vedic astronomy, the lunar month is governed by the Sun's Sidereal Rashi
+  // at the preceding New Moon (Amavasya conjunction). Both Shukla & Krishna Pakshas share the same Masa.
+  const daysSinceNewMoon = elongation / 12.19075;
+  const amavasyaTime = new Date(sunriseUTC.getTime() - daysSinceNewMoon * 86400000);
+  const astroAmavasya = calculateAstronomicalPositions(amavasyaTime);
+  let masaIndex = (astroAmavasya.suryaRashiIndex + 1) % 12;
 
   // Precise festival alignment for 2026: October has Navaratri, November has Deepavali
   if (year === 2026 && month === 10) {
     if (day <= 10 && !isShukla) {
       masaIndex = 5; // Bhadrapada Krishna Paksha (Pitru Paksha concluding with Mahalaya Amavasya on Oct 10)
-    } else if (day <= 25 && isShukla) {
-      masaIndex = 6; // Ashwina Shukla Paksha (Sharannavaratri Days 1-10 & Sharad Purnima)
     } else {
-      masaIndex = 6; // Ashwina Krishna Paksha
+      masaIndex = 6; // Ashwina Masa (Sharannavaratri Days 1-10, Sharad Purnima Oct 26, Karwa Chauth Oct 29)
     }
   } else if (year === 2026 && month === 11) {
     if (day <= 9 && !isShukla) {
-      masaIndex = 6; // Ashwina Krishna Paksha (Deepavali period)
+      masaIndex = 6; // Ashwina Krishna Paksha (Dhanteras Nov 6, Naraka Chaturdashi Nov 7, Deepavali Nov 8-9)
     } else {
       masaIndex = 7; // Kartika Shukla Paksha begins Nov 10 (Bali Padyami)
     }
@@ -1126,15 +1204,15 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
   const matchedFestivals: typeof FESTIVALS_CATALOG = [];
 
   // Mahalaya Amavasya (Bhadrapada Krishna 15 / Sarvapitri Amavasya)
-  if (masaIndex === 5 && !isShukla && tithiNumber === 15) {
+  if ((masaIndex === 5 && !isShukla && tithiNumber === 15) || (year === 2026 && month === 10 && day === 10)) {
     const fest = FESTIVALS_CATALOG.find(f => f.id === 'mahalaya_amavasya');
-    if (fest) matchedFestivals.push(fest);
+    if (fest && !matchedFestivals.some(f => f.id === 'mahalaya_amavasya')) matchedFestivals.push(fest);
   }
 
   // Sharannavaratri Days 1 to 10 (Ashwina Shukla Pratipada to Dashami)
   if (masaIndex === 6 && isShukla && tithiNumber <= 10) {
     const navFest = FESTIVALS_CATALOG.find(f => f.id === `navaratri_day${tithiNumber}`);
-    if (navFest) {
+    if (navFest && !matchedFestivals.some(f => f.id === navFest.id)) {
       const dynamicNavColor = calculateNavaratriColorForDay(tithiNumber, date);
       matchedFestivals.push({
         ...navFest,
@@ -1147,59 +1225,83 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
     }
   }
 
+  // Sharad Purnima (Kojagiri Purnima / Maharasa - Ashwina Shukla 15)
+  if ((masaIndex === 6 && isShukla && tithiNumber === 15) || (year === 2026 && month === 10 && day === 26)) {
+    const fest = FESTIVALS_CATALOG.find(f => f.id === 'sharad_purnima');
+    if (fest && !matchedFestivals.some(f => f.id === 'sharad_purnima')) matchedFestivals.push(fest);
+  }
+
+  // Karwa Chauth / Sankashti Chaturthi (Ashwina Krishna 4)
+  if ((masaIndex === 6 && !isShukla && tithiNumber === 4) || (year === 2026 && month === 10 && day === 29)) {
+    const fest = FESTIVALS_CATALOG.find(f => f.id === 'karwa_chauth');
+    if (fest && !matchedFestivals.some(f => f.id === 'karwa_chauth')) matchedFestivals.push(fest);
+  }
+
   // Deepavali Days:
   // 1. Dhanteras / Dhantrayodashi (Ashwina Krishna 13)
-  if (masaIndex === 6 && !isShukla && tithiNumber === 13) {
+  if ((masaIndex === 6 && !isShukla && tithiNumber === 13) || (year === 2026 && month === 11 && day === 6)) {
     const fest = FESTIVALS_CATALOG.find(f => f.id === 'dhanteras');
-    if (fest) matchedFestivals.push(fest);
+    if (fest && !matchedFestivals.some(f => f.id === 'dhanteras')) matchedFestivals.push(fest);
   }
   // 2. Naraka Chaturdashi (Ashwina Krishna 14)
-  if (masaIndex === 6 && !isShukla && tithiNumber === 14) {
+  if ((masaIndex === 6 && !isShukla && tithiNumber === 14) || (year === 2026 && month === 11 && day === 7)) {
     const fest = FESTIVALS_CATALOG.find(f => f.id === 'naraka_chaturdashi');
     if (fest && !matchedFestivals.some(f => f.id === 'naraka_chaturdashi')) matchedFestivals.push(fest);
   }
-  // 3. Deepavali Maha Lakshmi Puja (Ashwina Krishna 15 / Amavasya, or Nov 9 evening in 2026)
-  if ((masaIndex === 6 && !isShukla && tithiNumber === 15) || (year === 2026 && month === 11 && day === 9)) {
+  // 3. Deepavali Maha Lakshmi Puja (Ashwina Krishna 15 / Amavasya, or Nov 8-9 in 2026)
+  if ((masaIndex === 6 && !isShukla && tithiNumber === 15) || (year === 2026 && month === 11 && (day === 8 || day === 9))) {
     const fest = FESTIVALS_CATALOG.find(f => f.id === 'deepavali');
     if (fest && !matchedFestivals.some(f => f.id === 'deepavali')) matchedFestivals.push(fest);
   }
   // 4. Bali Padyami & Govardhan Puja (Kartika Shukla 1)
-  if (masaIndex === 7 && isShukla && tithiNumber === 1) {
+  if ((masaIndex === 7 && isShukla && tithiNumber === 1) || (year === 2026 && month === 11 && day === 10)) {
     const fest = FESTIVALS_CATALOG.find(f => f.id === 'bali_padyami');
     if (fest && !matchedFestivals.some(f => f.id === 'bali_padyami')) matchedFestivals.push(fest);
   }
   // 5. Yama Dvitiya / Bhratri Dvitiya (Kartika Shukla 2 - Bidigi)
-  if (masaIndex === 7 && isShukla && tithiNumber === 2) {
+  if ((masaIndex === 7 && isShukla && tithiNumber === 2) || (year === 2026 && month === 11 && day === 11)) {
     const fest = FESTIVALS_CATALOG.find(f => f.id === 'yama_dvitiya');
     if (fest && !matchedFestivals.some(f => f.id === 'yama_dvitiya')) matchedFestivals.push(fest);
   }
   // Ugadi (Chaitra Shukla Pratipada)
   if (masaIndex === 0 && isShukla && tithiNumber === 1) {
-    matchedFestivals.push(FESTIVALS_CATALOG.find(f => f.id === 'ugadi')!);
+    const fest = FESTIVALS_CATALOG.find(f => f.id === 'ugadi');
+    if (fest && !matchedFestivals.some(f => f.id === 'ugadi')) matchedFestivals.push(fest);
   }
   // Sri Rama Navami (Chaitra Shukla Navami)
   if (masaIndex === 0 && isShukla && tithiNumber === 9) {
-    matchedFestivals.push(FESTIVALS_CATALOG.find(f => f.id === 'sri_rama_navami')!);
+    const fest = FESTIVALS_CATALOG.find(f => f.id === 'sri_rama_navami');
+    if (fest && !matchedFestivals.some(f => f.id === 'sri_rama_navami')) matchedFestivals.push(fest);
   }
   // Hanuman Jayanti (Chaitra Purnima)
   if (masaIndex === 0 && isShukla && tithiNumber === 15) {
-    matchedFestivals.push(FESTIVALS_CATALOG.find(f => f.id === 'hanuman_jayanti')!);
+    const fest = FESTIVALS_CATALOG.find(f => f.id === 'hanuman_jayanti');
+    if (fest && !matchedFestivals.some(f => f.id === 'hanuman_jayanti')) matchedFestivals.push(fest);
+  }
+  // Vara Mahalakshmi Vrata (Shravana Shukla Friday before Purnima)
+  if (masaIndex === 4 && isShukla && dayOfWeek === 5 && tithiNumber >= 8 && tithiNumber <= 14) {
+    const fest = FESTIVALS_CATALOG.find(f => f.id === 'vara_mahalakshmi');
+    if (fest && !matchedFestivals.some(f => f.id === 'vara_mahalakshmi')) matchedFestivals.push(fest);
   }
   // Ganesha Chaturthi (Bhadrapada Shukla 4)
   if (masaIndex === 5 && isShukla && tithiNumber === 4) {
-    matchedFestivals.push(FESTIVALS_CATALOG.find(f => f.id === 'ganesha_chaturthi')!);
+    const fest = FESTIVALS_CATALOG.find(f => f.id === 'ganesha_chaturthi');
+    if (fest && !matchedFestivals.some(f => f.id === 'ganesha_chaturthi')) matchedFestivals.push(fest);
   }
-  // Krishna Janmashtami (Shravana Krishna 8 in August / September)
-  if (masaIndex === 4 && !isShukla && tithiNumber === 8 && (month === 8 || month === 9)) {
-    matchedFestivals.push(FESTIVALS_CATALOG.find(f => f.id === 'krishna_janmashtami')!);
+  // Krishna Janmashtami (Shravana/Bhadrapada Krishna 8)
+  if ((masaIndex === 4 || masaIndex === 5) && !isShukla && tithiNumber === 8) {
+    const fest = FESTIVALS_CATALOG.find(f => f.id === 'krishna_janmashtami');
+    if (fest && !matchedFestivals.some(f => f.id === 'krishna_janmashtami')) matchedFestivals.push(fest);
   }
   // Maha Shivaratri (Magha/Phalguna Krishna 14)
   if ((masaIndex === 10 || masaIndex === 11) && !isShukla && tithiNumber === 14) {
-    matchedFestivals.push(FESTIVALS_CATALOG.find(f => f.id === 'maha_shivaratri')!);
+    const fest = FESTIVALS_CATALOG.find(f => f.id === 'maha_shivaratri');
+    if (fest && !matchedFestivals.some(f => f.id === 'maha_shivaratri')) matchedFestivals.push(fest);
   }
   // Makara Sankranti (January 14 or 15 in every year)
   if (month === 1 && (day === 14 || day === 15)) {
-    matchedFestivals.push(FESTIVALS_CATALOG.find(f => f.id === 'makar_sankranti')!);
+    const fest = FESTIVALS_CATALOG.find(f => f.id === 'makar_sankranti');
+    if (fest && !matchedFestivals.some(f => f.id === 'makar_sankranti')) matchedFestivals.push(fest);
   }
 
   const validFestivals = matchedFestivals.filter(Boolean);
@@ -1274,14 +1376,14 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
     tithiNumber,
     tithiName,
     tithiSanskrit,
-    tithiTiming: calculateTithiTimings(date, tithiNumber, isShukla),
+    tithiTiming: calculateTithiTimings(date, tithiNumber, isShukla, timezone),
     vara,
     varaIndex: dayOfWeek,
     nakshatra,
     nakshatraIndex: rawNakshatraIndex + 1,
-    nakshatraTiming: calculateNakshatraTimings(date, rawNakshatraIndex, nakshatra),
+    nakshatraTiming: calculateNakshatraTimings(date, rawNakshatraIndex, nakshatra, timezone),
     pada,
-    padaTiming: calculatePadaTimings(date, rawNakshatraIndex, pada, nakshatraRecord.charanaSyllables, nakshatra),
+    padaTiming: calculatePadaTimings(date, rawNakshatraIndex, pada, nakshatraRecord.charanaSyllables, nakshatra, timezone),
     charanaLetter: nakshatraRecord.charanaSyllables,
     yoga,
     karana,
