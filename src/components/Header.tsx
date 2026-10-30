@@ -50,8 +50,8 @@ interface HeaderProps {
   onOpenWidgetModal: () => void;
   onOpenPageSourceCode?: () => void;
   onOpenGoogleMapModal?: () => void;
-  activeView: 'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha';
-  onNavigate: (view: 'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha') => void;
+  activeView: 'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha' | 'bhavishya';
+  onNavigate: (view: 'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha' | 'bhavishya') => void;
   mantrasList: MantraItem[];
   onSelectFestivalFromSearch: (fest: Festival) => void;
   isAstroDiagnosticActive?: boolean;
@@ -639,6 +639,19 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Sparkles className="w-3 h-3 shrink-0 text-amber-400" />
               <span>{currentLang === 'kn' ? 'ವಿಂಶೋತ್ತರಿ ದಶಾ' : currentLang === 'hi' ? 'विंशोत्तरी दशा' : 'Vimshottari Dasha'}</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('bhavishya')}
+              className={`px-2.5 py-1 text-[11px] sm:text-xs font-semibold rounded-md transition-all flex items-center gap-1 whitespace-nowrap shrink-0 border ${
+                activeView === 'bhavishya'
+                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xs border-amber-500'
+                  : 'text-amber-800 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-950/30 border-amber-300/60 hover:bg-amber-500/20'
+              }`}
+              title="Daily Rashi Bhavishya & Planetary Transits (ದೈನಂದಿನ ರಾಶಿ ಭವಿಷ್ಯ)"
+            >
+              <Compass className="w-3 h-3 shrink-0 text-amber-500" />
+              <span>{currentLang === 'kn' ? 'ರಾಶಿ ಭವಿಷ್ಯ' : currentLang === 'hi' ? 'राशिफल' : 'Rashi Bhavishya'}</span>
             </button>
           </div>
 

@@ -55,6 +55,7 @@ interface CalendarViewProps {
   onOpenAstroDiagnostic?: () => void;
   onOpenNavaratriRituals?: (dayNumber?: number, tab?: 'kalasha' | 'akhandaDeepa' | 'dailyDurga' | 'kushmandaBali' | 'ayudhaPuja' | 'vijayadashami') => void;
   onOpenGoogleMap?: () => void;
+  onOpenBhavishya?: () => void;
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
@@ -68,7 +69,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   isAstroDiagnosticActive = false,
   onOpenAstroDiagnostic,
   onOpenNavaratriRituals,
-  onOpenGoogleMap
+  onOpenGoogleMap,
+  onOpenBhavishya
 }) => {
   const today = new Date();
   const [selectedYear, setSelectedYear] = useState<number>(today.getFullYear());
@@ -417,6 +419,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
           {/* Month / Year Navigator Controls */}
           <div className="flex flex-wrap items-center gap-2">
+            {onOpenBhavishya && (
+              <button
+                onClick={onOpenBhavishya}
+                className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-stone-950 text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                title="View Daily Rashi Bhavishya & Planetary Transits"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-950" />
+                <span>{currentLang === 'kn' ? 'ರಾಶಿ ಭವಿಷ್ಯ' : currentLang === 'hi' ? 'राशिफल' : 'Daily Horoscope'}</span>
+              </button>
+            )}
+
             <button
               onClick={handleGoToToday}
               className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors backdrop-blur-xs flex items-center gap-1.5"

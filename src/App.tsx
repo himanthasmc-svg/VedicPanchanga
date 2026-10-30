@@ -28,6 +28,7 @@ import { AstroDiagnosticModal } from './components/AstroDiagnosticModal';
 import { GoogleMapLocationModal } from './components/GoogleMapLocationModal';
 import { MasterUnlockModal } from './components/MasterUnlockModal';
 import { VimshottariDashaCalculator } from './components/VimshottariDashaCalculator';
+import { DailyRashiBhavishyaPage } from './components/DailyRashiBhavishyaPage';
 import { findClosestCity } from './utils/worldPlaces';
 
 export default function App() {
@@ -55,8 +56,8 @@ export default function App() {
     return CITIES[0]; // Bengaluru default
   });
 
-  // Active Main View: calendar | mantras | sankalpa | kundali | gochar | muhurta | dasha
-  const [activeView, setActiveView] = useState<'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha'>('calendar');
+  // Active Main View: calendar | mantras | sankalpa | kundali | gochar | muhurta | dasha | bhavishya
+  const [activeView, setActiveView] = useState<'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha' | 'bhavishya'>('calendar');
 
   // Modals state
   const [selectedDay, setSelectedDay] = useState<PanchangaDay | null>(null);
@@ -415,6 +416,7 @@ export default function App() {
             isAstroDiagnosticActive={isAstroDiagnosticActive}
             onOpenAstroDiagnostic={() => setShowAstroDiagnosticModal(true)}
             onOpenGoogleMap={() => setShowGoogleMapModal(true)}
+            onOpenBhavishya={() => setActiveView('bhavishya')}
           />
         )}
 
@@ -519,6 +521,17 @@ export default function App() {
           />
         )}
 
+        {/* VIEW 8: Daily Rashi Bhavishya & Planetary Transits */}
+        {activeView === 'bhavishya' && (
+          <DailyRashiBhavishyaPage
+            currentLang={currentLang}
+            selectedCity={selectedCity}
+            onSelectCity={setSelectedCity}
+            onBackToCalendar={() => setActiveView('calendar')}
+            onNavigateToKundali={() => setActiveView('kundali')}
+          />
+        )}
+
       </main>
 
       {/* Application Footer */}
@@ -535,6 +548,12 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
+            <button 
+              onClick={() => setActiveView('bhavishya')} 
+              className="hover:text-amber-600 transition-colors font-bold text-amber-700 dark:text-amber-400"
+            >
+              Daily Rashi Bhavishya
+            </button>
             <button 
               onClick={() => setActiveView('sankalpa')} 
               className="hover:text-amber-600 transition-colors"

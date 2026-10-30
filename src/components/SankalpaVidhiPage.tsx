@@ -38,6 +38,7 @@ import { RitualVisuals } from './RitualVisuals';
 import { PoojaDeepaGuidelinesSection } from './PoojaDeepaGuidelinesSection';
 import { PoojaAudioGuide } from './PoojaAudioGuide';
 import { DigitalOfferingLog } from './DigitalOfferingLog';
+import { RitualProgressIndicator, RitualStepMeta } from './RitualProgressIndicator';
 import { Lock, Volume2, BookMarked, Sun, Moon, Compass } from 'lucide-react';
 
 interface SankalpaVidhiPageProps {
@@ -89,6 +90,56 @@ export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
   const [stotraLang, setStotraLang] = useState<Language>(currentLang);
   const [copiedStotra, setCopiedStotra] = useState(false);
   const [pakshaOverride, setPakshaOverride] = useState<'auto' | 'Shukla' | 'Krishna'>('auto');
+
+  // Persistent Ritual Progress Indicator State
+  const [activeRitualStep, setActiveRitualStep] = useState<number>(() => {
+    const saved = localStorage.getItem('hcmm_sankalpa_active_step');
+    return saved ? Math.max(1, Math.min(6, Number(saved))) : 1;
+  });
+
+  const [completedRitualSteps, setCompletedRitualSteps] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem('hcmm_sankalpa_completed_steps');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleStepSelect = (stepNumber: number, tabKey: RitualStepMeta['tabKey']) => {
+    setActiveRitualStep(stepNumber);
+    localStorage.setItem('hcmm_sankalpa_active_step', String(stepNumber));
+    if (tabKey) {
+      setActiveTab(tabKey);
+    }
+  };
+
+  const handleToggleCompleteStep = (stepNumber: number) => {
+    setCompletedRitualSteps(prev => {
+      const isDone = prev.includes(stepNumber);
+      const next = isDone ? prev.filter(s => s !== stepNumber) : [...prev, stepNumber];
+      localStorage.setItem('hcmm_sankalpa_completed_steps', JSON.stringify(next));
+      if (!isDone && stepNumber < 6) {
+        setActiveRitualStep(stepNumber + 1);
+        localStorage.setItem('hcmm_sankalpa_active_step', String(stepNumber + 1));
+      }
+      return next;
+    });
+  };
+
+  const handleResetRitualProgress = () => {
+    const confirmMsg = currentLang === 'kn' 
+      ? 'ಪೂಜಾ ಸಂಕಲ್ಪ ಪ್ರಗತಿಯನ್ನು ಪುನರಾರಂಭಿಸಲು ಬಯಸುವಿರಾ?' 
+      : currentLang === 'hi' 
+      ? 'क्या आप अनुष्ठान प्रगति को पुनः आरंभ करना चाहते हैं?' 
+      : 'Reset ritual progress back to Step 1?';
+    if (window.confirm(confirmMsg)) {
+      setActiveRitualStep(1);
+      setCompletedRitualSteps([]);
+      localStorage.setItem('hcmm_sankalpa_active_step', '1');
+      localStorage.setItem('hcmm_sankalpa_completed_steps', JSON.stringify([]));
+    }
+  };
 
   const handleSwitchStotraLang = (lang: Language) => {
     setStotraLang(lang);
@@ -193,6 +244,16 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
   return (
     <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       
+      {/* Persistent Ritual Progress Indicator (Sticky Top Bar) */}
+      <RitualProgressIndicator
+        currentLang={stotraLang}
+        activeStep={activeRitualStep}
+        onStepSelect={handleStepSelect}
+        completedSteps={completedRitualSteps}
+        onToggleComplete={handleToggleCompleteStep}
+        onResetProgress={handleResetRitualProgress}
+      />
+
       {/* Top Banner & Date Picker Bar (Hidden in Print) */}
       <div className="no-print rounded-2xl bg-gradient-to-r from-red-700 via-rose-700 to-amber-700 text-white p-6 shadow-xl border border-red-500/30">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
