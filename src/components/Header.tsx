@@ -50,8 +50,8 @@ interface HeaderProps {
   onOpenWidgetModal: () => void;
   onOpenPageSourceCode?: () => void;
   onOpenGoogleMapModal?: () => void;
-  activeView: 'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha' | 'bhavishya';
-  onNavigate: (view: 'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha' | 'bhavishya') => void;
+  activeView: 'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha' | 'bhavishya' | 'yoga';
+  onNavigate: (view: 'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha' | 'bhavishya' | 'yoga') => void;
   mantrasList: MantraItem[];
   onSelectFestivalFromSearch: (fest: Festival) => void;
   isAstroDiagnosticActive?: boolean;
@@ -652,6 +652,19 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Compass className="w-3 h-3 shrink-0 text-amber-500" />
               <span>{currentLang === 'kn' ? 'ರಾಶಿ ಭವಿಷ್ಯ' : currentLang === 'hi' ? 'राशिफल' : 'Rashi Bhavishya'}</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('yoga')}
+              className={`px-2.5 py-1 text-[11px] sm:text-xs font-semibold rounded-md transition-all flex items-center gap-1 whitespace-nowrap shrink-0 border ${
+                activeView === 'yoga'
+                  ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-xs border-teal-500 font-bold'
+                  : 'text-teal-800 dark:text-teal-300 bg-teal-500/10 dark:bg-teal-950/30 border-teal-300/60 hover:bg-teal-500/20'
+              }`}
+              title="Vedic Yoga & Posture Library with Animated SVG Balancing"
+            >
+              <Activity className="w-3 h-3 shrink-0 text-teal-400" />
+              <span>{currentLang === 'kn' ? 'ವೈದಿಕ ಯೋಗಾಸನ' : currentLang === 'hi' ? 'वैदिक योगासन' : 'Vedic Yoga'}</span>
             </button>
           </div>
 

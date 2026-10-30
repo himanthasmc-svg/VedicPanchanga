@@ -35,6 +35,21 @@ export const MasterUnlockModal: React.FC<MasterUnlockModalProps> = ({
     return getPanchangaForDate(new Date(), city);
   }, [customPanchanga, selectedCity]);
 
+  // Helper: strips any brackets, slashes, pada suffixes, and returns strictly a single clean name
+  const getCleanSingleName = (str: string) => {
+    if (!str) return '';
+    return str
+      .replace(/\(.*?\)/g, '')
+      .replace(/\[.*?\]/g, '')
+      .replace(/\{.*?\}/g, '')
+      .replace(/Pada\s*[0-9]+/gi, '')
+      .replace(/ಪಾದ\s*[೦-೯0-9]+/gi, '')
+      .replace(/चरण\s*[०-९0-9]+/gi, '')
+      .split('/')[0]
+      .split(',')[0]
+      .trim();
+  };
+
   // Clean helper: strips spaces, punctuation, diacritics, to lowercase
   const clean = (s: string) =>
     (s || '')
@@ -59,48 +74,83 @@ export const MasterUnlockModal: React.FC<MasterUnlockModalProps> = ({
       return;
     }
 
-    // Current Masa and Nakshatra components
-    const masaEn = clean(currentPanchanga.masa?.en || '');
-    const nakEn = clean((currentPanchanga.nakshatra?.en || '').split('(')[0]);
-    const chartNakEn = clean(RASHI_NAKSHATRA_CHART[currentPanchanga.nakshatraIndex]?.nakshatraEn || '');
+    // Single clean names of Masa & Nakshatra
+    const rawMasaEn = currentPanchanga.masa?.en || '';
+    const rawNakEn = currentPanchanga.nakshatra?.en || '';
+    const cleanMasaEn = getCleanSingleName(rawMasaEn);
+    const cleanNakEn = getCleanSingleName(rawNakEn);
+    const chartNakEn = getCleanSingleName(RASHI_NAKSHATRA_CHART[currentPanchanga.nakshatraIndex]?.nakshatraEn || '');
 
-    const masaKn = clean(currentPanchanga.masa?.kn || '');
-    const nakKn = clean((currentPanchanga.nakshatra?.kn || '').split('(')[0]);
-    const chartNakKn = clean(RASHI_NAKSHATRA_CHART[currentPanchanga.nakshatraIndex]?.nakshatraKn || '');
+    const rawMasaKn = currentPanchanga.masa?.kn || '';
+    const rawNakKn = currentPanchanga.nakshatra?.kn || '';
+    const cleanMasaKn = getCleanSingleName(rawMasaKn);
+    const cleanNakKn = getCleanSingleName(rawNakKn);
+    const chartNakKn = getCleanSingleName(RASHI_NAKSHATRA_CHART[currentPanchanga.nakshatraIndex]?.nakshatraKn || '');
 
-    const masaHi = clean(currentPanchanga.masa?.hi || '');
-    const nakHi = clean((currentPanchanga.nakshatra?.hi || '').split('(')[0]);
+    const rawMasaHi = currentPanchanga.masa?.hi || '';
+    const rawNakHi = currentPanchanga.nakshatra?.hi || '';
+    const cleanMasaHi = getCleanSingleName(rawMasaHi);
+    const cleanNakHi = getCleanSingleName(rawNakHi);
 
-    // Build valid combinations without providing any hints in UI
+    const masaEn = clean(cleanMasaEn);
+    const nakEn = clean(cleanNakEn);
+    const cNakEn = clean(chartNakEn);
+
+    const masaKn = clean(cleanMasaKn);
+    const nakKn = clean(cleanNakKn);
+    const cNakKn = clean(chartNakKn);
+
+    const masaHi = clean(cleanMasaHi);
+    const nakHi = clean(cleanNakHi);
+
+    // Build valid combinations
     const validSet = new Set<string>();
-
     const trimTrailingA = (val: string) => (val.endsWith('a') ? val.slice(0, -1) : val);
 
-    // English: Masa + Nakshatra
+    // PRIMARY USER REQUIREMENT: Only the first name of the Nakshatra alone!
+    if (nakEn) {
+      validSet.add(nakEn);
+      validSet.add(trimTrailingA(nakEn));
+      // First word if multi-word like Purva / Uttara
+      const firstWord = nakEn.split(/[^a-z0-9]/)[0];
+      if (firstWord) {
+        validSet.add(firstWord);
+        validSet.add(trimTrailingA(firstWord));
+      }
+    }
+    if (cNakEn) {
+      validSet.add(cNakEn);
+      validSet.add(trimTrailingA(cNakEn));
+      const firstWord = cNakEn.split(/[^a-z0-9]/)[0];
+      if (firstWord) validSet.add(firstWord);
+    }
+    if (nakKn) {
+      validSet.add(nakKn);
+      const firstWord = nakKn.split(/\s+/)[0];
+      if (firstWord) validSet.add(firstWord);
+    }
+    if (cNakKn) validSet.add(cNakKn);
+    if (nakHi) {
+      validSet.add(nakHi);
+      const firstWord = nakHi.split(/\s+/)[0];
+      if (firstWord) validSet.add(firstWord);
+    }
+
+    // Masa + Nakshatra combinations (retained for backward compatibility)
     if (masaEn && nakEn) {
       validSet.add(masaEn + nakEn);
       validSet.add(trimTrailingA(masaEn) + nakEn);
       validSet.add(masaEn + trimTrailingA(nakEn));
       validSet.add(trimTrailingA(masaEn) + trimTrailingA(nakEn));
     }
-    if (masaEn && chartNakEn) {
-      validSet.add(masaEn + chartNakEn);
-      validSet.add(trimTrailingA(masaEn) + chartNakEn);
-      validSet.add(trimTrailingA(masaEn) + trimTrailingA(chartNakEn));
+    if (masaEn && cNakEn) {
+      validSet.add(masaEn + cNakEn);
+      validSet.add(trimTrailingA(masaEn) + cNakEn);
+      validSet.add(trimTrailingA(masaEn) + trimTrailingA(cNakEn));
     }
-
-    // Kannada: Masa + Nakshatra
-    if (masaKn && nakKn) {
-      validSet.add(masaKn + nakKn);
-    }
-    if (masaKn && chartNakKn) {
-      validSet.add(masaKn + chartNakKn);
-    }
-
-    // Hindi/Sanskrit: Masa + Nakshatra
-    if (masaHi && nakHi) {
-      validSet.add(masaHi + nakHi);
-    }
+    if (masaKn && nakKn) validSet.add(masaKn + nakKn);
+    if (masaKn && cNakKn) validSet.add(masaKn + cNakKn);
+    if (masaHi && nakHi) validSet.add(masaHi + nakHi);
 
     // Inverted order fallback
     if (nakEn && masaEn) validSet.add(nakEn + masaEn);
@@ -132,10 +182,10 @@ export const MasterUnlockModal: React.FC<MasterUnlockModalProps> = ({
   if (!isOpen) return null;
 
   const rawMasa = currentPanchanga.masa?.[currentLang] || currentPanchanga.masa?.en || '';
-  const displayMasa = rawMasa.replace(/\(.*?\)/g, '').trim();
+  const displayMasa = getCleanSingleName(rawMasa);
 
   const rawNak = currentPanchanga.nakshatra?.[currentLang] || currentPanchanga.nakshatra?.en || '';
-  const displayNak = rawNak.replace(/\(.*?\)/g, '').trim();
+  const displayNak = getCleanSingleName(rawNak);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">

@@ -934,19 +934,72 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
 
     const cleanEntered = clean(rawEntered);
 
+    // Single clean name extractor
+    const getCleanSingleName = (str: string) => {
+      if (!str) return '';
+      return str
+        .replace(/\(.*?\)/g, '')
+        .replace(/\[.*?\]/g, '')
+        .replace(/\{.*?\}/g, '')
+        .replace(/Pada\s*[0-9]+/gi, '')
+        .replace(/ಪಾದ\s*[೦-೯0-9]+/gi, '')
+        .replace(/चरण\s*[०-९0-9]+/gi, '')
+        .split('/')[0]
+        .split(',')[0]
+        .trim();
+    };
+
     // Current Masa and Nakshatra validation
     const todayPanch = getPanchangaForDate(new Date(), selectedCity);
-    const masaEn = clean(todayPanch.masa?.en || '');
-    const nakEn = clean((todayPanch.nakshatra?.en || '').split('(')[0]);
-    const chartNakEn = clean(todayPanch.nakshatraIndex !== undefined ? todayPanch.nakshatra.en : '');
-    const masaKn = clean(todayPanch.masa?.kn || '');
-    const nakKn = clean((todayPanch.nakshatra?.kn || '').split('(')[0]);
-    const masaHi = clean(todayPanch.masa?.hi || '');
-    const nakHi = clean((todayPanch.nakshatra?.hi || '').split('(')[0]);
+    const cleanMasaEn = getCleanSingleName(todayPanch.masa?.en || '');
+    const cleanNakEn = getCleanSingleName(todayPanch.nakshatra?.en || '');
+    const cleanChartNakEn = getCleanSingleName(todayPanch.nakshatraIndex !== undefined ? todayPanch.nakshatra.en : '');
+
+    const cleanMasaKn = getCleanSingleName(todayPanch.masa?.kn || '');
+    const cleanNakKn = getCleanSingleName(todayPanch.nakshatra?.kn || '');
+
+    const cleanMasaHi = getCleanSingleName(todayPanch.masa?.hi || '');
+    const cleanNakHi = getCleanSingleName(todayPanch.nakshatra?.hi || '');
+
+    const masaEn = clean(cleanMasaEn);
+    const nakEn = clean(cleanNakEn);
+    const chartNakEn = clean(cleanChartNakEn);
+    const masaKn = clean(cleanMasaKn);
+    const nakKn = clean(cleanNakKn);
+    const masaHi = clean(cleanMasaHi);
+    const nakHi = clean(cleanNakHi);
 
     const trimTrailingA = (val: string) => (val.endsWith('a') ? val.slice(0, -1) : val);
     const validSet = new Set<string>();
 
+    // PRIMARY USER REQUIREMENT: Only the first name of the Nakshatra alone!
+    if (nakEn) {
+      validSet.add(nakEn);
+      validSet.add(trimTrailingA(nakEn));
+      const firstWord = nakEn.split(/[^a-z0-9]/)[0];
+      if (firstWord) {
+        validSet.add(firstWord);
+        validSet.add(trimTrailingA(firstWord));
+      }
+    }
+    if (chartNakEn) {
+      validSet.add(chartNakEn);
+      validSet.add(trimTrailingA(chartNakEn));
+      const firstWord = chartNakEn.split(/[^a-z0-9]/)[0];
+      if (firstWord) validSet.add(firstWord);
+    }
+    if (nakKn) {
+      validSet.add(nakKn);
+      const firstWord = nakKn.split(/\s+/)[0];
+      if (firstWord) validSet.add(firstWord);
+    }
+    if (nakHi) {
+      validSet.add(nakHi);
+      const firstWord = nakHi.split(/\s+/)[0];
+      if (firstWord) validSet.add(firstWord);
+    }
+
+    // Masa + Nakshatra combinations (retained for backward compatibility)
     if (masaEn && nakEn) {
       validSet.add(masaEn + nakEn);
       validSet.add(trimTrailingA(masaEn) + nakEn);
@@ -980,9 +1033,26 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
     }
   };
 
+  const getCleanSingleNameForDisplay = (str: string) => {
+    if (!str) return '';
+    return str
+      .replace(/\(.*?\)/g, '')
+      .replace(/\[.*?\]/g, '')
+      .replace(/\{.*?\}/g, '')
+      .replace(/Pada\s*[0-9]+/gi, '')
+      .replace(/ಪಾದ\s*[೦-೯0-9]+/gi, '')
+      .replace(/चरण\s*[०-९0-9]+/gi, '')
+      .split('/')[0]
+      .split(',')[0]
+      .trim();
+  };
+
   const todayPanch = getPanchangaForDate(new Date(), selectedCity);
-  const displayMasa = todayPanch.masa?.[currentLang] || todayPanch.masa?.en || '';
-  const displayNak = todayPanch.nakshatra?.[currentLang] || todayPanch.nakshatra?.en || '';
+  const rawMasaDisplay = todayPanch.masa?.[currentLang] || todayPanch.masa?.en || '';
+  const displayMasa = getCleanSingleNameForDisplay(rawMasaDisplay);
+
+  const rawNakDisplay = todayPanch.nakshatra?.[currentLang] || todayPanch.nakshatra?.en || '';
+  const displayNak = getCleanSingleNameForDisplay(rawNakDisplay);
 
   if (!isAuthenticated) {
     return (

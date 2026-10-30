@@ -96,6 +96,7 @@ import { DrishtiVisualizer } from './DrishtiVisualizer';
 import { GrahaRemedyNutritionView } from './GrahaRemedyNutritionView';
 import { getHouseCoord } from '../utils/drishtiCoordinates';
 import { VedicYogaPostureModule } from './VedicYogaPostureModule';
+import { HouseAstrologicalAnalysisPanel } from './HouseAstrologicalAnalysisPanel';
 
 interface LagnaKundaliPageProps {
   currentLang: Language;
@@ -118,6 +119,21 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
   initialSectionTab,
   initialRemediesSubTab
 }) => {
+  // Helper: strips any brackets, slashes, pada suffixes, returning strictly a single clean name
+  const getCleanSingleName = (str: string) => {
+    if (!str) return '';
+    return str
+      .replace(/\(.*?\)/g, '')
+      .replace(/\[.*?\]/g, '')
+      .replace(/\{.*?\}/g, '')
+      .replace(/Pada\s*[0-9]+/gi, '')
+      .replace(/ಪಾದ\s*[೦-೯0-9]+/gi, '')
+      .replace(/चरण\s*[०-९0-9]+/gi, '')
+      .split('/')[0]
+      .split(',')[0]
+      .trim();
+  };
+
   const now = new Date();
   const defaultDate = now.toISOString().split('T')[0];
   const defaultHours = String(now.getHours()).padStart(2, '0');
@@ -467,21 +483,74 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
         .toLowerCase()
         .replace(/[^a-z0-9\u0C80-\u0CFF\u0900-\u097F]/g, '');
 
+    const getCleanSingleName = (str: string) => {
+      if (!str) return '';
+      return str
+        .replace(/\(.*?\)/g, '')
+        .replace(/\[.*?\]/g, '')
+        .replace(/\{.*?\}/g, '')
+        .replace(/Pada\s*[0-9]+/gi, '')
+        .replace(/ಪಾದ\s*[೦-೯0-9]+/gi, '')
+        .replace(/चरण\s*[०-९0-9]+/gi, '')
+        .split('/')[0]
+        .split(',')[0]
+        .trim();
+    };
+
     const candClean = clean(candidate);
-    const masaEn = clean(todayPanchanga.masa?.en || '');
-    const nakEn = clean((todayPanchanga.nakshatra?.en || '').split('(')[0]);
-    const chartNakEn = clean(RASHI_NAKSHATRA_CHART[todayPanchanga.nakshatraIndex]?.nakshatraEn || '');
+    const cleanMasaEn = getCleanSingleName(todayPanchanga.masa?.en || '');
+    const cleanNakEn = getCleanSingleName(todayPanchanga.nakshatra?.en || '');
+    const chartNakEnClean = getCleanSingleName(RASHI_NAKSHATRA_CHART[todayPanchanga.nakshatraIndex]?.nakshatraEn || '');
 
-    const masaKn = clean(todayPanchanga.masa?.kn || '');
-    const nakKn = clean((todayPanchanga.nakshatra?.kn || '').split('(')[0]);
-    const chartNakKn = clean(RASHI_NAKSHATRA_CHART[todayPanchanga.nakshatraIndex]?.nakshatraKn || '');
+    const cleanMasaKn = getCleanSingleName(todayPanchanga.masa?.kn || '');
+    const cleanNakKn = getCleanSingleName(todayPanchanga.nakshatra?.kn || '');
+    const chartNakKnClean = getCleanSingleName(RASHI_NAKSHATRA_CHART[todayPanchanga.nakshatraIndex]?.nakshatraKn || '');
 
-    const masaHi = clean(todayPanchanga.masa?.hi || '');
-    const nakHi = clean((todayPanchanga.nakshatra?.hi || '').split('(')[0]);
+    const cleanMasaHi = getCleanSingleName(todayPanchanga.masa?.hi || '');
+    const cleanNakHi = getCleanSingleName(todayPanchanga.nakshatra?.hi || '');
+
+    const masaEn = clean(cleanMasaEn);
+    const nakEn = clean(cleanNakEn);
+    const chartNakEn = clean(chartNakEnClean);
+
+    const masaKn = clean(cleanMasaKn);
+    const nakKn = clean(cleanNakKn);
+    const chartNakKn = clean(chartNakKnClean);
+
+    const masaHi = clean(cleanMasaHi);
+    const nakHi = clean(cleanNakHi);
 
     const trimTrailingA = (val: string) => (val.endsWith('a') ? val.slice(0, -1) : val);
 
     const validSet = new Set<string>();
+
+    // PRIMARY USER REQUIREMENT: Only the first name of the Nakshatra alone!
+    if (nakEn) {
+      validSet.add(nakEn);
+      validSet.add(trimTrailingA(nakEn));
+      const firstWord = nakEn.split(/[^a-z0-9]/)[0];
+      if (firstWord) {
+        validSet.add(firstWord);
+        validSet.add(trimTrailingA(firstWord));
+      }
+    }
+    if (chartNakEn) {
+      validSet.add(chartNakEn);
+      validSet.add(trimTrailingA(chartNakEn));
+      const firstWord = chartNakEn.split(/[^a-z0-9]/)[0];
+      if (firstWord) validSet.add(firstWord);
+    }
+    if (nakKn) {
+      validSet.add(nakKn);
+      const firstWord = nakKn.split(/\s+/)[0];
+      if (firstWord) validSet.add(firstWord);
+    }
+    if (chartNakKn) validSet.add(chartNakKn);
+    if (nakHi) {
+      validSet.add(nakHi);
+      const firstWord = nakHi.split(/\s+/)[0];
+      if (firstWord) validSet.add(firstWord);
+    }
 
     // Current Masa + Nakshatra (English, Kannada, Hindi/Sanskrit)
     if (masaEn && nakEn) {
@@ -504,11 +573,7 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
     if (nakKn && masaKn) validSet.add(nakKn + masaKn);
     if (nakHi && masaHi) validSet.add(nakHi + masaHi);
 
-    // Nakshatra alone & Master fallback
-    validSet.add(nakEn);
-    validSet.add(chartNakEn);
-    validSet.add(nakKn);
-    validSet.add(nakHi);
+    // Master fallback
     validSet.add('hcmm');
     if (userPassword) validSet.add(clean(userPassword));
     const rescuePass = localStorage.getItem('hcmm_recovery_code');
@@ -550,8 +615,6 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
   const [newRemediesPass, setNewRemediesPass] = useState('');
   const [remediesPassSuccess, setRemediesPassSuccess] = useState('');
 
-
-
   const handleUnlockRemedies = (e: React.FormEvent) => {
     e.preventDefault();
     setRemediesPassError('');
@@ -563,16 +626,56 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
         .toLowerCase()
         .replace(/[^a-z0-9\u0C80-\u0CFF\u0900-\u097F]/g, '');
 
-    const enteredClean = clean(remediesPassInput.trim());
-    const masaEn = clean(todayPanchanga.masa?.en || '');
-    const nakEn = clean((todayPanchanga.nakshatra?.en || '').split('(')[0]);
-    const chartNakEn = clean(RASHI_NAKSHATRA_CHART[todayPanchanga.nakshatraIndex]?.nakshatraEn || '');
-    const masaKn = clean(todayPanchanga.masa?.kn || '');
-    const nakKn = clean((todayPanchanga.nakshatra?.kn || '').split('(')[0]);
-    const masaHi = clean(todayPanchanga.masa?.hi || '');
-    const nakHi = clean((todayPanchanga.nakshatra?.hi || '').split('(')[0]);
+    const getCleanSingleName = (str: string) => {
+      if (!str) return '';
+      return str
+        .replace(/\(.*?\)/g, '')
+        .replace(/\[.*?\]/g, '')
+        .replace(/\{.*?\}/g, '')
+        .replace(/Pada\s*[0-9]+/gi, '')
+        .replace(/ಪಾದ\s*[೦-೯0-9]+/gi, '')
+        .replace(/चरण\s*[०-९0-9]+/gi, '')
+        .split('/')[0]
+        .split(',')[0]
+        .trim();
+    };
 
+    const enteredClean = clean(remediesPassInput.trim());
+    const cleanMasaEn = getCleanSingleName(todayPanchanga.masa?.en || '');
+    const cleanNakEn = getCleanSingleName(todayPanchanga.nakshatra?.en || '');
+    const cleanChartNakEn = getCleanSingleName(RASHI_NAKSHATRA_CHART[todayPanchanga.nakshatraIndex]?.nakshatraEn || '');
+
+    const cleanMasaKn = getCleanSingleName(todayPanchanga.masa?.kn || '');
+    const cleanNakKn = getCleanSingleName(todayPanchanga.nakshatra?.kn || '');
+
+    const cleanMasaHi = getCleanSingleName(todayPanchanga.masa?.hi || '');
+    const cleanNakHi = getCleanSingleName(todayPanchanga.nakshatra?.hi || '');
+
+    const masaEn = clean(cleanMasaEn);
+    const nakEn = clean(cleanNakEn);
+    const chartNakEn = clean(cleanChartNakEn);
+    const masaKn = clean(cleanMasaKn);
+    const nakKn = clean(cleanNakKn);
+    const masaHi = clean(cleanMasaHi);
+    const nakHi = clean(cleanNakHi);
+
+    const trimTrailingA = (val: string) => (val.endsWith('a') ? val.slice(0, -1) : val);
     const validSet = new Set<string>();
+
+    // Single Nakshatra First Name
+    if (nakEn) {
+      validSet.add(nakEn);
+      validSet.add(trimTrailingA(nakEn));
+      const firstWord = nakEn.split(/[^a-z0-9]/)[0];
+      if (firstWord) validSet.add(firstWord);
+    }
+    if (chartNakEn) {
+      validSet.add(chartNakEn);
+      validSet.add(trimTrailingA(chartNakEn));
+    }
+    if (nakKn) validSet.add(nakKn);
+    if (nakHi) validSet.add(nakHi);
+
     validSet.add('upaya');
     validSet.add('hcmm');
     if (activePass) validSet.add(clean(activePass));
@@ -1333,7 +1436,7 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
               {currentLang === 'kn' ? 'ಪ್ರಸ್ತುತ ಮಾಸ:' : currentLang === 'hi' ? 'वर्तमान मास:' : 'Current Masa:'}
             </span>
             <strong className="text-sm font-bold text-amber-950 dark:text-amber-200 font-serif block mt-0.5">
-              {todayPanchanga.masa?.[currentLang] || todayPanchanga.masa?.en}
+              {getCleanSingleName(todayPanchanga.masa?.[currentLang] || todayPanchanga.masa?.en || '')}
             </strong>
           </div>
 
@@ -1342,7 +1445,7 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
               {currentLang === 'kn' ? 'ಪ್ರಸ್ತುತ ನಕ್ಷತ್ರ:' : currentLang === 'hi' ? 'वर्तमान नक्षत्र:' : 'Current Nakshatra:'}
             </span>
             <strong className="text-sm font-bold text-amber-950 dark:text-amber-200 font-serif block mt-0.5">
-              {todayPanchanga.nakshatra?.[currentLang] || todayPanchanga.nakshatra?.en}
+              {getCleanSingleName(todayPanchanga.nakshatra?.[currentLang] || todayPanchanga.nakshatra?.en || '')}
             </strong>
           </div>
         </div>
@@ -2023,7 +2126,7 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
 
                           return (
                             <g key={i}>
-                              {/* Aspect Ray */}
+                              {/* Animated Flowing Aspect Ray */}
                               <line
                                 x1={originCoord.x}
                                 y1={originCoord.y}
@@ -2033,11 +2136,18 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                                 strokeWidth="2.5"
                                 strokeDasharray="6 4"
                                 markerEnd="url(#aspect-arrow)"
-                                opacity="0.9"
-                              />
-                              {/* Target House Pulsing Halo */}
-                              <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="url(#aspect-pulse)" opacity="0.6" />
-                              <circle cx={targetCoord.x} cy={targetCoord.y} r="22" fill="none" stroke="#e11d48" strokeWidth="2" strokeDasharray="3 3" />
+                                opacity="0.95"
+                              >
+                                <animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.2s" repeatCount="indefinite" />
+                              </line>
+                              {/* Target House Pulsing Halo with Animation */}
+                              <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="url(#aspect-pulse)" opacity="0.6">
+                                <animate attributeName="r" values="20;30;20" dur="2s" repeatCount="indefinite" />
+                                <animate attributeName="opacity" values="0.7;0.25;0.7" dur="2s" repeatCount="indefinite" />
+                              </circle>
+                              <circle cx={targetCoord.x} cy={targetCoord.y} r="22" fill="none" stroke="#e11d48" strokeWidth="2" strokeDasharray="3 3">
+                                <animate attributeName="stroke-dashoffset" from="24" to="0" dur="2s" repeatCount="indefinite" />
+                              </circle>
                               
                               {/* Midpoint Aspect Badge */}
                               <rect x={midX - 16} y={midY - 9} width="32" height="18" rx="6" fill="#be123c" />
@@ -2288,6 +2398,7 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                         const midY = (originCoord.y + targetCoord.y) / 2;
                         return (
                           <g key={i}>
+                            {/* Animated Flowing Aspect Ray */}
                             <line
                               x1={originCoord.x}
                               y1={originCoord.y}
@@ -2297,9 +2408,14 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                               strokeWidth="2.5"
                               strokeDasharray="6 4"
                               markerEnd="url(#south-aspect-arrow)"
-                              opacity="0.9"
-                            />
-                            <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="#f43f5e" fillOpacity="0.15" stroke="#e11d48" strokeWidth="2" strokeDasharray="3 3" />
+                              opacity="0.95"
+                            >
+                              <animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.2s" repeatCount="indefinite" />
+                            </line>
+                            <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="#f43f5e" fillOpacity="0.18" stroke="#e11d48" strokeWidth="2" strokeDasharray="3 3">
+                              <animate attributeName="r" values="20;30;20" dur="2s" repeatCount="indefinite" />
+                              <animate attributeName="stroke-dashoffset" from="24" to="0" dur="2s" repeatCount="indefinite" />
+                            </circle>
                             <rect x={midX - 16} y={midY - 9} width="32" height="18" rx="6" fill="#be123c" />
                             <text x={midX} y={midY + 4} fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">
                               {asp.distance}th
@@ -2499,6 +2615,17 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                 </div>
               </div>
             )}
+
+            {/* ========================================================================= */}
+            {/* ASTROLOGICAL ANALYSIS PANEL: DIRECTLY BELOW CHART ON HOUSE SELECTION */}
+            {/* ========================================================================= */}
+            <HouseAstrologicalAnalysisPanel
+              currentLang={currentLang}
+              kundaliData={kundaliData}
+              selectedBhavaNumber={selectedBhavaNumber}
+              onSelectBhava={(bhava) => setSelectedBhavaNumber(bhava)}
+              onSelectPlanet={(planet) => setSelectedDrishtiPlanet(planet)}
+            />
 
             {/* ========================================================================= */}
             {/* BELOW CHART: DATE, TIME & GEOGRAPHICAL PLACE CONFIGURATOR */}

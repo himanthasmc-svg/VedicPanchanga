@@ -17,6 +17,7 @@ import {
   Check
 } from 'lucide-react';
 import { Language } from '../types';
+import { AnimatedRitualSvgProgress } from './AnimatedRitualSvgProgress';
 
 export interface RitualStepMeta {
   stepNumber: number;
@@ -290,11 +291,14 @@ export const RitualProgressIndicator: React.FC<RitualProgressIndicatorProps> = (
 
         </div>
 
-        {/* Global Progress Line Bar */}
-        <div className="w-full bg-stone-800 h-2 rounded-full overflow-hidden mt-3 border border-stone-700">
-          <div 
-            className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-400 transition-all duration-300"
-            style={{ width: `${percentComplete}%` }}
+        {/* Animated SVG Sacred Ritual Progress Stream */}
+        <div className="mt-3 pt-2 border-t border-stone-800/80">
+          <AnimatedRitualSvgProgress
+            currentLang={currentLang}
+            activeStep={activeStep}
+            completedSteps={completedSteps}
+            onStepSelect={onStepSelect}
+            onToggleComplete={onToggleComplete}
           />
         </div>
 

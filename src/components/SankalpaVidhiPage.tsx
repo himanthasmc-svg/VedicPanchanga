@@ -39,7 +39,8 @@ import { PoojaDeepaGuidelinesSection } from './PoojaDeepaGuidelinesSection';
 import { PoojaAudioGuide } from './PoojaAudioGuide';
 import { DigitalOfferingLog } from './DigitalOfferingLog';
 import { RitualProgressIndicator, RitualStepMeta } from './RitualProgressIndicator';
-import { Lock, Volume2, BookMarked, Sun, Moon, Compass } from 'lucide-react';
+import { SankalpaMuhurtaTimer } from './SankalpaMuhurtaTimer';
+import { Lock, Volume2, BookMarked, Sun, Moon, Compass, Bell } from 'lucide-react';
 
 interface SankalpaVidhiPageProps {
   currentLang: Language;
@@ -71,19 +72,37 @@ export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
   const [selectedDateStr, setSelectedDateStr] = useState<string>(todayStr);
   const [customCityName, setCustomCityName] = useState<string>('');
   const DEFAULT_DEITY: Record<Language, string> = {
-    kn: 'ಶ್ರೀ ಇಷ್ಟದೇವತಾ / ಶ್ರೀ ದುರ್ಗಾ / ಶ್ರೀ ಪರಮೇಶ್ವರ',
-    hi: 'श्री इष्टदेवता / श्री दुर्गा / श्री परमेश्वर',
-    en: 'Sri Ishta Devata / Sri Durga / Sri Parameshwara'
+    kn: 'ಶ್ರೀ ಸಾಂಬಸದಾಶಿವ / ಶ್ರೀ ದುರ್ಗಾಪರಮೇಶ್ವರೀ',
+    hi: 'श्री साम्बसदाशिव / श्री दुर्गापरमेश्वरी',
+    en: 'Sri Samba Sadashiva / Sri Durga Parameshwari'
   };
 
   const DEFAULT_GRANTHA: Record<Language, string> = {
-    kn: 'ಶ್ರೀ ದೇವೀ ಮಾಹಾತ್ಮ್ಯೆ / ಶ್ರೀ ರುದ್ರ ಪಾರಾಯಣ',
-    hi: 'श्री देवी माहात्म्ये / श्री रुद्र पारायण',
-    en: 'Sri Devi Mahatmye / Sri Rudra Parayana'
+    kn: 'ಶ್ರೀ ರುದ್ರಾಧ್ಯಾಯ / ಶ್ರೀ ದೇವೀ ಸಪ್ತಶತೀ / ಮಹಾ ಮೃತ್ಯುಂಜಯ',
+    hi: 'श्री रुद्राध्याय / श्री देवी सप्तशती / महा मृत्युंजय',
+    en: 'Sri Rudradhyaya / Sri Devi Saptashati / Maha Mrityunjaya'
   };
 
   const [deityName, setDeityName] = useState<string>(() => DEFAULT_DEITY[currentLang] || DEFAULT_DEITY.kn);
   const [granthaName, setGranthaName] = useState<string>(() => DEFAULT_GRANTHA[currentLang] || DEFAULT_GRANTHA.kn);
+  const [sankalpaSampradaya, setSankalpaSampradaya] = useState<'shiva_shakti' | 'classical'>('shiva_shakti');
+
+  // Audio Guide Global Track Focus: 'shiva' or 'devi'
+  const [audioTrackFocus, setAudioTrackFocus] = useState<'shiva' | 'devi'>(() => {
+    try {
+      const saved = localStorage.getItem('hcmm_audio_track_focus');
+      return (saved === 'shiva' || saved === 'devi') ? saved : 'shiva';
+    } catch {
+      return 'shiva';
+    }
+  });
+
+  const handleAudioTrackFocusChange = (focus: 'shiva' | 'devi') => {
+    setAudioTrackFocus(focus);
+    try {
+      localStorage.setItem('hcmm_audio_track_focus', focus);
+    } catch {}
+  };
 
   // Active view tab for the PDF reference sections & Sthapana rituals
   const [activeTab, setActiveTab] = useState<'stotra' | 'audioGuide' | 'offeringLog' | 'vidhana' | 'kalasha' | 'akhandaDeepa' | 'deepaGuidelines' | 'visarjana' | 'visuals' | 'samvatsara' | 'nakshatra' | 'sankhya' | 'peetha'>('stotra');
@@ -227,13 +246,23 @@ export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
 
   const mantraTemplate = SANKALPA_MANTRA_MULTILINGUAL[stotraLang] || SANKALPA_MANTRA_MULTILINGUAL.kn;
 
+  const SHIVA_SHAKTI_PREAMBLE: Record<Language, string> = {
+    kn: "ಓಂ ನಮಃ ಪರಮಾತ್ಮನೇ, ಶ್ರೀ ಸಾಂಬಸದಾಶಿವಸ್ಯ ಶ್ರೀ ಜಗನ್ಮಾತುಃ ಮಹಾದೇವ್ಯಾಃ ಶ್ರೀ ಪರಾಶಕ್ತ್ಯಾಃ ಆಜ್ಞಯಾ ಪ್ರವರ್ತಮಾನಸ್ಯ ಆದ್ಯ ಶ್ರೀ ಬ್ರಹ್ಮಣೋ ದ್ವಿತೀಯ ಪರಾರ್ಧೇ ಶ್ರೀ ಶ್ವೇತವರಾಹಕಲ್ಪೇ ವೈವಸ್ವತ ಮನ್ವಂತರೇ ಅಷ್ಟಾವಿಂಶತಿತಮೇ ಕಲಿಯುಗೇ ಪ್ರಥಮ ಚರಣೇ ಜಂಬೂ ದ್ವೀಪೇ ಭಾರತ ವರ್ಷೇ ಭರತ ಖಂಡೇ ಆರ್ಯಾವರ್ತಾಂತರ್ಗತ ಬ್ರಹ್ಮಾವರ್ತೈಕ ದೇಶೇ ",
+    hi: "ॐ नमः परमात्मने, श्री साम्बसदाशिवस्य श्री जगन्मातुः महादेव्याः श्री पराशक्त्याः आज्ञया प्रवर्तमानस्य आद्य श्री ब्रह्मणो द्वितीय परार्धे श्री श्वेतवराहकल्पे वैवस्वत मन्वन्तरे अष्टाविंशतितमे कलियुगे प्रथम चरणे जम्बू द्वीपे भारत वर्षे भरत खण्डे आर्यावर्तान्तर्गत ब्रह्मावर्तैक देशे ",
+    en: "Om Namah Paramatmane, Sri Samba-Sadashivasya Sri Jaganmatuh Mahadevyah Sri Parashaktyah Aajnaya Pravartamanasya Aadya Sri Brahmano Dvitiya Parardhe Sri Shweta-Varaha-Kalpe Vaivasvata Manvantare Ashtavimshatitame Kaliyuge Prathama Charane Jambu Dweepe Bharata Varshe Bharata Khande Aaryavartantargata Brahmavartaika Deshe "
+  };
+
+  const effectivePart1 = sankalpaSampradaya === 'shiva_shakti'
+    ? SHIVA_SHAKTI_PREAMBLE[stotraLang] || SHIVA_SHAKTI_PREAMBLE.kn
+    : mantraTemplate.part1;
+
   const handlePrintPdf = () => {
     window.print();
   };
 
   const handleCopyStotraOnly = () => {
     const text = `
-${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. ${dashedValues.c2})${mantraTemplate.samvatsaraSuffix}(3. ${dashedValues.c3})${mantraTemplate.ayanaSuffix}(4. ${dashedValues.c4})${mantraTemplate.masaSuffix}(5. ${dashedValues.c5})${mantraTemplate.pakshaSuffix}(6. ${dashedValues.c6})${mantraTemplate.tithiSuffix}(7. ${dashedValues.c7})${mantraTemplate.vasaraSuffix}(8. ${dashedValues.c8})${mantraTemplate.nakshatraSuffix}(9. ${dashedValues.c9})${mantraTemplate.rashiSuffix}(${deityName})${mantraTemplate.deitySuffix}(${granthaName})${mantraTemplate.granthaSuffix}
+${effectivePart1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. ${dashedValues.c2})${mantraTemplate.samvatsaraSuffix}(3. ${dashedValues.c3})${mantraTemplate.ayanaSuffix}(4. ${dashedValues.c4})${mantraTemplate.masaSuffix}(5. ${dashedValues.c5})${mantraTemplate.pakshaSuffix}(6. ${dashedValues.c6})${mantraTemplate.tithiSuffix}(7. ${dashedValues.c7})${mantraTemplate.vasaraSuffix}(8. ${dashedValues.c8})${mantraTemplate.nakshatraSuffix}(9. ${dashedValues.c9})${mantraTemplate.rashiSuffix}(${deityName})${mantraTemplate.deitySuffix}(${granthaName})${mantraTemplate.granthaSuffix}
     `.trim();
 
     navigator.clipboard.writeText(text);
@@ -252,6 +281,14 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
         completedSteps={completedRitualSteps}
         onToggleComplete={handleToggleCompleteStep}
         onResetProgress={handleResetRitualProgress}
+      />
+
+      {/* Real-time Timezone-Aware Sankalpa & Sandhyavandana Muhurta Countdown Timer */}
+      <SankalpaMuhurtaTimer
+        currentLang={stotraLang}
+        selectedCity={selectedCity}
+        selectedDateStr={selectedDateStr}
+        panchangDay={panchangDay}
       />
 
       {/* Top Banner & Date Picker Bar (Hidden in Print) */}
@@ -780,6 +817,51 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
           </div>
         </div>
 
+        {/* Sampradaya / Tradition Selector: Shiva-Shakti (Default) vs Classical */}
+        <div className="no-print p-3 rounded-xl bg-gradient-to-r from-amber-900/20 via-rose-900/20 to-amber-900/20 border-2 border-amber-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div>
+            <div className="flex items-center gap-2 font-bold text-amber-900 dark:text-amber-200">
+              <span className="text-base">🔱</span>
+              <span>
+                {stotraLang === 'kn' ? 'ಸಂಕಲ್ಪ ಸಂಪ್ರದಾಯ (Sampradaya Invocation):' : stotraLang === 'hi' ? 'संकल्प सम्प्रदाय आह्वान:' : 'Sankalpa Sampradaya Invocation:'}
+              </span>
+            </div>
+            <p className="text-[11px] text-stone-600 dark:text-stone-400 mt-0.5">
+              {stotraLang === 'kn'
+                ? 'ಶಿವ-ಶಕ್ತಿ ಪೂಜೆಗೆ ಶ್ರೀ ಸಾಂಬಸದಾಶಿವ ಹಾಗೂ ಜಗನ್ಮಾತೆ ಪರಾಶಕ್ತಿಯ ಪರಮ ಪಾವನ ಸಂಕಲ್ಪವನ್ನು ಆದ್ಯತೆಯಾಗಿ ನೀಡಲಾಗಿದೆ.'
+                : stotraLang === 'hi'
+                ? 'शिव-शक्ति पूजन हेतु श्री साम्बसदाशिव एवं पराशक्ति संकल्प को प्राथमिकता दी गई है।'
+                : 'Dedicated Shiva-Shakti invocation is set as default for sacred puja and homa rituals.'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-white dark:bg-stone-800 p-1 rounded-xl border border-stone-300 dark:border-stone-700 font-bold shrink-0">
+            <button
+              type="button"
+              onClick={() => setSankalpaSampradaya('shiva_shakti')}
+              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                sankalpaSampradaya === 'shiva_shakti'
+                  ? 'bg-gradient-to-r from-amber-600 to-rose-600 text-white shadow-xs'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+              }`}
+            >
+              <span>🔱 {stotraLang === 'kn' ? 'ಶಿವ-ಶಕ್ತಿ ಸಂಪ್ರದಾಯ' : stotraLang === 'hi' ? 'शिव-शक्ति सम्प्रदाय' : 'Shiva-Shakti'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSankalpaSampradaya('classical')}
+              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                sankalpaSampradaya === 'classical'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+              }`}
+            >
+              <span>📜 {stotraLang === 'kn' ? 'ವೈಷ್ಣವ/ಕ್ಲಾಸಿಕಲ್' : stotraLang === 'hi' ? 'वैष्णव/क्लासिकल' : 'Classical'}</span>
+            </button>
+          </div>
+        </div>
+
         {/* Optional Editable Fields for Puja Devata & Grantha */}
         <div className="no-print grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-amber-50/50 dark:bg-stone-800/40 border border-amber-200 dark:border-stone-700 text-xs">
           <div>
@@ -839,7 +921,7 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
         <div className="p-6 rounded-2xl bg-stone-50/70 dark:bg-stone-950/60 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-100 leading-loose font-serif text-base sm:text-lg select-text">
           
           <p className="indent-6 text-justify">
-            <span>{mantraTemplate.part1}</span>
+            <span>{effectivePart1}</span>
             
             {/* 1. City */}
             <span className="text-blue-600 dark:text-blue-400 font-bold underline decoration-blue-500 underline-offset-4 px-1">
@@ -1013,8 +1095,159 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
       {/* ========================================================================= */}
       {/* TAB: POOJA AUDIO GUIDE (7-Step Synchronous Chanting & Temple Bell SFX) */}
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
+      {/* TAB: POOJA AUDIO GUIDE (7-Step Synchronous Chanting & Temple Bell SFX) */}
+      {/* ========================================================================= */}
       {activeTab === 'audioGuide' && (
         <div className="no-print space-y-6 animate-in fade-in">
+          
+          {/* ========================================================================= */}
+          {/* AUDIO PREFERENCES CONTROL PANEL: GLOBAL SHIVA / DEVI TRACK SWITCHER */}
+          {/* ========================================================================= */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-stone-900 via-stone-900 to-amber-950 text-white border-2 border-amber-500 shadow-2xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-500/40 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-xl font-bold border border-amber-400/50 shadow-inner">
+                  🎛️
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/30">
+                      AUDIO CONTROL PANEL
+                    </span>
+                    <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                      Active: {audioTrackFocus === 'shiva' ? '🔱 Shiva Track' : '🪔 Devi Track'}
+                    </span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-serif font-black text-white mt-0.5">
+                    {stotraLang === 'kn' ? 'ಧ್ವನಿ ಮಾರ್ಗದರ್ಶಿ ಆದ್ಯತೆಗಳು & ಪಾರಾಯಣ ಟ್ರ್ಯಾಕ್ (Audio Preferences)' : stotraLang === 'hi' ? 'ध्वनि संदर्शिका प्राथमिकताएं एवं मन्त्र ट्रैक' : 'Audio Preferences & Mantra Track Control Panel'}
+                  </h3>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div className="text-xs text-amber-200/90 bg-stone-950/70 p-2.5 rounded-xl border border-amber-400/30">
+                <span className="font-bold text-amber-400">Strict Vedic Protocol: </span>
+                {stotraLang === 'kn'
+                  ? 'ಕೇಶವ ಆಚಮನದ ಬದಲು ಕೇವಲ ಶಿವ ಹಾಗೂ ದೇವೀ ಮಂತ್ರಗಳು ಮಾತ್ರ'
+                  : 'Exclusively Shiva & Devi Mantras (No Keshava Achaman)'}
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
+              {stotraLang === 'kn'
+                ? 'ಈ ಕಂಟ್ರೋಲ್ ಪ್ಯಾನೆಲ್ ಮೂಲಕ ನೀವು ಧ್ವನಿ ಮಾರ್ಗದರ್ಶಿಯ ಪಾರಾಯಣವನ್ನು ಶಿವ ಅಥವಾ ದೇವಿಯ ಮೇಲೆ ಗ್ಲೋಬಲ್ ಆಗಿ ಬದಲಾಯಿಸಬಹುದು. ಎಲ್ಲಾ ೭ ಆವರ್ತಕ ಹಂತಗಳು (ಆಚಮನ, ದೀಪ ನಮಸ್ಕಾರ, ಸಂಕಲ್ಪ, ಕಲಶ ಸ್ಥಾಪನೆ, ಅಖಂಡ ದೀಪ, ಷೋಡಶೋಪಚಾರ ಹಾಗೂ ವಿಸರ್ಜನೆ) ತಕ್ಷಣವೇ ಆಯ್ದ ದೇವತೆಯ ಮಂತ್ರಗಳಿಗೆ ಅಳವಡಿಸಿಕೊಳ್ಳುತ್ತವೆ.'
+                : 'Globally switch between Shiva-focused and Devi-focused mantra tracks for the audio guide. All 7 recurring ritual steps (Achamana, Deepa Pranam, Desha Kala Sankalpa, Kalasha Sthapana, Akhanda Deepa, Shodashopachara, and Visarjana) automatically adapt to the corresponding stotras.'}
+            </p>
+
+            {/* Track Switcher Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* Shiva Track Card */}
+              <button
+                type="button"
+                onClick={() => handleAudioTrackFocusChange('shiva')}
+                className={`p-4 rounded-2xl text-left transition-all cursor-pointer relative border-2 ${
+                  audioTrackFocus === 'shiva'
+                    ? 'bg-gradient-to-br from-indigo-950/90 to-stone-900 border-indigo-400 shadow-xl ring-2 ring-indigo-400/50'
+                    : 'bg-stone-950/60 border-stone-800 hover:border-indigo-500/50 hover:bg-stone-900/60'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">🔱</span>
+                    <div>
+                      <h4 className="font-serif font-black text-base text-white">
+                        {stotraLang === 'kn' ? 'ಶ್ರೀ ಸಾಂಬಸದಾಶಿವ ಪಾರಾಯಣ (Shiva Track)' : stotraLang === 'hi' ? 'श्री साम्बसदाशिव पारायण (Shiva Track)' : 'Sri Samba Sadashiva Track'}
+                      </h4>
+                      <span className="text-[11px] font-medium text-indigo-300">
+                        {stotraLang === 'kn' ? 'ರುದ್ರ, ಮಹಾದೇವ & ಸದಾಶಿವ ಮಂತ್ರಗಳು' : 'Rudra, Mahadeva & Sadashiva Stotras'}
+                      </span>
+                    </div>
+                  </div>
+                  {audioTrackFocus === 'shiva' && (
+                    <span className="w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                      ✓
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-indigo-950/80 space-y-1.5 text-[11px] text-stone-300">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-indigo-400 font-bold">•</span>
+                    <span><strong>ಆಚಮನ:</strong> ॐ शिवाय स्वाहा, ॐ महेश्वराय स्वाहा, ॐ शम्भवे स्वाहा</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-indigo-400 font-bold">•</span>
+                    <span><strong>ದೀಪ:</strong> दीपज्योतिः सदाशिवः दीपज्योतिर्महेश्वरः</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-indigo-400 font-bold">•</span>
+                    <span><strong>ಕಲಶ & ಗಾಯತ್ರೀ:</strong> कलशस्य मुखे रुद्रः... ॐ तत्पुरुषाय विद्महे (Rudra Gayatri)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-indigo-400 font-bold">•</span>
+                    <span><strong>ಉಪಚಾರ & ಸಮರ್ಪಣೆ:</strong> ಬಿಲ್ವಾರ್ಚನ, ಭಸ್ಮ ಲೇಪನ & ಸಾಂಬಸದಾಶಿವಾರ್ಪಣಮಸ್ತು</span>
+                  </div>
+                </div>
+              </button>
+
+              {/* Devi Track Card */}
+              <button
+                type="button"
+                onClick={() => handleAudioTrackFocusChange('devi')}
+                className={`p-4 rounded-2xl text-left transition-all cursor-pointer relative border-2 ${
+                  audioTrackFocus === 'devi'
+                    ? 'bg-gradient-to-br from-rose-950/90 to-stone-900 border-rose-400 shadow-xl ring-2 ring-rose-400/50'
+                    : 'bg-stone-950/60 border-stone-800 hover:border-rose-500/50 hover:bg-stone-900/60'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">🪔</span>
+                    <div>
+                      <h4 className="font-serif font-black text-base text-white">
+                        {stotraLang === 'kn' ? 'ಶ್ರೀ ದುರ್ಗಾಪರಮೇಶ್ವರೀ ಪಾರಾಯಣ (Devi Track)' : stotraLang === 'hi' ? 'श्री दुर्गा परमेश्वरी पारायण (Devi Track)' : 'Sri Durga Parameshwari Track'}
+                      </h4>
+                      <span className="text-[11px] font-medium text-rose-300">
+                        {stotraLang === 'kn' ? 'ಪರಾಶಕ್ತಿ, ಗೌರಿ, ದುರ್ಗಾ & ಮಾತೃಕಾ ಮಂತ್ರಗಳು' : 'Parashakti, Gauri, Durga & Matrika Stotras'}
+                      </span>
+                    </div>
+                  </div>
+                  {audioTrackFocus === 'devi' && (
+                    <span className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                      ✓
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-rose-950/80 space-y-1.5 text-[11px] text-stone-300">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-rose-400 font-bold">•</span>
+                    <span><strong>ಆಚಮನ:</strong> ॐ पराशक्त्यै स्वाहा, ॐ महालक्ष्म्यै स्वाहा, ॐ महासरस्वत्यै स्वाहा</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-rose-400 font-bold">•</span>
+                    <span><strong>ದೀಪ:</strong> दीपज्योतिः पराशक्तिः दीपज्योतिर्जगन्मयी</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-rose-400 font-bold">•</span>
+                    <span><strong>ಕಲಶ & ಗಾಯತ್ರೀ:</strong> कलशस्य मुखे गौरी... ॐ गिरिजायै च विद्महे (Durga Gayatri)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-rose-400 font-bold">•</span>
+                    <span><strong>ಉಪಚಾರ & ಸಮರ್ಪಣೆ:</strong> ಕುಂಕುಮಾರ್ಚನ, ಸುವಾಸಿನೀ ದ್ರವ್ಯ & ಜಗದಂಬಾರ್ಪಣಮಸ್ತು</span>
+                  </div>
+                </div>
+              </button>
+
+            </div>
+
+          </div>
+
+          {/* ========================================================================= */}
+          {/* POOJA AUDIO GUIDE WITH DUAL-TRACK SYNC */}
+          {/* ========================================================================= */}
           <PoojaAudioGuide
             language={stotraLang}
             deityName={deityName}
@@ -1028,6 +1261,8 @@ ${mantraTemplate.part1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. $
             varaName={dashed7_Vasara}
             nakshatraName={dashed8_Nakshatra}
             rashiName={dashed9_Rashi}
+            audioTrackFocus={audioTrackFocus}
+            onAudioTrackFocusChange={handleAudioTrackFocusChange}
           />
         </div>
       )}

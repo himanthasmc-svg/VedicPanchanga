@@ -8,9 +8,9 @@ import {
   MantraItem, 
   BookItem 
 } from './types';
-import { CITIES, getPanchangaForDate } from './utils/panchanga';
+import { CITIES, getPanchangaForDate, calculateKundali } from './utils/panchanga';
 import { INITIAL_BOOKS, INITIAL_MANTRAS } from './utils/mantrasData';
-import { checkAndTriggerDailyNotification } from './utils/dailyNotification';
+import { checkAndTriggerDailyNotification, initAuspiciousNotificationService } from './utils/dailyNotification';
 import { Header } from './components/Header';
 import { CalendarView } from './components/CalendarView';
 import { FestivalModal } from './components/FestivalModal';
@@ -29,6 +29,7 @@ import { GoogleMapLocationModal } from './components/GoogleMapLocationModal';
 import { MasterUnlockModal } from './components/MasterUnlockModal';
 import { VimshottariDashaCalculator } from './components/VimshottariDashaCalculator';
 import { DailyRashiBhavishyaPage } from './components/DailyRashiBhavishyaPage';
+import { VedicYogaPostureModule } from './components/VedicYogaPostureModule';
 import { findClosestCity } from './utils/worldPlaces';
 
 export default function App() {
@@ -56,8 +57,8 @@ export default function App() {
     return CITIES[0]; // Bengaluru default
   });
 
-  // Active Main View: calendar | mantras | sankalpa | kundali | gochar | muhurta | dasha | bhavishya
-  const [activeView, setActiveView] = useState<'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha' | 'bhavishya'>('calendar');
+  // Active Main View: calendar | mantras | sankalpa | kundali | gochar | muhurta | dasha | bhavishya | yoga
+  const [activeView, setActiveView] = useState<'calendar' | 'mantras' | 'sankalpa' | 'kundali' | 'gochar' | 'muhurta' | 'dasha' | 'bhavishya' | 'yoga'>('calendar');
 
   // Modals state
   const [selectedDay, setSelectedDay] = useState<PanchangaDay | null>(null);
@@ -285,16 +286,34 @@ export default function App() {
     }
   };
 
-  // Daily browser notification: triggers once daily showing today's Tithi, Nakshatra, and key festival info based on selected city
+  // In-app live auspicious alert toast banner state
+  const [liveAuspiciousAlert, setLiveAuspiciousAlert] = useState<{
+    window: any;
+    cityName: string;
+    isAdvance: boolean;
+    advanceMinutes: number;
+    isTest?: boolean;
+  } | null>(null);
+
+  // Auspicious Sandhyavandana & Shiva/Devi Puja Recurring Notification Service
   useEffect(() => {
-    checkAndTriggerDailyNotification(selectedCity, currentLang);
+    // Starts recurring 30s background check based on saved location sunrise/sunset
+    const cleanup = initAuspiciousNotificationService(selectedCity, currentLang);
 
-    // Periodic check every 30 minutes in case application stays open past midnight
-    const intervalId = setInterval(() => {
-      checkAndTriggerDailyNotification(selectedCity, currentLang);
-    }, 30 * 60 * 1000);
+    // In-app event listener for live notifications
+    const handleAuspiciousEvent = (e: any) => {
+      if (e.detail) {
+        setLiveAuspiciousAlert(e.detail);
+        setTimeout(() => setLiveAuspiciousAlert(null), 14000);
+      }
+    };
 
-    return () => clearInterval(intervalId);
+    window.addEventListener('hcmm_auspicious_alert', handleAuspiciousEvent);
+
+    return () => {
+      cleanup();
+      window.removeEventListener('hcmm_auspicious_alert', handleAuspiciousEvent);
+    };
   }, [selectedCity, currentLang]);
 
   // Compute Today's Panchanga for widget
@@ -399,6 +418,62 @@ export default function App() {
         isGlobalLocked={isGlobalLocked}
         onToggleGlobalLock={handleToggleGlobalLock}
       />
+
+      {/* Live Auspicious Sandhyavandana & Shiva/Devi Puja Alert Banner (Floating Toast) */}
+      {liveAuspiciousAlert && (
+        <div className="no-print mx-auto max-w-4xl w-full px-3 pt-2 z-40 animate-in slide-in-from-top-4 duration-300">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-700 via-rose-700 to-amber-800 text-white shadow-2xl border-2 border-amber-400 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative overflow-hidden">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-black/30 border border-amber-300/50 flex items-center justify-center text-xl shrink-0">
+                🔔
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-amber-400 text-stone-950">
+                    {liveAuspiciousAlert.isTest ? 'TEST ALERT' : liveAuspiciousAlert.isAdvance ? `STARTS IN ${liveAuspiciousAlert.advanceMinutes}M` : 'ACTIVE NOW'}
+                  </span>
+                  <span className="font-serif font-bold text-sm sm:text-base text-amber-100">
+                    {liveAuspiciousAlert.window.name[currentLang] || liveAuspiciousAlert.window.name.en}
+                  </span>
+                  <span className="text-xs font-mono text-amber-300 font-bold">
+                    ({liveAuspiciousAlert.window.startTimeStr} - {liveAuspiciousAlert.window.endTimeStr})
+                  </span>
+                </div>
+                <p className="text-xs text-rose-100 font-serif mt-0.5 line-clamp-2">
+                  {liveAuspiciousAlert.window.recommendedRitual[currentLang] || liveAuspiciousAlert.window.recommendedRitual.en}
+                </p>
+                {liveAuspiciousAlert.window.shivaDeviMantra && (
+                  <span className="text-[11px] font-mono text-amber-200 block mt-0.5">
+                    🔱 {liveAuspiciousAlert.window.shivaDeviMantra}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveView('sankalpa');
+                  setLiveAuspiciousAlert(null);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-amber-300 hover:bg-amber-200 text-stone-950 font-bold text-xs transition-all shadow-md cursor-pointer"
+              >
+                {currentLang === 'kn' ? 'ಪೂಜೆ ಆರಂಭಿಸಿ' : currentLang === 'hi' ? 'पूजा आरम्भ करें' : 'Start Puja'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLiveAuspiciousAlert(null)}
+                className="p-1 rounded-lg hover:bg-white/20 text-white transition-colors cursor-pointer text-xs"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area - Dynamically responsive for mobile and desktop windows */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-2 xs:px-3 sm:px-6 lg:px-8 py-3 sm:py-6 overflow-x-hidden">
@@ -530,6 +605,25 @@ export default function App() {
             onBackToCalendar={() => setActiveView('calendar')}
             onNavigateToKundali={() => setActiveView('kundali')}
           />
+        )}
+
+        {/* VIEW 9: Vedic Yoga & Posture Library with Animated SVG Balancing & Practice Mode */}
+        {activeView === 'yoga' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between no-print">
+              <button
+                onClick={() => setActiveView('calendar')}
+                className="px-3.5 py-1.5 rounded-xl border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                ← {currentLang === 'kn' ? 'ಕ್ಯಾಲೆಂಡರ್‌ಗೆ ಹಿಂತಿರುಗಿ' : currentLang === 'hi' ? 'कैलेंडर पर वापस' : 'Back to Calendar'}
+              </button>
+            </div>
+            <VedicYogaPostureModule
+              kundali={calculateKundali(new Date().toISOString(), selectedCity)}
+              currentLang={currentLang}
+              onBackToChart={() => setActiveView('kundali')}
+            />
+          </div>
         )}
 
       </main>

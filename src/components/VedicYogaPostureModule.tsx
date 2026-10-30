@@ -32,6 +32,8 @@ import {
   PersonalizedVedicYogaPlan, 
   VedicAsana 
 } from '../utils/vedicYogaData';
+import { VedicYogaAnimatedSvg } from './VedicYogaAnimatedSvg';
+import { AsanaMovementTransitionGuide } from './AsanaMovementTransitionGuide';
 
 interface VedicYogaPostureModuleProps {
   kundali: KundaliData;
@@ -54,6 +56,26 @@ export const VedicYogaPostureModule: React.FC<VedicYogaPostureModuleProps> = ({
     return calculateVedicYogaPlan(kundali, balaBreakdown);
   }, [kundali, balaBreakdown]);
 
+  const allRoutineAsanas = useMemo(() => {
+    const list: VedicAsana[] = [yogaPlan.constitutionalAsana];
+    if (yogaPlan.weakestPlanet?.therapeuticAsana) {
+      if (!list.some(a => a.id === yogaPlan.weakestPlanet.therapeuticAsana.id)) {
+        list.push(yogaPlan.weakestPlanet.therapeuticAsana);
+      }
+    }
+    if (yogaPlan.strongestPlanet?.energizingAsana) {
+      if (!list.some(a => a.id === yogaPlan.strongestPlanet.energizingAsana.id)) {
+        list.push(yogaPlan.strongestPlanet.energizingAsana);
+      }
+    }
+    yogaPlan.customSequence.forEach(item => {
+      if (!list.some(a => a.id === item.asana.id)) {
+        list.push(item.asana);
+      }
+    });
+    return list;
+  }, [yogaPlan]);
+
   // Active module tab
   const [activeTab, setActiveTab] = useState<'routine' | 'directory' | 'diagnostic' | 'practice'>('routine');
 
@@ -62,6 +84,7 @@ export const VedicYogaPostureModule: React.FC<VedicYogaPostureModuleProps> = ({
 
   // Practice mode state
   const [activePracticeAsana, setActivePracticeAsana] = useState<VedicAsana>(yogaPlan.constitutionalAsana);
+  const [movementModalAsana, setMovementModalAsana] = useState<VedicAsana | null>(null);
   const [timerDuration, setTimerDuration] = useState<number>(45); // seconds
   const [timerRemaining, setTimerRemaining] = useState<number>(45);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
@@ -302,6 +325,45 @@ export const VedicYogaPostureModule: React.FC<VedicYogaPostureModuleProps> = ({
         </div>
       </div>
 
+      {/* Animated SVG for Vedic Yoga & Posture Balancing */}
+      <VedicYogaAnimatedSvg
+        currentLang={currentLang}
+        selectedPlanet={selectedPlanetKey}
+        onSelectPlanet={(p) => {
+          setSelectedPlanetKey(p);
+          setActiveTab('directory');
+        }}
+        activePose={
+          activePracticeAsana.sanskritName.toLowerCase().includes('vriksha')
+            ? 'vrikshasana'
+            : activePracticeAsana.sanskritName.toLowerCase().includes('surya')
+            ? 'suryanamaskar'
+            : activePracticeAsana.sanskritName.toLowerCase().includes('bhujanga')
+            ? 'bhujangasana'
+            : activePracticeAsana.sanskritName.toLowerCase().includes('bala')
+            ? 'balasana'
+            : 'padmasana'
+        }
+        onSelectPose={(pose) => {
+          if (pose === 'suryanamaskar') {
+            const suryaAsana = GRAHA_YOGA_PROFILES['Sun']?.suggestedAsanas[0];
+            if (suryaAsana) setActivePracticeAsana(suryaAsana);
+          } else if (pose === 'vrikshasana') {
+            const rahuAsana = GRAHA_YOGA_PROFILES['Rahu']?.suggestedAsanas[0];
+            if (rahuAsana) setActivePracticeAsana(rahuAsana);
+          } else if (pose === 'bhujangasana') {
+            const marsAsana = GRAHA_YOGA_PROFILES['Mars']?.suggestedAsanas[0];
+            if (marsAsana) setActivePracticeAsana(marsAsana);
+          } else if (pose === 'balasana') {
+            const moonAsana = GRAHA_YOGA_PROFILES['Moon']?.suggestedAsanas[1];
+            if (moonAsana) setActivePracticeAsana(moonAsana);
+          } else {
+            const jupAsana = GRAHA_YOGA_PROFILES['Jupiter']?.suggestedAsanas[0];
+            if (jupAsana) setActivePracticeAsana(jupAsana);
+          }
+        }}
+      />
+
       {/* Sub-Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-stone-200 dark:border-stone-800 pb-2">
         <button
@@ -422,18 +484,29 @@ export const VedicYogaPostureModule: React.FC<VedicYogaPostureModuleProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-2 pt-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-stone-100 dark:border-stone-800">
                   <span className="text-[10px] text-stone-400 font-mono">
                     {item.asana.poseLevel} Pose
                   </span>
 
-                  <button
-                    onClick={() => handleStartPractice(item.asana, 45)}
-                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-stone-950 font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>{currentLang === 'kn' ? 'ಅಭ್ಯಾಸ ಆರಂಭಿಸಿ' : currentLang === 'hi' ? 'अभ्यास शुरू करें' : 'Practice Now'}</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setMovementModalAsana(item.asana)}
+                      className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer"
+                      title="View step-by-step movement transitions"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>{currentLang === 'kn' ? 'ಹಂತಗಳು' : currentLang === 'hi' ? 'संचलन' : 'Flow'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleStartPractice(item.asana, 45)}
+                      className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-stone-950 font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>{currentLang === 'kn' ? 'ಅಭ್ಯಾಸ' : currentLang === 'hi' ? 'अभ्यास' : 'Practice'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -647,13 +720,24 @@ export const VedicYogaPostureModule: React.FC<VedicYogaPostureModuleProps> = ({
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => handleStartPractice(asana, 45)}
-                      className="w-full mt-2 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-stone-950 font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>{currentLang === 'kn' ? 'ಈ ಆಸನವನ್ನು ಅಭ್ಯಾಸ ಮಾಡಿ (ಗಡಿಯಾರ)' : currentLang === 'hi' ? 'इस आसन का अभ्यास करें' : 'Practice This Asana with Timer'}</span>
-                    </button>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <button
+                        onClick={() => setMovementModalAsana(asana)}
+                        className="py-2 px-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer"
+                        title="View meditative movement transitions"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{currentLang === 'kn' ? 'ಹಂತಗಳ ಚಲನೆ' : currentLang === 'hi' ? 'संचलन प्रवाह' : 'Movement Flow'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleStartPractice(asana, 45)}
+                        className="py-2 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-stone-950 font-bold text-xs shadow-xs flex items-center justify-center gap-1 transition-all cursor-pointer"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>{currentLang === 'kn' ? 'ಅಭ್ಯಾಸ' : currentLang === 'hi' ? 'अभ्यास' : 'Practice'}</span>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -743,6 +827,31 @@ export const VedicYogaPostureModule: React.FC<VedicYogaPostureModuleProps> = ({
       {/* ========================================================================= */}
       {activeTab === 'practice' && (
         <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-stone-900 via-indigo-950 to-stone-950 border-2 border-indigo-500/40 text-white shadow-2xl space-y-6">
+          
+          {/* Quick Asana Switcher Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-indigo-400/20">
+            <span className="text-[10px] font-mono text-amber-300 uppercase tracking-wider shrink-0 font-bold">
+              {currentLang === 'kn' ? 'ಆಸನ ಆಯ್ಕೆ:' : currentLang === 'hi' ? 'आसन चुनें:' : 'Select Asana:'}
+            </span>
+            {allRoutineAsanas.map((as) => (
+              <button
+                key={as.id}
+                onClick={() => {
+                  setActivePracticeAsana(as);
+                  setIsTimerRunning(false);
+                  setTimerRemaining(timerDuration);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border ${
+                  activePracticeAsana.id === as.id
+                    ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-md font-black'
+                    : 'bg-white/10 hover:bg-white/20 text-stone-300 border-white/10'
+                }`}
+              >
+                {as.sanskritName}
+              </button>
+            ))}
+          </div>
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-indigo-400/20">
             <div>
               <span className="text-[10px] font-mono uppercase tracking-wider text-amber-300 font-bold block">
@@ -860,6 +969,28 @@ export const VedicYogaPostureModule: React.FC<VedicYogaPostureModuleProps> = ({
                 <p>{activePracticeAsana.physicalBenefits[currentLang]}</p>
               </div>
             </div>
+          </div>
+
+          {/* Fluid Meditative Movement Transitions & Krama Steps (Framer Motion) */}
+          <div className="pt-2">
+            <AsanaMovementTransitionGuide
+              asana={activePracticeAsana}
+              currentLang={currentLang}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Movement Guide inspection from Routine / Directory cards */}
+      {movementModalAsana && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="max-w-3xl w-full my-auto animate-in fade-in zoom-in-95 duration-200">
+            <AsanaMovementTransitionGuide
+              asana={movementModalAsana}
+              currentLang={currentLang}
+              onClose={() => setMovementModalAsana(null)}
+              onFinish={() => setMovementModalAsana(null)}
+            />
           </div>
         </div>
       )}
