@@ -36,6 +36,7 @@ import { NavaratriColorsFeature } from './NavaratriColorsFeature';
 import { NavaratriRitualsModal } from './NavaratriRitualsModal';
 import { AstroDetailWindows } from './AstroDetailWindows';
 import { InlineDayDetailPanel } from './InlineDayDetailPanel';
+import { DashboardWidget } from './DashboardWidget';
 import { Activity } from 'lucide-react';
 import { 
   fetchDailyAstrologicalTip, 
@@ -430,6 +431,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               </button>
             )}
 
+            {/* Live Dashboard Toggle Button */}
+            <button
+              onClick={() => setShowDashboardWidget(!showDashboardWidget)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                showDashboardWidget
+                  ? 'bg-amber-400 hover:bg-amber-300 text-stone-950 font-black ring-1 ring-amber-300'
+                  : 'bg-white/15 hover:bg-white/25 text-white'
+              }`}
+              title="Toggle Live Panchanga Dashboard Summary"
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>{currentLang === 'kn' ? 'ದೈನಿಕ ದಿಕ್ಸೂಚಿ' : currentLang === 'hi' ? 'दैनिक सूचक' : 'Dashboard'}</span>
+            </button>
+
             <button
               onClick={handleGoToToday}
               className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors backdrop-blur-xs flex items-center gap-1.5"
@@ -577,6 +592,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               Open Full Diagnostic Suite
             </button>
           )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 1. MAIN LIVE DASHBOARD WIDGET: TITHI, NAKSHATRA & KARANA SUMMARY          */}
+      {/* ========================================================================= */}
+      {showDashboardWidget && (
+        <div className="no-print animate-in fade-in duration-200">
+          <DashboardWidget
+            currentLang={currentLang}
+            selectedCity={selectedCity}
+            onOpenDayDetail={(day) => handleDayClick(day, 'quickToday')}
+            onOpenKundali={onOpenKundali}
+            onOpenMantras={onOpenMantras}
+            onOpenSankalpa={onOpenSankalpa}
+          />
         </div>
       )}
 

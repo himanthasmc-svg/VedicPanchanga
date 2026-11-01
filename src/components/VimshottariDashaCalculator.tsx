@@ -29,11 +29,16 @@ import {
   Compass,
   FileDown,
   Download,
-  Loader2
+  Loader2,
+  FileText,
+  Navigation,
+  Globe,
+  Eye,
+  Sliders
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Language, LocalizedString } from '../types';
+import { CityLocation, Language, LocalizedString } from '../types';
 import {
   calculateVimshottariDasha,
   VimshottariDashaResult,
@@ -52,6 +57,14 @@ import {
 } from '../utils/userProfile';
 import { CITIES } from '../utils/panchanga';
 import { SvgGrahaIcon } from './RealisticGraha';
+import { DashaD3Timeline } from './DashaD3Timeline';
+import { DashaKundaliDrawer } from './DashaKundaliDrawer';
+import {
+  MAHADASHA_EFFECTS,
+  getDashaAntardashaSynthesis,
+  DashaEffectSummary,
+  AntardashaEffectSummary
+} from '../utils/dashaEffects';
 
 interface VimshottariDashaCalculatorProps {
   currentLang: Language;
@@ -86,7 +99,13 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
   const [editDate, setEditDate] = useState<string>(profile.birthDate);
   const [editTime, setEditTime] = useState<string>(profile.birthTime);
   const [editCity, setEditCity] = useState<string>(profile.birthPlace);
+  const [editLat, setEditLat] = useState<number>(profile.latitude);
+  const [editLng, setEditLng] = useState<number>(profile.longitude);
+  const [editTz, setEditTz] = useState<string>(profile.timezone || 'Asia/Kolkata');
   const [editSavedSuccess, setEditSavedSuccess] = useState<boolean>(false);
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
+  const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
+  const [isLocatingGps, setIsLocatingGps] = useState<boolean>(false);
 
   // Target query date for Dasha calculations (defaults to today)
   const [queryDateStr, setQueryDateStr] = useState<string>(() => {
@@ -98,10 +117,16 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
   const [expandedMahaIndex, setExpandedMahaIndex] = useState<number | null>(null);
   const [expandedAntarKey, setExpandedAntarKey] = useState<string | null>(null);
 
+  // User-selected Mahadasha and Antardasha for the Astrological Effects Inspector
+  const [selectedEffectMaha, setSelectedEffectMaha] = useState<string | null>(null);
+  const [selectedEffectAntar, setSelectedEffectAntar] = useState<string | null>(null);
+
   // Copied alert state
   const [copiedText, setCopiedText] = useState<boolean>(false);
   // PDF Exporting progress state
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+  // Text file export state
+  const [isExportingText, setIsExportingText] = useState<boolean>(false);
 
   // Sync edit form with profile changes
   useEffect(() => {
@@ -109,6 +134,9 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
     setEditDate(profile.birthDate);
     setEditTime(profile.birthTime);
     setEditCity(profile.birthPlace);
+    setEditLat(profile.latitude);
+    setEditLng(profile.longitude);
+    setEditTz(profile.timezone || 'Asia/Kolkata');
   }, [profile]);
 
   // Compute astrological details for the profile
@@ -126,6 +154,19 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
     );
   }, [astroSummary, queryDateStr, isCustomDateActive]);
 
+  // Birth CityLocation object for exact Kundali calculations
+  const birthCityLocation: CityLocation = useMemo(() => {
+    return {
+      name: profile.birthPlace,
+      state: 'Karnataka',
+      country: 'India',
+      lat: profile.latitude,
+      lng: profile.longitude,
+      timezone: profile.timezone || 'Asia/Kolkata',
+      nameLocalized: { en: profile.birthPlace, kn: profile.birthPlace, hi: profile.birthPlace }
+    };
+  }, [profile]);
+
   // Set the default expanded Mahadasha to the currently active one
   useEffect(() => {
     if (dashaResult.mahadashas.length > 0) {
@@ -140,19 +181,110 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
     }
   }, [dashaResult]);
 
+  // Autocomplete city search input handler
+  const handleCityInput = (val: string) => {
+    setEditCity(val);
+    if (!val.trim()) {
+      setCitySuggestions([]);
+      return;
+    }
+    const q = val.toLowerCase().trim();
+    const matched = CITIES.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      (c.state && c.state.toLowerCase().includes(q))
+    ).slice(0, 6);
+    setCitySuggestions(matched.map(c => c.name));
+
+    // If exact match with a known city, auto populate coords
+    const exact = CITIES.find(c => c.name.toLowerCase() === q);
+    if (exact) {
+      setEditLat(exact.lat);
+      setEditLng(exact.lng);
+      setEditTz(exact.timezone);
+    }
+  };
+
+  const handleSelectCitySuggestion = (cityName: string) => {
+    setEditCity(cityName);
+    setCitySuggestions([]);
+    const found = CITIES.find(c => c.name.toLowerCase() === cityName.toLowerCase());
+    if (found) {
+      setEditLat(found.lat);
+      setEditLng(found.lng);
+      setEditTz(found.timezone);
+    }
+  };
+
+  // Geocode typed city using Google Maps Geocoder if online, or best match
+  const handleGeocodePlace = () => {
+    if (!editCity.trim()) return;
+    setIsGeocoding(true);
+
+    const found = CITIES.find(c => c.name.toLowerCase() === editCity.trim().toLowerCase());
+    if (found) {
+      setEditLat(found.lat);
+      setEditLng(found.lng);
+      setEditTz(found.timezone);
+      setIsGeocoding(false);
+      return;
+    }
+
+    const gmaps = (window as any).google?.maps;
+    if (gmaps?.Geocoder) {
+      const geocoder = new gmaps.Geocoder();
+      geocoder.geocode({ address: editCity }, (results: any, status: any) => {
+        setIsGeocoding(false);
+        if (status === 'OK' && results && results[0]) {
+          const loc = results[0].geometry.location;
+          setEditLat(Number(loc.lat().toFixed(4)));
+          setEditLng(Number(loc.lng().toFixed(4)));
+          const addrComp = results[0].address_components || [];
+          const cityComp = addrComp.find((c: any) => c.types.includes('locality')) || addrComp[0];
+          if (cityComp?.long_name) {
+            setEditCity(cityComp.long_name);
+          }
+        }
+      });
+    } else {
+      setTimeout(() => {
+        setIsGeocoding(false);
+      }, 400);
+    }
+  };
+
+  // Use GPS device coordinates
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) return;
+    setIsLocatingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocatingGps(false);
+        const lat = Number(pos.coords.latitude.toFixed(4));
+        const lng = Number(pos.coords.longitude.toFixed(4));
+        setEditLat(lat);
+        setEditLng(lng);
+        setEditCity(`Location (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`);
+      },
+      (err) => {
+        setIsLocatingGps(false);
+        console.warn('Geolocation error:', err);
+      },
+      { timeout: 8000 }
+    );
+  };
+
   // Save edited profile
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    const matchedCity = CITIES.find(c => c.name.toLowerCase() === editCity.toLowerCase()) || CITIES[0];
     const updated: UserProfile = {
       ...profile,
       name: editName.trim() || 'Devotee',
       birthDate: editDate,
       birthTime: editTime,
-      birthPlace: matchedCity.name,
-      latitude: matchedCity.lat,
-      longitude: matchedCity.lng,
-      timezone: matchedCity.timezone,
+      birthPlace: editCity.trim() || 'Bengaluru',
+      latitude: Number(editLat) || 12.9716,
+      longitude: Number(editLng) || 77.5946,
+      timezone: editTz.trim() || 'Asia/Kolkata',
       moonLongitude: undefined // Force recalculation based on new birth parameters
     };
     saveUserProfile(updated);
@@ -261,9 +393,130 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
     }
   };
 
+  // Dedicated formatted text (.txt) report generator for local saving
+  const handleDownloadTextReport = () => {
+    setIsExportingText(true);
+    try {
+      const cleanName = profile.name.trim() || 'Devotee';
+      const evalDate = isCustomDateActive ? queryDateStr : new Date().toISOString().split('T')[0];
+      const activeMaha = dashaResult.currentMahadasha;
+      const activeAntar = dashaResult.currentAntardasha;
+      const activePrat = dashaResult.currentPratyantardasha;
+      const effects = MAHADASHA_EFFECTS[activeMaha.lord.name];
+      const synthesis = getDashaAntardashaSynthesis(activeMaha.lord.name, activeAntar.lord.name);
+
+      const textContent = `================================================================================
+HERAMBHA CHITRABHANU MAHA MARUTHI PANCHANGA - VEDIC ASTROLOGY REPORT
+|| ಶ್ರೀ ಹರಿ ಸರ್ವೋತ್ತಮ • ಶ್ರೀ ವಾಯು ಜೀವೋತ್ತಮ ||
+PARASHARA 120-YEAR VIMSHOTTARI DASHA & JANMA KUNDALI ANALYSIS
+================================================================================
+
+DEVOTEE PARTICULARS:
+--------------------------------------------------------------------------------
+Name               : ${profile.name}
+Date of Birth      : ${profile.birthDate} (${profile.birthTime})
+Place of Birth     : ${profile.birthPlace}
+Geographic Coords  : Lat ${profile.latitude}°, Lng ${profile.longitude}°
+Timezone           : ${profile.timezone}
+Evaluation Date    : ${evalDate}
+
+VEDIC ASTROLOGICAL ATTRIBUTES (JANMA KUNDALI):
+--------------------------------------------------------------------------------
+Janma Nakshatra    : ${astroSummary.nakshatraName.en} (${astroSummary.nakshatraName.kn})
+Moon Sign (Rashi)  : ${astroSummary.rashiName.en} (${astroSummary.rashiName.kn})
+Rashi Lord         : ${astroSummary.rashiLord.en} (${astroSummary.rashiLord.kn})
+Moon Nirayana Long : ${astroSummary.moonLongitude.toFixed(4)}°
+
+--------------------------------------------------------------------------------
+REAL-TIME ACTIVE VIMSHOTTARI DASHA CYCLES:
+--------------------------------------------------------------------------------
+1. MAHADASHA (Major Period - 120-Yr Parashara Cycle)
+   - Ruling Lord    : ${activeMaha.lord.sanskrit.en} (${activeMaha.lord.sanskrit.kn})
+   - Total Tenure   : ${activeMaha.durationYears} Years
+   - Span           : ${formatDate(activeMaha.startDate)} to ${formatDate(activeMaha.endDate)}
+   - Completion     : ${dashaResult.progress.mahadashaPercent}%
+   - Time Elapsed   : ${dashaResult.progress.mahadashaDaysElapsed} days
+   - Time Remaining : ${dashaResult.progress.mahadashaDaysRemaining} days
+   - Gemstone       : ${activeMaha.lord.gemstone.en} (${activeMaha.lord.gemstone.kn})
+   - Governing Deity: ${activeMaha.lord.deity.en} (${activeMaha.lord.deity.kn})
+
+2. ANTARDASHA / BHUKTI (Sub-Period)
+   - Ruling Lord    : ${activeAntar.lord.sanskrit.en} (${activeAntar.lord.sanskrit.kn})
+   - Total Tenure   : ${activeAntar.durationMonths} Months (${activeAntar.durationDays} Days)
+   - Span           : ${formatDate(activeAntar.startDate)} to ${formatDate(activeAntar.endDate)}
+   - Completion     : ${dashaResult.progress.antardashaPercent}%
+   - Time Remaining : ${dashaResult.progress.antardashaDaysRemaining} days
+   - Relationship   : ${synthesis.relationship} (${synthesis.relationshipName.en})
+
+3. PRATYANTARDASHA (Sub-Sub Period)
+   - Ruling Lord    : ${activePrat.lord.sanskrit.en} (${activePrat.lord.sanskrit.kn})
+   - Total Tenure   : ${activePrat.durationDays} Days
+   - Span           : ${formatDate(activePrat.startDate)} to ${formatDate(activePrat.endDate)}
+   - Completion     : ${dashaResult.progress.pratyantardashaPercent}%
+   - Time Remaining : ${dashaResult.progress.pratyantardashaDaysRemaining} days
+   - Sacred Mantra  : ${activePrat.lord.mantra.en}
+
+--------------------------------------------------------------------------------
+JYOTISHA INTERPRETIVE EFFECTS FOR ${activeMaha.lord.name.toUpperCase()} MAHADASHA:
+--------------------------------------------------------------------------------
+Archetype          : ${effects?.archetype.en || 'Vedic Archetype'}
+Governed Domains   : ${effects?.governedAreas.en || ''}
+General Synthesis  : ${effects?.generalEffects.en || ''}
+Career & Finance   : ${effects?.careerFinance.en || ''}
+Health & Vitality  : ${effects?.healthWellness.en || ''}
+Spiritual Focus    : ${effects?.spiritualFocus.en || ''}
+
+ANTARDASHA INTERPRETIVE DYNAMICS (${activeMaha.lord.name} - ${activeAntar.lord.name}):
+--------------------------------------------------------------------------------
+Relationship Type  : ${synthesis.relationship} (${synthesis.relationshipName.en})
+Combined Synthesis : ${synthesis.synthesis.en}
+Opportunities      : ${synthesis.opportunities.en}
+Cautions to Observe: ${synthesis.cautions.en}
+
+--------------------------------------------------------------------------------
+PRESCRIBED VEDIC REMEDIES (SHIVA & DEVI SAMPRADAYA):
+--------------------------------------------------------------------------------
+- Beeja Mantra     : ${activeMaha.lord.mantra.en}
+- Daily Upasana    : ${synthesis.prescribedUpaya.en}
+- Recommended Dana : ${activeMaha.lord.charityDaana.en}
+- Auspicious Day   : ${activeMaha.lord.auspiciousDay.en}
+
+--------------------------------------------------------------------------------
+COMPLETE 120-YEAR VIMSHOTTARI SCHEDULE:
+--------------------------------------------------------------------------------
+${dashaResult.mahadashas.map((m, i) => `${(i + 1).toString().padStart(2, ' ')}. ${m.lord.name.padEnd(10, ' ')} : ${formatDate(m.startDate).padEnd(12, ' ')} to ${formatDate(m.endDate).padEnd(12, ' ')} (${m.durationYears} yrs) [${m.isCurrent ? 'ACTIVE' : m.endDate < new Date() ? 'PAST' : 'FUTURE'}]`).join('\n')}
+
+================================================================================
+Generated by Herambha Chitrabhanu Maha Maruthi Panchanga
+Bangalore, Karnataka, Bharat
+================================================================================`;
+
+      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `HCMM_Vimshottari_Dasha_${cleanName.replace(/\s+/g, '_')}_${evalDate}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error exporting text report:', err);
+    } finally {
+      setIsExportingText(false);
+    }
+  };
+
   const currentMaha = dashaResult.currentMahadasha;
   const currentAntar = dashaResult.currentAntardasha;
   const currentPrat = dashaResult.currentPratyantardasha;
+
+  const activeEffectMahaName = selectedEffectMaha || currentMaha.lord.name;
+  const activeEffectAntarName = selectedEffectAntar || currentAntar.lord.name;
+  const activeMahaEffect: DashaEffectSummary = MAHADASHA_EFFECTS[activeEffectMahaName] || MAHADASHA_EFFECTS['Sun'];
+  const activeAntarSynthesis: AntardashaEffectSummary = useMemo(() => {
+    return getDashaAntardashaSynthesis(activeEffectMahaName, activeEffectAntarName);
+  }, [activeEffectMahaName, activeEffectAntarName]);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-6">
@@ -307,6 +560,18 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
                 {isExportingPdf
                   ? (currentLang === 'kn' ? 'ಸಿದ್ಧವಾಗುತ್ತಿದೆ...' : currentLang === 'hi' ? 'तैयार हो रहा है...' : 'Generating...')
                   : (currentLang === 'kn' ? 'ಪಿಡಿಎಫ್ ಡೌನ್‌ಲೋಡ್' : currentLang === 'hi' ? 'पीडीएफ डाउनलोड' : 'Download PDF')}
+              </span>
+            </button>
+
+            <button
+              onClick={handleDownloadTextReport}
+              disabled={isExportingText}
+              className="px-3.5 py-2 rounded-xl bg-amber-950/40 hover:bg-amber-950/60 backdrop-blur-md text-white font-bold text-xs flex items-center gap-2 transition-all border border-amber-300/40 shadow-sm cursor-pointer disabled:opacity-50"
+              title="Save text report locally (.txt)"
+            >
+              <FileText className="w-3.5 h-3.5 text-amber-200" />
+              <span>
+                {currentLang === 'kn' ? 'ಟೆಕ್ಸ್ಟ್ ವರದಿ (.txt)' : currentLang === 'hi' ? 'टेक्स्ट रिपोर्ट (.txt)' : 'Save Text (.txt)'}
               </span>
             </button>
 
@@ -482,21 +747,116 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
               />
             </div>
 
-            <div>
-              <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
-                {currentLang === 'kn' ? 'ಜನ್ಮ ಸ್ಥಳ (ನಗರ)' : 'Place of Birth (City)'}
+            <div className="relative">
+              <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1 flex items-center justify-between">
+                <span>{currentLang === 'kn' ? 'ಜನ್ಮ ಸ್ಥಳ (ನಗರ / ಊರು)' : 'Place of Birth (City / Town)'}</span>
+                <span className="text-[10px] text-amber-600 font-semibold">{currentLang === 'kn' ? 'ಟೈಪ್ ಮಾಡಿ ಹುಡುಕಿ' : 'Type to search'}</span>
               </label>
-              <select
-                value={editCity}
-                onChange={e => setEditCity(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 cursor-pointer"
-              >
-                {CITIES.map(c => (
-                  <option key={c.name} value={c.name}>
-                    {c.nameLocalized ? c.nameLocalized[currentLang] : c.name} ({c.state})
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={editCity}
+                  onChange={e => handleCityInput(e.target.value)}
+                  placeholder={currentLang === 'kn' ? 'ಉದಾ: ಬೆಂಗಳೂರು, ಮೈಸೂರು...' : 'e.g. Bengaluru, Mysuru...'}
+                  className="w-full px-3 py-1.5 pl-8 text-xs rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100"
+                  required
+                />
+                <MapPin className="w-3.5 h-3.5 text-amber-600 absolute left-2.5 top-2.5 pointer-events-none" />
+              </div>
+
+              {/* City Suggestions Dropdown */}
+              {citySuggestions.length > 0 && (
+                <div className="absolute z-30 left-0 right-0 mt-1 bg-white dark:bg-stone-800 border border-amber-300 dark:border-stone-600 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                  {citySuggestions.map((cityName) => {
+                    const c = CITIES.find(ci => ci.name === cityName);
+                    return (
+                      <button
+                        key={cityName}
+                        type="button"
+                        onClick={() => handleSelectCitySuggestion(cityName)}
+                        className="w-full px-3 py-1.5 text-left text-xs hover:bg-amber-50 dark:hover:bg-stone-700 flex items-center justify-between text-stone-800 dark:text-stone-200 cursor-pointer"
+                      >
+                        <span className="font-semibold">{c?.nameLocalized ? c.nameLocalized[currentLang] : cityName}</span>
+                        <span className="text-[10px] text-stone-400">{c?.state || ''} ({c?.lat.toFixed(2)}°, {c?.lng.toFixed(2)}°)</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Geographical Coordinates & Timezone Details */}
+            <div className="sm:col-span-2 lg:col-span-4 p-3 rounded-xl bg-amber-50/70 dark:bg-stone-800/80 border border-amber-200/80 dark:border-stone-700 grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+              <div>
+                <label className="block text-[10px] font-bold text-stone-600 dark:text-stone-400 mb-0.5">
+                  {currentLang === 'kn' ? 'ಅಕ್ಷಾಂಶ (Latitude °N)' : 'Latitude (°N)'}
+                </label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={editLat}
+                  onChange={e => setEditLat(parseFloat(e.target.value) || 0)}
+                  className="w-full px-2.5 py-1 text-xs rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-stone-600 dark:text-stone-400 mb-0.5">
+                  {currentLang === 'kn' ? 'ರೇಖಾಂಶ (Longitude °E)' : 'Longitude (°E)'}
+                </label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={editLng}
+                  onChange={e => setEditLng(parseFloat(e.target.value) || 0)}
+                  className="w-full px-2.5 py-1 text-xs rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-stone-600 dark:text-stone-400 mb-0.5">
+                  {currentLang === 'kn' ? 'ಸಮಯ ವಲಯ (Timezone)' : 'Timezone'}
+                </label>
+                <select
+                  value={editTz}
+                  onChange={e => setEditTz(e.target.value)}
+                  className="w-full px-2.5 py-1 text-xs rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 font-mono"
+                >
+                  <option value="Asia/Kolkata">Asia/Kolkata (IST +5:30)</option>
+                  <option value="Asia/Dubai">Asia/Dubai (GST +4:00)</option>
+                  <option value="Asia/Singapore">Asia/Singapore (SGT +8:00)</option>
+                  <option value="Asia/Tokyo">Asia/Tokyo (JST +9:00)</option>
+                  <option value="Europe/London">Europe/London (GMT/BST)</option>
+                  <option value="America/New_York">America/New_York (EST/EDT)</option>
+                  <option value="America/Chicago">America/Chicago (CST/CDT)</option>
+                  <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+                  <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
+                </select>
+              </div>
+
+              <div className="flex items-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleGeocodePlace}
+                  disabled={isGeocoding}
+                  className="flex-1 py-1 px-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-2xs cursor-pointer disabled:opacity-50"
+                  title="Geocode typed location to get exact latitude/longitude"
+                >
+                  {isGeocoding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                  <span>{currentLang === 'kn' ? 'ಸ್ಥಳ ಗುರುತಿಸಿ' : 'Find Coords'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={isLocatingGps}
+                  className="py-1 px-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 text-stone-800 dark:text-stone-200 text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                  title="Detect GPS location"
+                >
+                  {isLocatingGps ? <Loader2 className="w-3 h-3 animate-spin" /> : <Navigation className="w-3 h-3 text-amber-600" />}
+                  <span>GPS</span>
+                </button>
+              </div>
             </div>
 
             <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-end gap-2 mt-2">
@@ -564,6 +924,35 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
       </div>
 
       {/* ========================================================================= */}
+      {/* 1. EXACT JANMA LAGNA KUNDALI CHART WITH HIGHLIGHTED ACTIVE DASHA LORDS    */}
+      {/* ========================================================================= */}
+      <DashaKundaliDrawer
+        birthDate={profile.birthDate}
+        birthTime={profile.birthTime}
+        birthCity={birthCityLocation}
+        currentLang={currentLang}
+        activeMahadashaLord={currentMaha.lord.name}
+        activeAntardashaLord={currentAntar.lord.name}
+      />
+
+      {/* ========================================================================= */}
+      {/* 2. D3.JS INTERACTIVE 120-YEAR VIMSHOTTARI TIMELINE VISUALIZATION          */}
+      {/* ========================================================================= */}
+      <DashaD3Timeline
+        dashaResult={dashaResult}
+        currentLang={currentLang}
+        selectedDate={isCustomDateActive ? new Date(queryDateStr + 'T12:00:00') : new Date()}
+        onSelectMahadasha={(maha) => {
+          const idx = dashaResult.mahadashas.findIndex(m => m.lord.name === maha.lord.name);
+          if (idx !== -1) setExpandedMahaIndex(idx);
+          setSelectedEffectMaha(maha.lord.name);
+        }}
+        onSelectAntardasha={(antar) => {
+          setSelectedEffectAntar(antar.lord.name);
+        }}
+      />
+
+      {/* ========================================================================= */}
       {/* REAL-TIME DASHA & ANTARDASHA COMPLETION PROGRESS BAR SECTION */}
       {/* ========================================================================= */}
       <div className="rounded-3xl bg-white dark:bg-stone-850 border-2 border-amber-300/80 dark:border-stone-700 p-5 sm:p-6 shadow-md space-y-6">
@@ -604,7 +993,17 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
               title="Download PDF Dasha Report"
             >
               <FileDown className="w-3.5 h-3.5 text-amber-600" />
-              <span>{currentLang === 'kn' ? 'ವರದಿ ಡೌನ್‌ಲೋಡ್' : 'Download PDF Report'}</span>
+              <span>{currentLang === 'kn' ? 'ಪಿಡಿಎಫ್' : 'PDF'}</span>
+            </button>
+
+            <button
+              onClick={handleDownloadTextReport}
+              disabled={isExportingText}
+              className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-stone-800 hover:bg-amber-100 dark:hover:bg-stone-700 text-amber-900 dark:text-amber-200 text-xs font-bold border border-amber-300/80 dark:border-stone-700 flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+              title="Save formatted text report (.txt)"
+            >
+              <FileText className="w-3.5 h-3.5 text-amber-600" />
+              <span>{currentLang === 'kn' ? 'ಟೆಕ್ಸ್ಟ್ (.txt)' : 'Text (.txt)'}</span>
             </button>
           </div>
         </div>
@@ -1104,125 +1503,264 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
       </div>
 
       {/* Cosmic Triad Interpretation & Vedic Remedies */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Astrological Synthesis (2 columns) */}
-        <div className="lg:col-span-2 rounded-3xl bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-700 p-5 sm:p-6 shadow-sm space-y-5">
-          <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-3">
-            <div>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">
-                {currentLang === 'kn' ? 'ಜ್ಯೋತಿಷ್ಯ ಸಂಯೋಜನೆ ಫಲ' : 'Astrological Triad Synthesis'}
+      {/* ========================================================================= */}
+      {/* 3. VEDIC JYOTISHA INTERPRETIVE EFFECTS OF MAHADASHA & ANTARDASHA          */}
+      {/* ========================================================================= */}
+      <div className="rounded-3xl bg-white dark:bg-stone-850 border border-amber-200 dark:border-stone-700 p-5 sm:p-7 shadow-sm space-y-6">
+        {/* Section Header with Quick Dasha Inspector Selector */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200 dark:border-stone-700 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                {currentLang === 'kn' ? 'ಪರಾಶರ ಫಲ ಜ್ಯೋತಿಷ್ಯ' : 'Parashara Predictive Jyotisha'}
               </span>
-              <h3 className="text-base sm:text-lg font-extrabold text-stone-900 dark:text-stone-100">
-                {dashaResult.triadInterpretation.headline[currentLang]}
-              </h3>
+              {selectedEffectMaha && (
+                <span className="text-[10px] font-bold text-stone-500">
+                  ({currentLang === 'kn' ? 'ಆಯ್ದ ಅವಧಿ' : 'Custom Inspection'})
+                </span>
+              )}
             </div>
-            <Award className="w-5 h-5 text-amber-500" />
+            <h3 className="text-lg sm:text-xl font-black text-stone-900 dark:text-stone-100 mt-1 flex items-center gap-2">
+              <Award className="w-5 h-5 text-amber-600" />
+              <span>
+                {currentLang === 'kn'
+                  ? `${activeEffectMahaName} ಮಹಾದಶಾ & ${activeEffectAntarName} ಅಂತರ್ದಶಾ ಫಲ ಸಾರಾಂಶ`
+                  : currentLang === 'hi'
+                  ? `${activeEffectMahaName} महादशा एवं ${activeEffectAntarName} अन्तर्दशा फल सारांश`
+                  : `Interpretive Effects: ${activeEffectMahaName} Mahadasha & ${activeEffectAntarName} Antardasha`}
+              </span>
+            </h3>
+            <p className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
+              {currentLang === 'kn'
+                ? 'ಜನ್ಮ ಕುಂಡಲಿ ಮತ್ತು ಗ್ರಹಗಳ ಸ್ಥಿತಿ ಆಧರಿಸಿ ಜ್ಯೋತಿಷ್ಯ ಫಲಗಳು, ವೃತ್ತಿ, ಆರೋಗ್ಯ, ಧನಲಾಭ ಹಾಗೂ ಶಿವ-ದೇವಿ ಉಪಾಸನೆ ಪರಿಹಾರಗಳು.'
+                : 'Classical predictive insights based on planetary governance, covering career, vitality, finance, and Shiva-Devi remedies.'}
+            </p>
           </div>
 
-          <p className="text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed bg-amber-50/50 dark:bg-stone-800/40 p-3.5 rounded-2xl border border-amber-200/50 dark:border-stone-700">
-            {dashaResult.triadInterpretation.generalDescription[currentLang]}
-          </p>
+          {/* Quick Filter / Reset to Real-time */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {selectedEffectMaha && (
+              <button
+                onClick={() => {
+                  setSelectedEffectMaha(null);
+                  setSelectedEffectAntar(null);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{currentLang === 'kn' ? 'ಪ್ರಸ್ತುತ ಸಕ್ರಿಯ ದಶೆಗೆ ಮರಳು' : 'Reset to Active Dasha'}</span>
+              </button>
+            )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div className="p-3.5 rounded-2xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/60 dark:border-stone-700 space-y-1">
-              <div className="flex items-center gap-2 text-xs font-bold text-stone-900 dark:text-stone-100">
-                <Briefcase className="w-4 h-4 text-amber-600" />
-                <span>{currentLang === 'kn' ? 'ಉದ್ಯೋಗ ಮತ್ತು ವೃತ್ತಿ' : 'Career & Ambition'}</span>
-              </div>
-              <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-                {dashaResult.triadInterpretation.careerAndAmbition[currentLang]}
-              </p>
-            </div>
+            {/* Custom Mahadasha Select */}
+            <select
+              value={activeEffectMahaName}
+              onChange={(e) => {
+                setSelectedEffectMaha(e.target.value);
+                // default to self-antardasha or first
+                setSelectedEffectAntar(e.target.value);
+              }}
+              className="px-2.5 py-1.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-800 dark:text-stone-200 text-xs font-bold cursor-pointer"
+              title="Select Mahadasha to view effects"
+            >
+              {DASHA_LORDS.map((dl) => (
+                <option key={dl.name} value={dl.name}>
+                  MD: {dl.sanskrit[currentLang]} ({dl.years}y)
+                </option>
+              ))}
+            </select>
 
-            <div className="p-3.5 rounded-2xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/60 dark:border-stone-700 space-y-1">
-              <div className="flex items-center gap-2 text-xs font-bold text-stone-900 dark:text-stone-100">
-                <Heart className="w-4 h-4 text-rose-600" />
-                <span>{currentLang === 'kn' ? 'ಆರೋಗ್ಯ ಮತ್ತು ಚೈತನ್ಯ' : 'Health & Vitality'}</span>
-              </div>
-              <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-                {dashaResult.triadInterpretation.healthAndVitality[currentLang]}
-              </p>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/60 dark:border-stone-700 space-y-1">
-              <div className="flex items-center gap-2 text-xs font-bold text-stone-900 dark:text-stone-100">
-                <Activity className="w-4 h-4 text-emerald-600" />
-                <span>{currentLang === 'kn' ? 'ಧನ ಮತ್ತು ಸಮೃದ್ಧಿ' : 'Wealth & Prosperity'}</span>
-              </div>
-              <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-                {dashaResult.triadInterpretation.wealthAndProsperity[currentLang]}
-              </p>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/60 dark:border-stone-700 space-y-1">
-              <div className="flex items-center gap-2 text-xs font-bold text-stone-900 dark:text-stone-100">
-                <Sparkles className="w-4 h-4 text-indigo-600" />
-                <span>{currentLang === 'kn' ? 'ಆಧ್ಯಾತ್ಮಿಕ ಸಾಧನೆ' : 'Spiritual Growth'}</span>
-              </div>
-              <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-                {dashaResult.triadInterpretation.spiritualGrowth[currentLang]}
-              </p>
-            </div>
+            {/* Custom Antardasha Select */}
+            <select
+              value={activeEffectAntarName}
+              onChange={(e) => setSelectedEffectAntar(e.target.value)}
+              className="px-2.5 py-1.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-800 dark:text-stone-200 text-xs font-bold cursor-pointer"
+              title="Select Antardasha to view effects"
+            >
+              {DASHA_LORDS.map((dl) => (
+                <option key={dl.name} value={dl.name}>
+                  AD: {dl.sanskrit[currentLang]}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Prescribed Vedic Remedies Card (1 column) */}
-        <div className="rounded-3xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/10 dark:bg-stone-850 border border-amber-300 dark:border-amber-700/60 p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <ShieldCheck className="w-5 h-5 text-amber-600" />
-              <h3 className="text-base font-extrabold text-stone-900 dark:text-stone-100">
-                {currentLang === 'kn' ? 'ಪರಾಶರ ಶಾಂತಿ ಉಪಾಯಗಳು' : currentLang === 'hi' ? 'वैदिक शान्ति उपाय' : 'Vedic Dasha Remedies'}
-              </h3>
+        {/* Mahadasha Archetype & General Synthesis Banner */}
+        <div className="rounded-2xl bg-gradient-to-br from-amber-50/80 via-stone-50 to-orange-50/50 dark:from-stone-800/80 dark:via-stone-850 dark:to-stone-800/60 p-4 sm:p-5 border border-amber-200/90 dark:border-stone-700 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400 tracking-wider">
+                {currentLang === 'kn' ? 'ಮಹಾದಶಾ ಮೂಲ ಶಕ್ತಿ & ಕಾರ್ಯಕ್ಷೇತ್ರ' : 'Mahadasha Archetype & Governed Spheres'}
+              </span>
+              <h4 className="text-base font-extrabold text-stone-900 dark:text-stone-100">
+                {activeMahaEffect.archetype[currentLang]}
+              </h4>
             </div>
-            <p className="text-xs text-stone-500 mb-4">
-              {currentLang === 'kn'
-                ? 'ಪ್ರಸ್ತುತ ಪ್ರತ್ಯಂತರ್ದಶಾ ದೋಷ ನಿವಾರಣೆ ಮತ್ತು ಶುಭ ಫಲ ವೃದ್ಧಿಗಾಗಿ ಉಪಾಯಗಳು.'
-                : 'Remedies to harmonize current planetary energies and enhance auspicious blessings.'}
+            <div className="text-xs text-stone-600 dark:text-stone-400 bg-white/80 dark:bg-stone-800/90 px-3 py-1.5 rounded-xl border border-stone-200 dark:border-stone-700 self-start sm:self-auto font-medium">
+              <strong>{currentLang === 'kn' ? 'ಕಾರಕತ್ವ:' : 'Domains:'}</strong> {activeMahaEffect.governedAreas[currentLang]}
+            </div>
+          </div>
+          <p className="text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed">
+            {activeMahaEffect.generalEffects[currentLang]}
+          </p>
+        </div>
+
+        {/* 4-Domain Analysis Grid (Career, Finance, Health, Spirituality) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Career */}
+          <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/70 border border-stone-200/80 dark:border-stone-700 space-y-2">
+            <div className="flex items-center gap-2 text-stone-900 dark:text-stone-100 font-bold text-xs">
+              <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                <Briefcase className="w-3.5 h-3.5" />
+              </div>
+              <span>{currentLang === 'kn' ? 'ಉದ್ಯೋಗ ಮತ್ತು ಅಧಿಕಾರ' : 'Career & Authority'}</span>
+            </div>
+            <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+              {activeMahaEffect.careerFinance[currentLang]}
+            </p>
+          </div>
+
+          {/* Card 2: Finance & Wealth */}
+          <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/70 border border-stone-200/80 dark:border-stone-700 space-y-2">
+            <div className="flex items-center gap-2 text-stone-900 dark:text-stone-100 font-bold text-xs">
+              <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                <Activity className="w-3.5 h-3.5" />
+              </div>
+              <span>{currentLang === 'kn' ? 'ಧನ ಮತ್ತು ಸಮೃದ್ಧಿ' : 'Wealth & Assets'}</span>
+            </div>
+            <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+              {dashaResult.triadInterpretation.wealthAndProsperity[currentLang]}
+            </p>
+          </div>
+
+          {/* Card 3: Health & Vitality */}
+          <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/70 border border-stone-200/80 dark:border-stone-700 space-y-2">
+            <div className="flex items-center gap-2 text-stone-900 dark:text-stone-100 font-bold text-xs">
+              <div className="w-7 h-7 rounded-lg bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0">
+                <Heart className="w-3.5 h-3.5" />
+              </div>
+              <span>{currentLang === 'kn' ? 'ಆರೋಗ್ಯ & ಚೈತನ್ಯ' : 'Health & Vitality'}</span>
+            </div>
+            <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+              {activeMahaEffect.healthWellness[currentLang]}
+            </p>
+          </div>
+
+          {/* Card 4: Spiritual Focus */}
+          <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/70 border border-stone-200/80 dark:border-stone-700 space-y-2">
+            <div className="flex items-center gap-2 text-stone-900 dark:text-stone-100 font-bold text-xs">
+              <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 flex items-center justify-center shrink-0">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
+              <span>{currentLang === 'kn' ? 'ಆಧ್ಯಾತ್ಮಿಕ ಸಾಧನೆ' : 'Spiritual Growth'}</span>
+            </div>
+            <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+              {activeMahaEffect.spiritualFocus[currentLang]}
+            </p>
+          </div>
+        </div>
+
+        {/* Antardasha Dynamics and Shiva/Devi Remedies (2 columns) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
+          {/* Left: Antardasha Synergy Card */}
+          <div className="rounded-2xl bg-stone-50/80 dark:bg-stone-800/50 p-4 sm:p-5 border border-stone-200 dark:border-stone-700 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-500 tracking-wider">
+                  {currentLang === 'kn' ? 'ಉಪಾವಧಿ ಸಂಬಂಧ' : 'Antardasha Relationship'}
+                </span>
+                <h4 className="text-sm sm:text-base font-extrabold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                  <span>{activeEffectMahaName} – {activeEffectAntarName}</span>
+                </h4>
+              </div>
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${
+                activeAntarSynthesis.relationship === 'Friendly'
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  : activeAntarSynthesis.relationship === 'Adversarial'
+                  ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300'
+                  : 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-300'
+              }`}>
+                {activeAntarSynthesis.relationshipName[currentLang]}
+              </span>
+            </div>
+
+            <p className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed bg-white/80 dark:bg-stone-800/80 p-3 rounded-xl border border-stone-200/60 dark:border-stone-700">
+              {activeAntarSynthesis.synthesis[currentLang]}
             </p>
 
-            <div className="space-y-3">
-              <div className="p-3 rounded-2xl bg-white dark:bg-stone-800 border border-amber-200 dark:border-stone-700">
-                <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block mb-1">
-                  {currentLang === 'kn' ? 'ದೈನಂದಿನ ಜಪ ಮಂತ್ರ' : 'Daily Japa Mantra'}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40">
+                <span className="text-[10px] uppercase font-extrabold text-emerald-800 dark:text-emerald-300 block mb-1">
+                  {currentLang === 'kn' ? 'ಪ್ರಮುಖ ಅವಕಾಶಗಳು' : 'Key Opportunities'}
                 </span>
-                <p className="text-xs font-bold text-stone-900 dark:text-stone-100 font-mono">
-                  {currentPrat.lord.mantra[currentLang]}
-                </p>
-                <span className="text-[10px] text-stone-500 mt-1 block">
-                  {currentLang === 'kn' ? 'ಪ್ರತಿದಿನ ೧೦೮ ಬಾರಿ ಅಥವಾ ೨೮ ಬಾರಿ ಜಪಿಸಿ' : 'Chant 108 or 28 times daily in the morning'}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-white dark:bg-stone-800 border border-amber-200 dark:border-stone-700">
-                <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block mb-1">
-                  {currentLang === 'kn' ? 'ಪ್ರಶಸ್ತ ದಾನ (ಚಾರಿಟಿ)' : 'Recommended Daana (Charity)'}
-                </span>
-                <p className="text-xs text-stone-700 dark:text-stone-300">
-                  {currentPrat.lord.charityDaana[currentLang]}
+                <p className="text-[11px] text-emerald-900 dark:text-emerald-200 leading-relaxed">
+                  {activeAntarSynthesis.opportunities[currentLang]}
                 </p>
               </div>
 
-              <div className="p-3 rounded-2xl bg-white dark:bg-stone-800 border border-amber-200 dark:border-stone-700">
-                <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block mb-1">
-                  {currentLang === 'kn' ? 'ಉಪವಾಸ / ವ್ರತ ದಿನ' : 'Auspicious Fasting Day'}
+              <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40">
+                <span className="text-[10px] uppercase font-extrabold text-amber-800 dark:text-amber-300 block mb-1">
+                  {currentLang === 'kn' ? 'ಮುನ್ನೆಚ್ಚರಿಕೆಗಳು' : 'Cautions to Observe'}
                 </span>
-                <p className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                  {currentPrat.lord.auspiciousDay[currentLang]}
+                <p className="text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed">
+                  {activeAntarSynthesis.cautions[currentLang]}
                 </p>
               </div>
             </div>
           </div>
 
-          {onNavigateToKundali && (
-            <button
-              onClick={onNavigateToKundali}
-              className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>{currentLang === 'kn' ? 'ಸಂಪೂರ್ಣ ಲಗ್ನ ಕುಂಡಲಿ ವೀಕ್ಷಿಸಿ' : 'View Full Lagna Kundali'}</span>
-            </button>
-          )}
+          {/* Right: Authentic Shiva & Devi Upasana Remedies Card */}
+          <div className="rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/10 dark:bg-stone-850 p-4 sm:p-5 border border-amber-300 dark:border-amber-700/60 space-y-3.5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-amber-600" />
+                  <h4 className="text-sm sm:text-base font-extrabold text-stone-900 dark:text-stone-100">
+                    {currentLang === 'kn' ? 'ಶಿವ & ದೇವಿ ಉಪಾಸನಾ ಪರಿಹಾರಗಳು' : currentLang === 'hi' ? 'शिव एवं देवी उपासना शान्ति उपाय' : 'Shiva & Devi Vedic Upasana Remedies'}
+                  </h4>
+                </div>
+                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                  {activeEffectMahaName} • {activeEffectAntarName}
+                </span>
+              </div>
+              <p className="text-xs text-stone-500 mb-3">
+                {currentLang === 'kn'
+                  ? 'ದೋಷ ನಿವಾರಣೆ, ಗ್ರಹ ಶಾಂತಿ ಹಾಗೂ ಶುಭಫಲ ವೃದ್ಧಿಗಾಗಿ ಶಾಸ್ತ್ರೋಕ್ತ ಶಿವ ಮತ್ತು ದೇವಿ ಸ್ತೋತ್ರಾನುಷ್ಠಾನ.'
+                  : 'Canonical Shiva and Devi stotra practices for harmonizing transits and elevating auspicious blessings.'}
+              </p>
+
+              <div className="space-y-2.5">
+                <div className="p-3 rounded-xl bg-white dark:bg-stone-800 border border-amber-200 dark:border-stone-700">
+                  <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block mb-0.5">
+                    {currentLang === 'kn' ? 'ದೈನಂದಿನ ಶಿವ/ದೇವಿ ಶಾಂತಿ ಉಪಾಸನೆ:' : 'Prescribed Stotra / Japa:'}
+                  </span>
+                  <p className="text-xs font-bold text-stone-900 dark:text-stone-100 leading-snug">
+                    {activeAntarSynthesis.prescribedUpaya[currentLang]}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-stone-800 border border-amber-200 dark:border-stone-700">
+                  <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block mb-0.5">
+                    {currentLang === 'kn' ? 'ಗ್ರಹ ಶಾಂತಿ ಪರಿಹಾರ & ದಾನ:' : 'Planetary Dana & Charity:'}
+                  </span>
+                  <p className="text-xs text-stone-700 dark:text-stone-300">
+                    {activeMahaEffect.recommendedRemedies[currentLang]}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {onNavigateToKundali && (
+              <button
+                onClick={onNavigateToKundali}
+                className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>{currentLang === 'kn' ? 'ಸಂಪೂರ್ಣ ಲಗ್ನ ಕುಂಡಲಿ ವೀಕ್ಷಿಸಿ' : 'View Full Lagna Kundali'}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -381,7 +381,7 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
           </div>
         </div>
 
-        {/* CARD 3: Current Yoga & Karana */}
+        {/* CARD 3: Current Karana & Yoga (Headline Panchanga Pillars) */}
         <div className="p-4 rounded-xl border border-amber-200/90 dark:border-stone-750 bg-white/90 dark:bg-stone-800/90 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between relative overflow-hidden group">
           <div className="absolute -right-4 -bottom-4 w-16 h-16 rounded-full bg-emerald-500/5 group-hover:scale-125 transition-transform pointer-events-none" />
 
@@ -389,35 +389,50 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Compass className="w-3.5 h-3.5 text-emerald-600" />
-                <span>{labels.yogaTitle}</span>
+                <span>{currentLang === 'kn' ? 'ಪ್ರಸ್ತುತ ಕರಣ & ಯೋಗ' : currentLang === 'hi' ? 'वर्तमान करण एवं योग' : 'Karana & Yoga'}</span>
               </span>
 
-              <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] flex items-center gap-1 ${
-                isYogaAuspicious 
-                  ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300' 
-                  : 'bg-rose-500/15 text-rose-800 dark:text-rose-300'
-              }`}>
-                {isYogaAuspicious ? <CheckCircle2 className="w-2.5 h-2.5" /> : <ShieldAlert className="w-2.5 h-2.5" />}
-                <span>{isYogaAuspicious ? (currentLang === 'kn' ? 'ಶುಭ' : currentLang === 'hi' ? 'शुभ' : 'Shubha') : (currentLang === 'kn' ? 'ಅಶುಭ' : currentLang === 'hi' ? 'अशुभ' : 'Ashubha')}</span>
-              </span>
+              {/* Karana Auspiciousness / Type Badge */}
+              {(() => {
+                const kName = todayPanchanga.karana.en.toLowerCase();
+                const isVishti = kName.includes('vishti') || kName.includes('bhadra');
+                const isFixed = kName.includes('shakuni') || kName.includes('chatushpada') || kName.includes('naga') || kName.includes('kintughna');
+                return (
+                  <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] flex items-center gap-1 ${
+                    isVishti 
+                      ? 'bg-rose-500/15 text-rose-800 dark:text-rose-300' 
+                      : 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
+                  }`}>
+                    {isVishti ? <ShieldAlert className="w-2.5 h-2.5" /> : <CheckCircle2 className="w-2.5 h-2.5" />}
+                    <span>{isFixed ? (currentLang === 'kn' ? 'ಸ್ಥಿರ ಕರಣ' : 'Fixed') : (currentLang === 'kn' ? 'ಚರ ಕರಣ' : 'Movable')}</span>
+                  </span>
+                );
+              })()}
             </div>
 
+            {/* Headline Karana Display */}
             <div className="mt-1">
-              <h4 className="font-serif font-bold text-lg text-stone-900 dark:text-stone-100 leading-tight">
-                {todayPanchanga.yoga[currentLang]}
+              <div className="text-[10px] font-mono uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold">
+                {currentLang === 'kn' ? 'ದೈನಿಕ ಕರಣ (Karana):' : currentLang === 'hi' ? 'दैनिक करण:' : 'Active Karana:'}
+              </div>
+              <h4 className="font-serif font-black text-xl text-stone-900 dark:text-stone-100 leading-tight mt-0.5">
+                {todayPanchanga.karana[currentLang]}
               </h4>
-              <p className="text-xs font-medium text-stone-600 dark:text-stone-400 mt-0.5">
-                {currentLang === 'kn' ? 'ಕರಣ' : currentLang === 'hi' ? 'करण' : 'Karana'}: <span className="font-bold text-stone-800 dark:text-stone-200">{todayPanchanga.karana[currentLang]}</span>
+              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
+                <span>{currentLang === 'kn' ? 'ಯೋಗ:' : currentLang === 'hi' ? 'योग:' : 'Yoga:'} {todayPanchanga.yoga[currentLang]}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded font-sans ${isYogaAuspicious ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300'}`}>
+                  {isYogaAuspicious ? (currentLang === 'kn' ? 'ಶುಭ' : 'Shubha') : (currentLang === 'kn' ? 'ಅಶುಭ' : 'Ashubha')}
+                </span>
               </p>
             </div>
           </div>
 
           <div className="mt-3 pt-2.5 border-t border-stone-100 dark:border-stone-750 flex items-center justify-between text-xs text-stone-500 dark:text-stone-400">
-            <span className="text-[11px]">
+            <span className="text-[11px] font-medium">
               {todayPanchanga.vara[currentLang]}
             </span>
             <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold">
-              {todayPanchanga.ritu[currentLang].split('(')[0].trim()}
+              {todayPanchanga.ritu[currentLang].split('(')[0].trim()} ಋತು
             </span>
           </div>
         </div>

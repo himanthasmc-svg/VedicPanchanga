@@ -397,6 +397,85 @@ export const GoogleMapLocationModal: React.FC<GoogleMapLocationModalProps> = ({
   };
 
   const handleSelectSearchResult = (res: { title: string; subtitle: string; lat?: number; lng?: number }) => {
+    setIsSearching(true);
+    setGpsStatusText(
+      currentLang === 'kn'
+        ? `ಜಿಯೋಕೋಡಿಂಗ್ ಮೂಲಕ ಸ್ಥಳವನ್ನು ಪರಿಷ್ಕರಿಸಲಾಗುತ್ತಿದೆ: ${res.title}...`
+        : `Refining location via Geocoding API: ${res.title}...`
+    );
+
+    // Call Geocoding API to refine full address and exact coordinates
+    try {
+      if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
+        const geocoder = new google.maps.Geocoder();
+        const geocodeQuery = res.lat !== undefined && res.lng !== undefined
+          ? { location: { lat: res.lat, lng: res.lng } }
+          : { address: `${res.title}, ${res.subtitle}` };
+
+        geocoder.geocode(geocodeQuery, (results: any[], status: string) => {
+          setIsSearching(false);
+          if (status === 'OK' && results && results[0]) {
+            const r = results[0];
+            const lat = r.geometry.location.lat();
+            const lng = r.geometry.location.lng();
+            setCurrentPos({ lat, lng });
+
+            let city = '';
+            let state = '';
+            let country = '';
+
+            for (const comp of r.address_components) {
+              if (comp.types.includes('locality')) city = comp.long_name;
+              else if (!city && comp.types.includes('sublocality_level_1')) city = comp.long_name;
+              else if (!city && comp.types.includes('administrative_area_level_2')) city = comp.long_name;
+              if (comp.types.includes('administrative_area_level_1')) state = comp.long_name;
+              if (comp.types.includes('country')) country = comp.long_name;
+            }
+
+            if (!city) city = res.title;
+            if (!state) state = res.subtitle.split(',')[0]?.trim() || country || 'Region';
+
+            const closest = findClosestCity(lat, lng);
+            const isIndia = country === 'India' || res.subtitle.includes('India') || (lat > 6 && lat < 38 && lng > 68 && lng < 98);
+            const tz = isIndia ? 'Asia/Kolkata' : closest.timezone || 'Asia/Kolkata';
+
+            const refined: CityLocation = {
+              name: city,
+              nameLocalized: { en: city, kn: city, hi: city },
+              state,
+              stateLocalized: { en: state, kn: state, hi: state },
+              country: country || (isIndia ? 'India' : 'World'),
+              countryLocalized: { en: country || 'India', kn: country || 'ಭಾರತ', hi: country || 'भारत' },
+              lat,
+              lng,
+              timezone: tz
+            };
+
+            setTempCity(refined);
+            setShowResultsDropdown(false);
+            setSearchQuery(`${city}, ${state}`);
+            setGpsStatusText(
+              currentLang === 'kn'
+                ? `ಜಿಯೋಕೋಡಿಂಗ್ ಯಶಸ್ವಿಯಾಗಿದೆ: ${city}, ${state} (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`
+                : `Geocoded & Refined: ${city}, ${state} (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`
+            );
+            return;
+          }
+
+          // Fallback if geocode returned no results
+          fallbackApplyResult(res);
+        });
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    fallbackApplyResult(res);
+    setIsSearching(false);
+  };
+
+  const fallbackApplyResult = (res: { title: string; subtitle: string; lat?: number; lng?: number }) => {
     if (res.lat !== undefined && res.lng !== undefined) {
       const lat = res.lat;
       const lng = res.lng;
@@ -418,6 +497,11 @@ export const GoogleMapLocationModal: React.FC<GoogleMapLocationModalProps> = ({
 
       setShowResultsDropdown(false);
       setSearchQuery(res.title);
+      setGpsStatusText(
+        currentLang === 'kn'
+          ? `ಸ್ಥಳ ಸಿದ್ಧಗೊಂಡಿದೆ: ${res.title} (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`
+          : `Location Refined: ${res.title} (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`
+      );
     }
   };
 

@@ -9,7 +9,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+// Parse CLI arguments (e.g. --port 3000 --host 0.0.0.0)
+const args = process.argv.slice(2);
+const portIndex = args.indexOf('--port');
+const cliPort = portIndex !== -1 && args[portIndex + 1] ? parseInt(args[portIndex + 1], 10) : null;
+const hostIndex = args.indexOf('--host');
+const cliHost = hostIndex !== -1 && args[hostIndex + 1] ? args[hostIndex + 1] : '0.0.0.0';
+
+// AI Studio dev server must run on port 3000 as per environment constraints.
+const PORT = cliPort || (process.env.NODE_ENV === 'production' && process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
+const HOST = cliHost;
 const STORE_FILE = path.join(__dirname, 'data', 'hcmm_store.json');
 
 // Initialize Gemini SDK with User-Agent 'aistudio-build' for telemetry
@@ -751,7 +761,7 @@ async function startServer() {
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
-        hmr: process.env.DISABLE_HMR !== 'true'
+        hmr: false
       },
       appType: 'spa'
     });
@@ -764,8 +774,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`HCMM Vedic Server running at http://0.0.0.0:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`HCMM Vedic Server running at http://${HOST}:${PORT}`);
   });
 }
 
