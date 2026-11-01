@@ -37,6 +37,7 @@ import { NavaratriRitualsModal } from './NavaratriRitualsModal';
 import { AstroDetailWindows } from './AstroDetailWindows';
 import { InlineDayDetailPanel } from './InlineDayDetailPanel';
 import { DashboardWidget } from './DashboardWidget';
+import { MonthlyMoonPhaseGraph } from './MonthlyMoonPhaseGraph';
 import { Activity } from 'lucide-react';
 import { 
   fetchDailyAstrologicalTip, 
@@ -81,6 +82,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [showNavaratriRitualsModal, setShowNavaratriRitualsModal] = useState<boolean>(false);
   const [ritualsModalTab, setRitualsModalTab] = useState<'kalasha' | 'akhandaDeepa' | 'dailyDurga' | 'kushmandaBali' | 'ayudhaPuja' | 'vijayadashami'>('kalasha');
   const [ritualsModalDayNum, setRitualsModalDayNum] = useState<number>(1);
+  const [showMoonPhaseGraph, setShowMoonPhaseGraph] = useState<boolean>(true);
 
   // Today's Panchanga calculation for Daily Insights
   const todayPanchangaDay = useMemo(() => getPanchangaForDate(today, selectedCity), [selectedCity]);
@@ -507,6 +509,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <span>{currentLang === 'kn' ? 'ಮಾಸಿಕ PDF ರಫ್ತು' : currentLang === 'hi' ? 'मासिक PDF निर्यात' : 'Export Monthly PDF'}</span>
             </button>
 
+            {/* Moon Phase Progression Graph Toggle */}
+            <button
+              onClick={() => setShowMoonPhaseGraph(!showMoonPhaseGraph)}
+              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all shadow-md flex items-center gap-1.5 ml-1 backdrop-blur-xs cursor-pointer ${
+                showMoonPhaseGraph
+                  ? 'bg-gradient-to-r from-indigo-700 to-purple-700 text-white font-extrabold ring-2 ring-indigo-300'
+                  : 'bg-white/90 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-300 dark:border-stone-700 hover:bg-stone-100'
+              }`}
+              title="Show/Hide Moon's phase progression (waxing/waning) throughout current month"
+            >
+              <Moon className="w-4 h-4 text-amber-300" />
+              <span>{currentLang === 'kn' ? 'ಚಂದ್ರ ಕಲಾ ರೇಖೆ' : currentLang === 'hi' ? 'चन्द्र कला ग्राफ' : 'Moon Phase Graph'}</span>
+            </button>
+
             {/* Conditional Navaratri Controls vs Month's Special Festivals */}
             {isNavaratriMonth ? (
               <>
@@ -607,6 +623,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onOpenKundali={onOpenKundali}
             onOpenMantras={onOpenMantras}
             onOpenSankalpa={onOpenSankalpa}
+          />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 2. MONTHLY MOON PHASE PROGRESSION (WAXING / WANING) GRAPH                 */}
+      {/* ========================================================================= */}
+      {showMoonPhaseGraph && (
+        <div className="no-print animate-in fade-in duration-200">
+          <MonthlyMoonPhaseGraph
+            monthDays={monthDays}
+            currentLang={currentLang}
+            onSelectDay={(day) => handleDayClick(day, 'quickToday')}
           />
         </div>
       )}

@@ -90,6 +90,7 @@ import { WorldwidePlacePicker } from './WorldwidePlacePicker';
 import { ChandraKundaliChart } from './ChandraKundaliChart';
 import { BhavaExplorer } from './BhavaExplorer';
 import { DashaDashboard } from './DashaDashboard';
+import { VimshottariDashaCalculator } from './VimshottariDashaCalculator';
 import { CelestialSkyMandala3D } from './CelestialSkyMandala3D';
 import { calculateAllHousesDrishtiSummary, getAspectingHousesForGraha } from '../utils/grahaDrishti';
 import { DrishtiVisualizer } from './DrishtiVisualizer';
@@ -4274,67 +4275,17 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                 />
               )}
 
-              {/* SUB-TAB 2: VIMSHOTTARI DASHA & DASHA INSIGHTS */}
+              {/* SUB-TAB 2: VIMSHOTTARI DASHA CALCULATOR, D3 TIMELINE, PARASHARA EFFECTS & KUNDALI */}
               {remediesSubTab === 'dasha' && (
                 <div className="space-y-6 animate-in fade-in">
-                  <DashaDashboard
+                  <VimshottariDashaCalculator
                     currentLang={currentLang}
-                    vimshottariDasha={vimshottariDasha}
-                    planetaryBalas={planetaryBalas}
-                    kundaliData={kundaliData}
-                    janmaVivara={janmaVivara}
+                    onBackToCalendar={onBackToCalendar}
+                    onNavigateToKundali={() => setActiveSectionTab('chart')}
+                    initialDob={dateStr}
+                    initialTob={timeStr}
+                    initialCity={selectedCity}
                   />
-
-                  {/* VIMSHOTTARI DASHA: EDUCATIONAL EXPLANATION CARDS */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Card 1: What is Vimshottari Dasha */}
-                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-purple-900 to-indigo-950 text-white border border-purple-500/40 shadow-xl space-y-2">
-                      <div className="flex items-center gap-2 text-purple-300 font-bold text-xs uppercase tracking-wider">
-                        <span className="w-5 h-5 rounded-full bg-purple-500/30 text-purple-200 flex items-center justify-center font-mono text-[11px]">೧</span>
-                        <span>{currentLang === 'kn' ? 'ವಿಂಶೋತ್ತರಿ ದಶಾ ಎಂದರೇನು?' : '1. What is Vimshottari Dasha?'}</span>
-                      </div>
-                      <h4 className="font-serif font-bold text-base text-amber-300">
-                        {currentLang === 'kn' ? '೧೨೦ ವರ್ಷಗಳ ಮಾನವ ಆಯುಷ್ಯದ ಚಕ್ರ' : 'The 120-Year Human Life Cycle'}
-                      </h4>
-                      <p className="text-xs text-purple-100/90 leading-relaxed">
-                        {currentLang === 'kn'
-                          ? 'ಪರಾಶರ ವೈದಿಕ ಜ್ಯೋತಿಷ್ಯದಲ್ಲಿ ಮಾನವನ ಪೂರ್ಣ ಆಯುಷ್ಯವನ್ನು ೧೨೦ ವರ್ಷಗಳೆಂದು ಪರಿಗಣಿಸಿ, ಜನನ ಕಾಲದ ಚಂದ್ರ ನಕ್ಷತ್ರದ ಆಧಾರದ ಮೇಲೆ ೯ ಗ್ರಹಗಳಿಗೆ ನಿಗದಿತ ವರ್ಷಗಳನ್ನು ಹಂಚಲಾದ ಮಹಾದಶಾ ಪದ್ಧತಿ (ಕೇತು ೭, ಶುಕ್ರ ೨೦, ಸೂರ್ಯ ೬, ಚಂದ್ರ ೧೦, ಕುಜ ೭, ರಾಹು ೧೮, ಗುರು ೧೬, ಶನಿ ೧೯, ಬುಧ ೧೭ ವರ್ಷ).'
-                          : 'The premier Parashari Vedic system dividing human potential into a 120-year cycle among 9 Grahas based on Moon natal Nakshatra at birth (Ketu 7y, Venus 20y, Sun 6y, Moon 10y, Mars 7y, Rahu 18y, Jupiter 16y, Saturn 19y, Mercury 17y).'}
-                      </p>
-                    </div>
-
-                    {/* Card 2: Why is this calculated */}
-                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-900 to-stone-950 text-white border border-indigo-500/40 shadow-xl space-y-2">
-                      <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-wider">
-                        <span className="w-5 h-5 rounded-full bg-indigo-500/30 text-indigo-200 flex items-center justify-center font-mono text-[11px]">೨</span>
-                        <span>{currentLang === 'kn' ? 'ಇದನ್ನು ಏಕೆ ಲೆಕ್ಕಹಾಕಲಾಗುತ್ತದೆ?' : '2. Why is This Calculated?'}</span>
-                      </div>
-                      <h4 className="font-serif font-bold text-base text-amber-300">
-                        {currentLang === 'kn' ? 'ಕರ್ಮ ಫಲಗಳು ಹಣ್ಣಾಗುವ ಕಾಲನಿರ್ಣಯ' : 'Timing the Fruition of Karma'}
-                      </h4>
-                      <p className="text-xs text-indigo-100/90 leading-relaxed">
-                        {currentLang === 'kn'
-                          ? 'ಜಾತಕ ಕುಂಡಲಿಯು ವ್ಯಕ್ತಿಯ ಸಾಮರ್ಥ್ಯ ಮತ್ತು ಭವಿಷ್ಯದ ಬೀಜವಾದರೆ, ದಶೆಯು ಆ ಬೀಜ ಮೊಳಕೆಯೊಡೆದು ಫಲ ನೀಡುವ "ಖಗೋಳೀಯ ಋತುಮಾನ". ವಿವಾಹ, ಉದ್ಯೋಗ, ಸಂಪತ್ತು, ಸಂತಾನ, ರೋಗ ಅಥವಾ ಮುಕ್ತಿ ಯಾವಾಗ ಸಂಭವಿಸುತ್ತದೆ ಎಂಬುದನ್ನು ದಶಾ ನಾಯಕ ಗ್ರಹ ನಿರ್ಧರಿಸುತ್ತಾನೆ.'
-                          : 'While the birth Kundali is the seed of latent karma, Dasha is the cosmic season when that seed flowers into reality. It pinpoints the precise periods for marriage, promotions, wealth creation, major challenges, or spiritual awakenings.'}
-                      </p>
-                    </div>
-
-                    {/* Card 3: How to check this */}
-                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-stone-900 to-amber-950 text-white border border-amber-500/40 shadow-xl space-y-2">
-                      <div className="flex items-center gap-2 text-amber-300 font-bold text-xs uppercase tracking-wider">
-                        <span className="w-5 h-5 rounded-full bg-amber-500/30 text-amber-200 flex items-center justify-center font-mono text-[11px]">೩</span>
-                        <span>{currentLang === 'kn' ? 'ಇದನ್ನು ಪರಿಶೀಲಿಸುವುದು ಹೇಗೆ?' : '3. How to Check & Interpret?'}</span>
-                      </div>
-                      <h4 className="font-serif font-bold text-base text-amber-300">
-                        {currentLang === 'kn' ? 'ಹಂತ ಹಂತದ ಜ್ಯೋತಿಷ್ಯ ವಿಧಾನ' : 'Step-by-Step Analysis'}
-                      </h4>
-                      <p className="text-xs text-amber-100/90 leading-relaxed">
-                        {currentLang === 'kn'
-                          ? '೧) ಜನನ ನಕ್ಷತ್ರ ಮತ್ತು ಚಂದ್ರನ ಅಂಶದಿಂದ ಜನನ ದಶಾ ಶೇಷ ತಿಳಿಯಿರಿ. ೨) ಪ್ರಸ್ತುತ ಮಹಾದಶೆ ಹಾಗೂ ಅಂತರ್ದಶೆಯ ನಾಯಕ ಗ್ರಹಗಳ ಕುಂಡಲಿ ಭಾವ, ಉಚ್ಚ-ನೀಚ ಮತ್ತು ಬಲ ಪರಿಶೀಲಿಸಿ. ೩) ಗುರು ಮತ್ತು ಶನಿಯ ಪ್ರಸ್ತುತ ಗೋಚಾರದೊಂದಿಗೆ ಹೋಲಿಸಿ ಸಮಗ್ರ ಫಲ ತಿಳಿಯಿರಿ.'
-                          : '1) Note Moon Nakshatra at birth to compute initial Dasha balance. 2) Examine current Mahadasha and Antardasha lords placement, house lordship, and dignity in the drawn Kundali. 3) Synthesize with active Jupiter and Saturn transits.'}
-                      </p>
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -5079,6 +5030,16 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                         <span>{notificationArmed ? 'Alerts Active' : 'Arm Browser Transit Alert'}</span>
                       </button>
                     </div>
+                  </div>
+
+                  {/* REAL-TIME CELESTIAL GOCHAR TRANSITS WHEEL & PLANETARY EPHEMERIS */}
+                  <div className="space-y-4">
+                    <GocharTransitsView
+                      currentLang={currentLang}
+                      selectedCity={selectedCity}
+                      onSelectCity={onSelectCity}
+                      onOpenKundali={() => setActiveSectionTab('chart')}
+                    />
                   </div>
 
                   {/* ========================================================================= */}

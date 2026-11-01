@@ -1,5 +1,7 @@
 import { CityLocation, Language, LocalizedString, PanchangaDay } from '../types';
 import { getPanchangaForDate, getLocalizedPlaceName } from './panchanga';
+import { getUserProfile, computeProfileAstrology } from './userProfile';
+import { calculateVimshottariDasha, DASHA_LORDS } from './vimshottariDasha';
 
 const STORAGE_KEY_ENABLED = 'hcmm_daily_notify_enabled';
 const STORAGE_KEY_LAST_DATE = 'hcmm_last_daily_notification_date';
@@ -574,6 +576,227 @@ export function checkAndFirePendingAuspiciousAlerts(
 }
 
 /**
+ * Shiva & Devi Upasana Remedies for Each Dasha Lord
+ */
+export const SHIVA_DEVI_DASHA_MANTRAS: Record<string, { shiva: string; devi: string; combined: string }> = {
+  Sun: {
+    shiva: 'ಓಂ ನಮಃ ಶಿವಾಯ ಅಘೋರಾಯ ನಮಃ',
+    devi: 'ಓಂ ಶ್ರೀ ಸೂರ್ಯಮಂಡಲವಾಸಿನಿ ಮಹಾದೇವ್ಯೈ ನಮಃ',
+    combined: 'ಓಂ ನಮಃ ಶಿವಾಯ • ಶ್ರೀ ಸೂರ್ಯ ಮಂಡಲ ಮಧ್ಯವರ್ತಿನಿ ದುರ್ಗಾ ದೇವ್ಯೈ ನಮಃ'
+  },
+  Moon: {
+    shiva: 'ಓಂ ನಮಃ ಸೋಮೇಶ್ವರಾಯ ಚಂದ್ರಮೌಳೀಶ್ವರಾಯ ನಮಃ',
+    devi: 'ಓಂ ಶ್ರೀ ಭುವನೇಶ್ವರೀ ದೇವ್ಯೈ ನಮಃ',
+    combined: 'ಓಂ ನಮಃ ಸೋಮೇಶ್ವರಾಯ • ಶ್ರೀ ಭುವನೇಶ್ವರೀ ಮಹಾದೇವ್ಯೈ ನಮಃ'
+  },
+  Mars: {
+    shiva: 'ಓಂ ನಮಃ ಶಿವಾಯ ವೈದ್ಯನಾಥಾಯ ವೀರಭದ್ರಾಯ ನಮಃ',
+    devi: 'ಓಂ ಶ್ರೀ ಚಾಮುಂಡೇಶ್ವರೀ ಮಹಾದೇವ್ಯೈ ನಮಃ',
+    combined: 'ಓಂ ನಮಃ ಶಿವಾಯ ವೈದ್ಯನಾಥಾಯ • ಶ್ರೀ ಚಾಮುಂಡೇಶ್ವರೀ ದೇವ್ಯೈ ನಮಃ'
+  },
+  Rahu: {
+    shiva: 'ಓಂ ನಮಃ ಕಾಲಕಾಲೇಶ್ವರಾಯ ಮಹಾದೇವಾಯ ನಮಃ',
+    devi: 'ಓಂ ಶ್ರೀ ದುರ್ಗಾ ದೇವ್ಯೈ ದುರ್ಗಾಪರಮೇಶ್ವರ್ಯೈ ನಮಃ',
+    combined: 'ಓಂ ನಮಃ ಕಾಲಕಾಲಾಯ ಶಿವಾಯ • ಶ್ರೀ ದುರ್ಗಾಪರಮೇಶ್ವರೀ ದೇವ್ಯೈ ನಮಃ'
+  },
+  Jupiter: {
+    shiva: 'ಓಂ ನಮೋ ಭಗವತೇ ದಕ್ಷಿಣಾಮೂರ್ತಯೇ ನಮಃ',
+    devi: 'ಓಂ ಶ್ರೀ ಮಹಾಸರಸ್ವತ್ಯೈ ನಮಃ (ಬ್ರಹ್ಮವಿದ್ಯಾದೇವೀ)',
+    combined: 'ಓಂ ನಮೋ ಭಗವತೇ ದಕ್ಷಿಣಾಮೂರ್ತಯೇ • ಶ್ರೀ ಜ್ಞಾನಪ್ರದಾತ್ರಿ ಸರಸ್ವತ್ಯೈ ನಮಃ'
+  },
+  Saturn: {
+    shiva: 'ಓಂ ತ್ರ್ಯಂಬಕಂ ಯಜಾಮಹೇ ಸುಗಂಧಿಂ ಪುಷ್ಟಿವರ್ಧನಮ್ • ಮಹಾಮೃತ್ಯುಂಜಯಾಯ ನಮಃ',
+    devi: 'ಓಂ ಶ್ರೀ ಮಹಾಕಾಳಿಕಾಯೈ ನಮಃ',
+    combined: 'ಓಂ ಮಹಾಮೃತ್ಯುಂಜಯಾಯ ಶಿವಾಯ ನಮಃ • ಶ್ರೀ ಮಹಾಕಾಳಿ ದುರ್ಗಾ ದೇವ್ಯೈ ನಮಃ'
+  },
+  Mercury: {
+    shiva: 'ಓಂ ನಮಃ ಶಂಭವೇ ಚ ಮಯೋಭವೇ ಚ • ನಟರಾಜಾಯ ನಮಃ',
+    devi: 'ಓಂ ಶ್ರೀ ಲಲಿತಾ ಮಹಾತ್ರಿಪುರಸುಂದರ್ಯೈ ನಮಃ',
+    combined: 'ಓಂ ನಮಃ ಶಂಭವೇ ನಟರಾಜಾಯ • ಶ್ರೀ ಲಲಿತಾ ಮಹಾತ್ರಿಪುರಸುಂದರ್ಯೈ ನಮಃ'
+  },
+  Ketu: {
+    shiva: 'ಓಂ ನಮಃ ಕಾಶೀ ವಿಶ್ವನಾಥಾಯ ಜ್ಯೋತಿರ್ಲಿಂಗಾಯ ನಮಃ',
+    devi: 'ಓಂ ಶ್ರೀ ಮಹಾಗೌರ್ಯೈ ಧೂಮಾವತೀ ಶಮನ್ಯೈ ನಮಃ',
+    combined: 'ಓಂ ನಮಃ ಕಾಶೀ ವಿಶ್ವನಾಥಾಯ • ಶ್ರೀ ಮಹಾಗೌರೀ ದೇವ್ಯೈ ನಮಃ'
+  },
+  Venus: {
+    shiva: 'ಓಂ ನಮಃ ಶುಕ್ರೇಶ್ವರಾಯ ತ್ರ್ಯಂಬಕಾಯ ನಮಃ',
+    devi: 'ಓಂ ಶ್ರೀ ಮಹಾಲಕ್ಷ್ಮೀ ಮಹಾದೇವ್ಯೈ ನಮಃ',
+    combined: 'ಓಂ ನಮಃ ಶುಕ್ರೇಶ್ವರಾಯ ಶಿವಾಯ • ಶ್ರೀ ಮಹಾಲಕ್ಷ್ಮ್ಯೈ ನಮಃ'
+  }
+};
+
+/**
+ * Checks if the user's stored Kundali profile has an upcoming major Vimshottari Mahadasha shift
+ * and dispatches a browser notification and window event.
+ */
+export function checkAndTriggerDashaShiftNotification(
+  currentLang: Language = 'kn'
+): boolean {
+  if (!isNotificationSupported()) return false;
+  if (Notification.permission !== 'granted') return false;
+
+  try {
+    const profile = getUserProfile();
+    if (!profile.birthDate) return false;
+
+    const astro = computeProfileAstrology(profile);
+    const dashaResult = calculateVimshottariDasha(astro.birthDateObj, astro.moonLongitude, new Date());
+
+    const currentMaha = dashaResult.currentMahadasha;
+    if (!currentMaha || !currentMaha.endDate) return false;
+
+    const endDate = new Date(currentMaha.endDate);
+    const now = new Date();
+    const diffMs = endDate.getTime() - now.getTime();
+    const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    // Find next Mahadasha
+    const curIdx = dashaResult.mahadashas.findIndex(m => m.lord.name === currentMaha.lord.name);
+    const nextIdx = (curIdx + 1) % dashaResult.mahadashas.length;
+    const nextMaha = dashaResult.mahadashas[nextIdx];
+    const nextLord = nextMaha.lord;
+
+    // Notification alert thresholds (in days)
+    const alertThresholds = [60, 30, 15, 7, 3, 1, 0];
+    const matchedThreshold = alertThresholds.find(t => t === daysRemaining || (t === 0 && daysRemaining <= 0 && daysRemaining >= -3));
+
+    if (matchedThreshold === undefined && daysRemaining > 30) {
+      return false;
+    }
+
+    const todayStr = now.toISOString().split('T')[0];
+    const shiftStorageKey = `hcmm_dasha_shift_notified_${currentMaha.lord.name}_${nextMaha.lord.name}_${matchedThreshold !== undefined ? matchedThreshold : 'active'}_${todayStr}`;
+    
+    if (localStorage.getItem(shiftStorageKey)) {
+      return false; // Already notified today for this shift threshold
+    }
+
+    const remedies = SHIVA_DEVI_DASHA_MANTRAS[nextMaha.lord.name] || SHIVA_DEVI_DASHA_MANTRAS['Sun'];
+    const curLordName = currentLang === 'kn'
+      ? (currentMaha.lord.sanskrit.kn || currentMaha.lord.name)
+      : currentMaha.lord.name;
+    const nextLordName = currentLang === 'kn' ? nextLord.sanskrit.kn : nextLord.name;
+
+    const title = currentLang === 'kn'
+      ? `✨ ವಿಂಶೋತ್ತರಿ ಮಹಾದಶಾ ಸಂಕ್ರಮಣ ಎಚ್ಚರಿಕೆ (${curLordName} ➔ ${nextLordName})`
+      : `✨ Vimshottari Mahadasha Shift Alert (${currentMaha.lord.name} ➔ ${nextMaha.lord.name})`;
+
+    const body = currentLang === 'kn'
+      ? `ಪ್ರಸ್ತುತ ${curLordName} ಮಹಾದಶೆಯು ${daysRemaining <= 0 ? 'ಇಂದೇ ಮುಕ್ತಾಯವಾಗುತ್ತಿದೆ' : `ಇನ್ನೇನು ${daysRemaining} ದಿನಗಳಲ್ಲಿ ಮುಕ್ತಾಯವಾಗಲಿದೆ`} (${endDate.toLocaleDateString()}). ಮುಂದಿನ ಮಹಾದಶಾ ನಾಯಕ: ${nextLordName}.\n🔱 ಶಿವ & ದೇವಿ ಉಪಾಸನಾ ಮಂತ್ರ: ${remedies.combined}`
+      : `Current ${currentMaha.lord.name} Mahadasha ${daysRemaining <= 0 ? 'concludes today' : `concludes in ${daysRemaining} days`} (${endDate.toLocaleDateString()}). Incoming Lord: ${nextMaha.lord.name}.\n🔱 Shiva & Devi Remedy Mantra: ${remedies.combined}`;
+
+    const notif = new Notification(title, {
+      body,
+      icon: '/favicon.ico',
+      tag: `hcmm-dasha-shift-${currentMaha.lord.name}-${nextMaha.lord.name}`
+    });
+
+    notif.onclick = () => {
+      window.focus();
+    };
+
+    playSacredTempleBell();
+    localStorage.setItem(shiftStorageKey, 'true');
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('hcmm_dasha_shift_alert', {
+          detail: {
+            currentMaha,
+            nextMaha,
+            daysRemaining,
+            endDateStr: endDate.toLocaleDateString(),
+            remedies,
+            timestamp: new Date().toISOString()
+          }
+        })
+      );
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('Error evaluating Vimshottari Mahadasha shift notification:', err);
+    return false;
+  }
+}
+
+/**
+ * Triggers an immediate test Vimshottari Mahadasha shift notification for testing
+ */
+export async function triggerDashaShiftNotificationTest(
+  currentLang: Language = 'kn'
+): Promise<boolean> {
+  if (!isNotificationSupported()) return false;
+
+  let perm = Notification.permission;
+  if (perm !== 'granted') {
+    perm = await Notification.requestPermission();
+  }
+  if (perm !== 'granted') return false;
+
+  try {
+    const profile = getUserProfile();
+    const astro = computeProfileAstrology(profile);
+    const dashaResult = calculateVimshottariDasha(astro.birthDateObj, astro.moonLongitude, new Date());
+    const currentMaha = dashaResult.currentMahadasha;
+    const curIdx = dashaResult.mahadashas.findIndex(m => m.lord.name === currentMaha.lord.name);
+    const nextIdx = (curIdx + 1) % dashaResult.mahadashas.length;
+    const nextMaha = dashaResult.mahadashas[nextIdx];
+    const nextLord = nextMaha.lord;
+
+    const remedies = SHIVA_DEVI_DASHA_MANTRAS[nextMaha.lord.name] || SHIVA_DEVI_DASHA_MANTRAS['Sun'];
+    const curLordName = currentLang === 'kn'
+      ? (currentMaha.lord.sanskrit.kn || currentMaha.lord.name)
+      : currentMaha.lord.name;
+    const nextLordName = currentLang === 'kn' ? nextLord.sanskrit.kn : nextLord.name;
+
+    const daysRemaining = Math.max(0, Math.ceil((new Date(currentMaha.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+
+    const title = currentLang === 'kn'
+      ? `🔔 [ಪರೀಕ್ಷೆ / Test] ವಿಂಶೋತ್ತರಿ ಮಹಾದಶಾ ಸಂಕ್ರಮಣ (${curLordName} ➔ ${nextLordName})`
+      : `🔔 [Test] Vimshottari Mahadasha Shift (${currentMaha.lord.name} ➔ ${nextMaha.lord.name})`;
+
+    const body = currentLang === 'kn'
+      ? `ಪ್ರಸ್ತುತ: ${curLordName} ಮಹಾದಶಾ ಇನ್ನೇನು ${daysRemaining} ದಿನಗಳಲ್ಲಿ ಮುಕ್ತಾಯವಾಗಲಿದೆ (${new Date(currentMaha.endDate).toLocaleDateString()}). ಮುಂದಿನ ನಾಯಕ: ${nextLordName}.\n🔱 ಶಿವ-ದೇವಿ ಉಪಾಸನೆ: ${remedies.combined}`
+      : `Current: ${currentMaha.lord.name} concludes in ${daysRemaining} days (${new Date(currentMaha.endDate).toLocaleDateString()}). Next Lord: ${nextMaha.lord.name}.\n🔱 Shiva-Devi Upasana: ${remedies.combined}`;
+
+    const notif = new Notification(title, {
+      body,
+      icon: '/favicon.ico',
+      tag: `hcmm-test-dasha-${Date.now()}`
+    });
+
+    notif.onclick = () => {
+      window.focus();
+    };
+
+    playSacredTempleBell();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('hcmm_dasha_shift_alert', {
+          detail: {
+            currentMaha,
+            nextMaha,
+            daysRemaining,
+            endDateStr: new Date(currentMaha.endDate).toLocaleDateString(),
+            remedies,
+            isTest: true,
+            timestamp: new Date().toISOString()
+          }
+        })
+      );
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Error triggering test dasha shift notification:', err);
+    return false;
+  }
+}
+
+/**
  * Initiates the recurring background notification ticker that runs every 30 seconds.
  * Returns a cleanup unsubscribe callback.
  */
@@ -584,12 +807,16 @@ export function initAuspiciousNotificationService(
   // Fire daily overview if not fired today
   checkAndTriggerDailyNotification(selectedCity, currentLang);
 
-  // Check immediately
+  // Check Sandhya & Puja alerts immediately
   checkAndFirePendingAuspiciousAlerts(selectedCity, currentLang);
+
+  // Check Vimshottari Mahadasha shifts immediately
+  checkAndTriggerDashaShiftNotification(currentLang);
 
   // Recurring 30-second interval ticker
   const intervalId = setInterval(() => {
     checkAndFirePendingAuspiciousAlerts(selectedCity, currentLang);
+    checkAndTriggerDashaShiftNotification(currentLang);
   }, 30000);
 
   return () => {

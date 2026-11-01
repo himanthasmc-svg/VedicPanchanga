@@ -70,15 +70,34 @@ interface VimshottariDashaCalculatorProps {
   currentLang: Language;
   onBackToCalendar?: () => void;
   onNavigateToKundali?: () => void;
+  initialDob?: string;
+  initialTob?: string;
+  initialCity?: CityLocation;
 }
 
 export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProps> = ({
   currentLang,
   onBackToCalendar,
-  onNavigateToKundali
+  onNavigateToKundali,
+  initialDob,
+  initialTob,
+  initialCity
 }) => {
   // Current user profile state
-  const [profile, setProfile] = useState<UserProfile>(() => getUserProfile());
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    const saved = getUserProfile();
+    if (initialDob && initialTob && !localStorage.getItem('hcmm_user_profile')) {
+      return {
+        ...saved,
+        birthDate: initialDob,
+        birthTime: initialTob,
+        birthPlace: initialCity?.name || saved.birthPlace,
+        latitude: initialCity?.lat || saved.latitude,
+        longitude: initialCity?.lng || saved.longitude
+      };
+    }
+    return saved;
+  });
 
   // Listen to profile updates from elsewhere
   useEffect(() => {

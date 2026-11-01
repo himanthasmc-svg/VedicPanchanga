@@ -592,27 +592,15 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => onNavigate('kundali')}
               className={`px-2.5 py-1 text-[11px] sm:text-xs font-semibold rounded-md transition-all flex items-center gap-1 whitespace-nowrap shrink-0 ${
-                activeView === 'kundali'
+                activeView === 'kundali' || activeView === 'gochar' || activeView === 'dasha'
                   ? 'bg-amber-600 text-white shadow-xs'
                   : 'text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
               }`}
+              title="Lagna Kundali, Vimshottari Dasha & Gochar Transits (Protected Vedic Suite)"
             >
               <Layers className="w-3 h-3 shrink-0" />
-              <span>{currentLang === 'kn' ? 'ಲಗ್ನ ಕುಂಡಲಿ' : currentLang === 'hi' ? 'लग्न कुण्डली' : 'Kundali'}</span>
-            </button>
-
-            <button
-              onClick={() => onNavigate('gochar')}
-              className={`px-2.5 py-1 text-[11px] sm:text-xs font-semibold rounded-md transition-all flex items-center gap-1 whitespace-nowrap shrink-0 ${
-                activeView === 'gochar'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
-              }`}
-              title="Planetary Transits (Gochar) - Under Sacred Vedic Remedies & Jyotisha"
-            >
-              <Compass className="w-3 h-3 shrink-0" />
-              <span>{currentLang === 'kn' ? 'ಗ್ರಹ ಗೋಚಾರ' : currentLang === 'hi' ? 'ग्रह गोचर' : 'Gochar'}</span>
-              <Lock className="w-2.5 h-2.5 opacity-70 ml-0.5 text-amber-500" />
+              <span>{currentLang === 'kn' ? 'ಲಗ್ನ ಕುಂಡಲಿ, ದಶಾ & ಗೋಚಾರ' : currentLang === 'hi' ? 'लग्न कुण्डली, दशा व गोचर' : 'Kundali, Dasha & Gochar'}</span>
+              <Lock className="w-2.5 h-2.5 opacity-70 ml-0.5 text-amber-400" />
             </button>
 
             <button
@@ -626,19 +614,6 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Clock className="w-3 h-3 shrink-0" />
               <span>{currentLang === 'kn' ? 'ಮುಹೂರ್ತ' : currentLang === 'hi' ? 'मुहूर्त' : 'Muhurta'}</span>
-            </button>
-
-            <button
-              onClick={() => onNavigate('dasha')}
-              className={`px-2.5 py-1 text-[11px] sm:text-xs font-semibold rounded-md transition-all flex items-center gap-1 whitespace-nowrap shrink-0 ${
-                activeView === 'dasha'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
-              }`}
-              title="Vimshottari Dasha Calculator (Maha Dasha, Antardasha & Pratyantardasha)"
-            >
-              <Sparkles className="w-3 h-3 shrink-0 text-amber-400" />
-              <span>{currentLang === 'kn' ? 'ವಿಂಶೋತ್ತರಿ ದಶಾ' : currentLang === 'hi' ? 'विंशोत्तरी दशा' : 'Vimshottari Dasha'}</span>
             </button>
 
             <button

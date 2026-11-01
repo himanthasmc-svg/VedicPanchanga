@@ -587,12 +587,20 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 7: Vimshottari Dasha Calculator (Maha Dasha, Antardasha & Pratyantardasha) */}
+        {/* VIEW 7: Vimshottari Dasha Calculator - Consolidated inside LagnaKundaliPage Tab 2 */}
         {activeView === 'dasha' && (
-          <VimshottariDashaCalculator
+          <LagnaKundaliPage
             currentLang={currentLang}
+            selectedCity={selectedCity}
+            onSelectCity={setSelectedCity}
             onBackToCalendar={() => setActiveView('calendar')}
-            onNavigateToKundali={() => setActiveView('kundali')}
+            userPassword={userPassword}
+            onOpenAdmin={() => {
+              setOpenCodeDirectly(false);
+              setShowHcmmAdmin(true);
+            }}
+            initialSectionTab="remedies"
+            initialRemediesSubTab="dasha"
           />
         )}
 
