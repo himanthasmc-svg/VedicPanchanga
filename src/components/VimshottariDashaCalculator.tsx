@@ -187,8 +187,8 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
     };
   }, [profile]);
 
-  // Visual Navigation: D3 Timeline vs Dasha Calendar vs Janma Kundali
-  const [activeVizTab, setActiveVizTab] = useState<'timeline' | 'calendar' | 'kundali'>('timeline');
+  // Visual Navigation: Dasha Calendar vs D3 Timeline vs Janma Kundali
+  const [activeVizTab, setActiveVizTab] = useState<'calendar' | 'timeline' | 'kundali'>('calendar');
 
   // Exact Calculated Janma Kundali Chart Positions for Devotee
   const kundaliData: KundaliData = useMemo(() => {
@@ -593,6 +593,19 @@ Bangalore, Karnataka, Bharat
 
           <div className="no-print flex flex-wrap items-center gap-2 self-start md:self-auto">
             <button
+              onClick={() => {
+                setActiveVizTab('calendar');
+                document.getElementById('dasha-viz-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-extrabold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer ring-2 ring-white/50"
+              title="Open Visual Dasha Calendar to inspect Mahadasha Shift Dates & Effects"
+            >
+              <Calendar className="w-4 h-4 text-stone-950" />
+              <span>{currentLang === 'kn' ? 'ದಶಾ ಕ್ಯಾಲೆಂಡರ್' : 'Dasha Calendar'}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-stone-950 animate-ping ml-0.5" />
+            </button>
+
+            <button
               onClick={handleDownloadPdf}
               disabled={isExportingPdf}
               className="px-4 py-2 rounded-xl bg-amber-950/60 hover:bg-amber-950/80 backdrop-blur-md text-white font-extrabold text-xs flex items-center gap-2 transition-all border border-amber-300 shadow-md cursor-pointer disabled:opacity-50 ring-2 ring-amber-300/40"
@@ -971,24 +984,11 @@ Bangalore, Karnataka, Bharat
       </div>
 
       {/* ========================================================================= */}
-      {/* INTERACTIVE VISUALIZATION MODES: TIMELINE • DASHA CALENDAR • KUNDALI     */}
+      {/* INTERACTIVE VISUALIZATION MODES: DASHA CALENDAR • TIMELINE • KUNDALI     */}
       {/* ========================================================================= */}
-      <div className="no-print space-y-4">
+      <div id="dasha-viz-section" className="no-print space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 rounded-2xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shadow-xs">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setActiveVizTab('timeline')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-                activeVizTab === 'timeline'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>{currentLang === 'kn' ? '೧. D3 ದಶಾ ಕಾಲರೇಖೆ' : '1. D3 Chrono-Timeline'}</span>
-            </button>
-
             <button
               type="button"
               onClick={() => setActiveVizTab('calendar')}
@@ -999,8 +999,21 @@ Bangalore, Karnataka, Bharat
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>{currentLang === 'kn' ? '೨. ದಶಾ ಕ್ಯಾಲೆಂಡರ್ & ಬದಲಾವಣೆಗಳು' : '2. Dasha Calendar & Shift Dates'}</span>
+              <span>{currentLang === 'kn' ? '೧. ದಶಾ ಕ್ಯಾಲೆಂಡರ್ & ಬದಲಾವಣೆಗಳು' : '1. Dasha Calendar & Shift Dates'}</span>
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse ml-0.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveVizTab('timeline')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                activeVizTab === 'timeline'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>{currentLang === 'kn' ? '೨. D3 ದಶಾ ಕಾಲರೇಖೆ' : '2. D3 Chrono-Timeline'}</span>
             </button>
 
             <button

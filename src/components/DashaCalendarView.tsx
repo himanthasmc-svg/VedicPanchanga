@@ -63,6 +63,7 @@ export const DashaCalendarView: React.FC<DashaCalendarViewProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'shifts' | 'calendar'>('shifts');
   const [selectedShift, setSelectedShift] = useState<MahadashaShiftEvent | null>(null);
+  const [selectedAntarShift, setSelectedAntarShift] = useState<{ mahaLord: string; antarLord: DashaLordInfo; date: Date } | null>(null);
   const [copiedNotice, setCopiedNotice] = useState<boolean>(false);
 
   // Compute all Mahadasha Shift Events across the 120-year cycle
@@ -566,6 +567,8 @@ export const DashaCalendarView: React.FC<DashaCalendarViewProps> = ({
                     onClick={() => {
                       if (mahaShift) {
                         setSelectedShift(mahaShift);
+                      } else if (antarShift) {
+                        setSelectedAntarShift(antarShift);
                       } else if (onSelectDate) {
                         onSelectDate(dateObj.toISOString().split('T')[0]);
                       }
@@ -839,6 +842,128 @@ export const DashaCalendarView: React.FC<DashaCalendarViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL / DIALOG: ANTARDASHA TRANSITION EFFECTS & SUB-PERIOD DYNAMICS       */}
+      {/* ========================================================================= */}
+      {selectedAntarShift && (() => {
+        const synth = getDashaAntardashaSynthesis(selectedAntarShift.mahaLord, selectedAntarShift.antarLord.name);
+
+        return (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in">
+            <div className="bg-white dark:bg-stone-900 rounded-3xl max-w-2xl w-full border-2 border-orange-400 dark:border-stone-700 shadow-2xl overflow-hidden my-auto">
+              {/* Header */}
+              <div
+                className="p-5 sm:p-6 text-white relative overflow-hidden"
+                style={{
+                  background: `linear-gradient(135deg, ${selectedAntarShift.antarLord.color} 0%, #1c1917 100%)`
+                }}
+              >
+                <div className="flex items-start justify-between relative z-10">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-white text-[11px] font-extrabold mb-2 border border-white/20">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>{currentLang === 'kn' ? 'ಅಂತರ್ದಶಾ ಪರಿವರ್ತನೆ & ಗ್ರಹ ಫಲ' : 'Antardasha Sub-Period Planetary Transition'}</span>
+                    </div>
+
+                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                      <span>{selectedAntarShift.mahaLord} {currentLang === 'kn' ? 'ಮಹಾದಶಾ' : 'Maha'}</span>
+                      <ArrowRight className="w-5 h-5 text-amber-300" />
+                      <span>{selectedAntarShift.antarLord.sanskrit[currentLang]} {currentLang === 'kn' ? 'ಅಂತರ್ದಶಾ' : 'Antar'}</span>
+                    </h3>
+
+                    <p className="text-xs sm:text-sm text-stone-200 mt-1">
+                      📅 <strong>{formatFullDate(selectedAntarShift.date)}</strong> • {currentLang === 'kn' ? 'ಸಂಬಂಧ:' : 'Planetary Relationship:'} <strong>{synth.relationshipName[currentLang]} ({synth.relationship})</strong>
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setSelectedAntarShift(null)}
+                    className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-bold text-sm cursor-pointer shrink-0 transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto text-stone-800 dark:text-stone-200 text-xs">
+                {/* Synthesis */}
+                <div className="p-4 rounded-2xl bg-orange-50/70 dark:bg-stone-800/80 border border-orange-200 dark:border-stone-700">
+                  <span className="text-[10px] uppercase font-bold text-orange-700 dark:text-orange-400 block mb-1">
+                    {currentLang === 'kn' ? 'ಗ್ರಹ ಸಂಯೋಗ ಫಲ & ಸಂಶ್ಲೇಷಣೆ' : 'Sub-Period Synthesis'}
+                  </span>
+                  <p className="text-xs leading-relaxed text-stone-800 dark:text-stone-200">
+                    {synth.synthesis[currentLang]}
+                  </p>
+                </div>
+
+                {/* 2-Column Opportunities vs Cautions */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40">
+                    <span className="text-[10px] uppercase font-black text-emerald-800 dark:text-emerald-300 block mb-1">
+                      ✨ {currentLang === 'kn' ? 'ಪ್ರಮುಖ ಅವಕಾಶಗಳು' : 'Key Opportunities'}
+                    </span>
+                    <p className="text-[11px] text-emerald-900 dark:text-emerald-200 leading-relaxed">
+                      {synth.opportunities[currentLang]}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40">
+                    <span className="text-[10px] uppercase font-black text-amber-800 dark:text-amber-300 block mb-1">
+                      ⚠️ {currentLang === 'kn' ? 'ಮುನ್ನೆಚ್ಚರಿಕೆಗಳು' : 'Cautions to Observe'}
+                    </span>
+                    <p className="text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed">
+                      {synth.cautions[currentLang]}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Shiva & Devi Sampradaya Remedies */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/10 dark:bg-stone-800 border-2 border-amber-300 dark:border-stone-700 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-amber-600" />
+                    <h4 className="text-xs sm:text-sm font-black text-stone-900 dark:text-stone-100">
+                      {currentLang === 'kn' ? 'ಶಿಫಾರಸು ಮಾಡಿದ ಶಾಂತಿ ಉಪಾಸನೆ & ಶಿವ-ದೇವಿ ಸ್ತೋತ್ರ' : 'Prescribed Shiva & Devi Upasana'}
+                    </h4>
+                  </div>
+                  <p className="font-semibold text-stone-900 dark:text-stone-100 leading-snug">
+                    {synth.prescribedUpaya[currentLang]}
+                  </p>
+                  <p className="text-[11px] text-stone-600 dark:text-stone-400">
+                    🕉️ <strong>Mantra:</strong> {selectedAntarShift.antarLord.mantra[currentLang]}
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="p-4 bg-stone-50 dark:bg-stone-800 border-t border-stone-200 dark:border-stone-700 flex items-center justify-end gap-2">
+                {onSelectDate && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelectDate(selectedAntarShift.date.toISOString().split('T')[0]);
+                      setSelectedAntarShift(null);
+                    }}
+                    className="px-4 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <Compass className="w-3.5 h-3.5" />
+                    <span>{currentLang === 'kn' ? 'ಈ ದಿನಾಂಕದ ದಶಾ ಪರಿಶೀಲಿಸಿ' : 'Inspect Dasha on This Date'}</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedAntarShift(null)}
+                  className="px-4 py-1.5 rounded-xl bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 text-stone-800 dark:text-stone-200 text-xs font-bold cursor-pointer"
+                >
+                  {currentLang === 'kn' ? 'ಮುಚ್ಚಿ' : 'Close'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
