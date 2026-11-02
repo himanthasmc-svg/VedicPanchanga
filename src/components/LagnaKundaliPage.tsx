@@ -47,7 +47,8 @@ import {
   ChevronDown,
   ChevronUp,
   Sun,
-  Moon
+  Moon,
+  Database
 } from 'lucide-react';
 import { 
   persistEncryptedRemedies, 
@@ -98,6 +99,7 @@ import { GrahaRemedyNutritionView } from './GrahaRemedyNutritionView';
 import { getHouseCoord } from '../utils/drishtiCoordinates';
 import { VedicYogaPostureModule } from './VedicYogaPostureModule';
 import { HouseAstrologicalAnalysisPanel } from './HouseAstrologicalAnalysisPanel';
+import { AstroOfflineArchiveDrawer } from './AstroOfflineArchiveDrawer';
 
 interface LagnaKundaliPageProps {
   currentLang: Language;
@@ -160,6 +162,7 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
   const [showAllHousesDrishtiTable, setShowAllHousesDrishtiTable] = useState<boolean>(false);
   const [showAspectLines, setShowAspectLines] = useState<boolean>(true);
   const [selectedDrishtiPlanet, setSelectedDrishtiPlanet] = useState<string>('Jupiter');
+  const [showOfflineArchiveDrawer, setShowOfflineArchiveDrawer] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialSectionTab === 'dasha') {
@@ -4239,14 +4242,27 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                   </button>
                 </div>
 
-                <button
-                  onClick={handleLockAstro}
-                  className="px-2.5 py-1 text-xs font-bold rounded-lg border border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100 flex items-center gap-1 cursor-pointer shrink-0 self-end md:self-auto"
-                  title="Lock Astrological Suite"
-                >
-                  <Lock className="w-3 h-3 text-red-600" />
-                  <span>{currentLang === 'kn' ? 'ವಿಭಾಗ ಲಾಕ್ ಮಾಡಿ' : 'Lock Section'}</span>
-                </button>
+                <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setShowOfflineArchiveDrawer(true)}
+                    className="px-2.5 py-1 text-xs font-bold rounded-lg border border-indigo-300 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                    title="IndexedDB Offline Dasha & Gochar Archive"
+                  >
+                    <Database className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>{currentLang === 'kn' ? 'ಆಫ್‌ಲೈನ್ ಆರ್ಕೈವ್' : 'Offline DB Archive'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleLockAstro}
+                    className="px-2.5 py-1 text-xs font-bold rounded-lg border border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100 flex items-center gap-1 cursor-pointer shrink-0"
+                    title="Lock Astrological Suite"
+                  >
+                    <Lock className="w-3 h-3 text-red-600" />
+                    <span>{currentLang === 'kn' ? 'ವಿಭಾಗ ಲಾಕ್ ಮಾಡಿ' : 'Lock Section'}</span>
+                  </button>
+                </div>
               </div>
 
               {/* SUB-TAB 1: VEDIC REMEDIES & KUNDALI & HORIZONTAL TIMELINE */}
@@ -5339,6 +5355,14 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
           </div>
         </div>
       )}
+
+      {/* IndexedDB Offline Dasha & Gochar Archive Drawer */}
+      <AstroOfflineArchiveDrawer
+        currentLang={currentLang}
+        selectedCity={selectedCity}
+        isOpen={showOfflineArchiveDrawer}
+        onClose={() => setShowOfflineArchiveDrawer(false)}
+      />
 
     </div>
   );

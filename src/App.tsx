@@ -31,6 +31,7 @@ import { VimshottariDashaCalculator } from './components/VimshottariDashaCalcula
 import { DailyRashiBhavishyaPage } from './components/DailyRashiBhavishyaPage';
 import { VedicYogaPostureModule } from './components/VedicYogaPostureModule';
 import { findClosestCity } from './utils/worldPlaces';
+import { startPeriodicAstroSync } from './utils/indexedDbSync';
 
 export default function App() {
   // Localization: English default, selectable to Kannada and Hindi
@@ -315,6 +316,15 @@ export default function App() {
       window.removeEventListener('hcmm_auspicious_alert', handleAuspiciousEvent);
     };
   }, [selectedCity, currentLang]);
+
+  // Automated background sync utility to IndexedDB for Vimshottari Dasha and Gochar
+  useEffect(() => {
+    // Syncs on startup and checks periodically every 30 minutes
+    const stopSync = startPeriodicAstroSync(selectedCity, 30);
+    return () => {
+      stopSync();
+    };
+  }, [selectedCity]);
 
   // Compute Today's Panchanga for widget
   const todayPanchanga = getPanchangaForDate(new Date(), selectedCity);

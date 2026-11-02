@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { CityLocation, Language, LocalizedString } from '../types';
+import { CityLocation, Language, LocalizedString, KundaliData, PlanetPosition } from '../types';
 import {
   calculateVimshottariDasha,
   VimshottariDashaResult,
@@ -55,10 +55,11 @@ import {
   UserProfile,
   SAMPLE_PROFILES
 } from '../utils/userProfile';
-import { CITIES } from '../utils/panchanga';
+import { CITIES, calculateKundali, RASHIS } from '../utils/panchanga';
 import { SvgGrahaIcon } from './RealisticGraha';
 import { DashaD3Timeline } from './DashaD3Timeline';
 import { DashaKundaliDrawer } from './DashaKundaliDrawer';
+import { DashaCalendarView } from './DashaCalendarView';
 import {
   MAHADASHA_EFFECTS,
   getDashaAntardashaSynthesis,
@@ -185,6 +186,19 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
       nameLocalized: { en: profile.birthPlace, kn: profile.birthPlace, hi: profile.birthPlace }
     };
   }, [profile]);
+
+  // Visual Navigation: D3 Timeline vs Dasha Calendar vs Janma Kundali
+  const [activeVizTab, setActiveVizTab] = useState<'timeline' | 'calendar' | 'kundali'>('timeline');
+
+  // Exact Calculated Janma Kundali Chart Positions for Devotee
+  const kundaliData: KundaliData = useMemo(() => {
+    try {
+      const dateTimeISO = `${profile.birthDate}T${profile.birthTime || '12:00'}:00`;
+      return calculateKundali(dateTimeISO, birthCityLocation);
+    } catch (e) {
+      return calculateKundali(new Date().toISOString(), birthCityLocation);
+    }
+  }, [profile.birthDate, profile.birthTime, birthCityLocation]);
 
   // Set the default expanded Mahadasha to the currently active one
   useEffect(() => {
@@ -447,6 +461,20 @@ Rashi Lord         : ${astroSummary.rashiLord.en} (${astroSummary.rashiLord.kn})
 Moon Nirayana Long : ${astroSummary.moonLongitude.toFixed(4)}°
 
 --------------------------------------------------------------------------------
+CALCULATED PLANETARY CHART POSITIONS (GRAHA STHITHI):
+--------------------------------------------------------------------------------
+Lagna (Ascendant)  : ${RASHIS[kundaliData.lagnaRashiIndex]?.en} (${kundaliData.lagnaDegree.toFixed(2)}°) • House 1 • Nakshatra: ${kundaliData.lagnaNakshatra.en}
+${kundaliData.planets.map(p => {
+  const isMaha = p.name.toLowerCase() === activeMaha.lord.name.toLowerCase();
+  const isAntar = p.name.toLowerCase() === activeAntar.lord.name.toLowerCase();
+  const status = isMaha && isAntar ? '[ACTIVE MAHA & ANTARDASHA]' : isMaha ? '[ACTIVE MAHADASHA]' : isAntar ? '[ACTIVE ANTARDASHA]' : '';
+  const degInt = Math.floor(p.degrees);
+  const degMin = Math.round((p.degrees - degInt) * 60);
+  const formattedDeg = `${degInt}° ${degMin.toString().padStart(2, '0')}'`;
+  return `${p.name.padEnd(10, ' ')}: ${formattedDeg.padStart(8, ' ')} in ${p.rashiName.en.padEnd(12, ' ')} | House ${p.bhava.toString().padStart(2, ' ')} | Nakshatra: ${p.nakshatra.en} (Pada ${p.pada}) | ${p.isRetrograde ? 'Vakri (R)' : 'Direct (D)'} ${status}`;
+}).join('\n')}
+
+--------------------------------------------------------------------------------
 REAL-TIME ACTIVE VIMSHOTTARI DASHA CYCLES:
 --------------------------------------------------------------------------------
 1. MAHADASHA (Major Period - 120-Yr Parashara Cycle)
@@ -567,8 +595,8 @@ Bangalore, Karnataka, Bharat
             <button
               onClick={handleDownloadPdf}
               disabled={isExportingPdf}
-              className="px-3.5 py-2 rounded-xl bg-amber-950/40 hover:bg-amber-950/60 backdrop-blur-md text-white font-bold text-xs flex items-center gap-2 transition-all border border-amber-300/40 shadow-sm cursor-pointer disabled:opacity-50"
-              title="Download PDF Dasha Report"
+              className="px-4 py-2 rounded-xl bg-amber-950/60 hover:bg-amber-950/80 backdrop-blur-md text-white font-extrabold text-xs flex items-center gap-2 transition-all border border-amber-300 shadow-md cursor-pointer disabled:opacity-50 ring-2 ring-amber-300/40"
+              title="Download Formatted PDF Summary of Mahadasha, Antardasha & Chart Positions"
             >
               {isExportingPdf ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-200" />
@@ -577,8 +605,8 @@ Bangalore, Karnataka, Bharat
               )}
               <span>
                 {isExportingPdf
-                  ? (currentLang === 'kn' ? 'ಸಿದ್ಧವಾಗುತ್ತಿದೆ...' : currentLang === 'hi' ? 'तैयार हो रहा है...' : 'Generating...')
-                  : (currentLang === 'kn' ? 'ಪಿಡಿಎಫ್ ಡೌನ್‌ಲೋಡ್' : currentLang === 'hi' ? 'पीडीएफ डाउनलोड' : 'Download PDF')}
+                  ? (currentLang === 'kn' ? 'ಸಿದ್ಧವಾಗುತ್ತಿದೆ...' : currentLang === 'hi' ? 'तैयार हो रहा है...' : 'Generating Report...')
+                  : (currentLang === 'kn' ? 'ವರದಿ ಡೌನ್‌ಲೋಡ್ (Download Report)' : currentLang === 'hi' ? 'रिपोर्ट डाउनलोड (Download Report)' : 'Download Report')}
               </span>
             </button>
 
@@ -943,33 +971,270 @@ Bangalore, Karnataka, Bharat
       </div>
 
       {/* ========================================================================= */}
-      {/* 1. EXACT JANMA LAGNA KUNDALI CHART WITH HIGHLIGHTED ACTIVE DASHA LORDS    */}
+      {/* INTERACTIVE VISUALIZATION MODES: TIMELINE • DASHA CALENDAR • KUNDALI     */}
       {/* ========================================================================= */}
-      <DashaKundaliDrawer
-        birthDate={profile.birthDate}
-        birthTime={profile.birthTime}
-        birthCity={birthCityLocation}
-        currentLang={currentLang}
-        activeMahadashaLord={currentMaha.lord.name}
-        activeAntardashaLord={currentAntar.lord.name}
-      />
+      <div className="no-print space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 rounded-2xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shadow-xs">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setActiveVizTab('timeline')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                activeVizTab === 'timeline'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>{currentLang === 'kn' ? '೧. D3 ದಶಾ ಕಾಲರೇಖೆ' : '1. D3 Chrono-Timeline'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveVizTab('calendar')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer relative ${
+                activeVizTab === 'calendar'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>{currentLang === 'kn' ? '೨. ದಶಾ ಕ್ಯಾಲೆಂಡರ್ & ಬದಲಾವಣೆಗಳು' : '2. Dasha Calendar & Shift Dates'}</span>
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse ml-0.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveVizTab('kundali')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                activeVizTab === 'kundali'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>{currentLang === 'kn' ? '೩. ಜನ್ಮ ಲಗ್ನ ಕುಂಡಲಿ' : '3. Janma Lagna Kundali'}</span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={isExportingPdf}
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50 self-end sm:self-auto"
+            title="Download Formatted PDF Summary of Mahadasha, Antardasha & Chart Positions"
+          >
+            {isExportingPdf ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <FileDown className="w-3.5 h-3.5" />
+            )}
+            <span>{currentLang === 'kn' ? 'ವರದಿ ಡೌನ್‌ಲೋಡ್ (PDF)' : 'Download Report'}</span>
+          </button>
+        </div>
+
+        {/* Dynamic Display of Selected Interactive Visualization */}
+        {activeVizTab === 'timeline' && (
+          <DashaD3Timeline
+            dashaResult={dashaResult}
+            currentLang={currentLang}
+            selectedDate={isCustomDateActive ? new Date(queryDateStr + 'T12:00:00') : new Date()}
+            onSelectMahadasha={(maha) => {
+              const idx = dashaResult.mahadashas.findIndex(m => m.lord.name === maha.lord.name);
+              if (idx !== -1) setExpandedMahaIndex(idx);
+              setSelectedEffectMaha(maha.lord.name);
+            }}
+            onSelectAntardasha={(antar) => {
+              setSelectedEffectAntar(antar.lord.name);
+            }}
+          />
+        )}
+
+        {activeVizTab === 'calendar' && (
+          <DashaCalendarView
+            dashaResult={dashaResult}
+            profile={profile}
+            currentLang={currentLang}
+            onSelectDate={(newDate) => {
+              setQueryDateStr(newDate);
+              setIsCustomDateActive(true);
+            }}
+          />
+        )}
+
+        {activeVizTab === 'kundali' && (
+          <DashaKundaliDrawer
+            birthDate={profile.birthDate}
+            birthTime={profile.birthTime}
+            birthCity={birthCityLocation}
+            currentLang={currentLang}
+            activeMahadashaLord={currentMaha.lord.name}
+            activeAntardashaLord={currentAntar.lord.name}
+          />
+        )}
+      </div>
 
       {/* ========================================================================= */}
-      {/* 2. D3.JS INTERACTIVE 120-YEAR VIMSHOTTARI TIMELINE VISUALIZATION          */}
+      {/* CALCULATED PLANETARY CHART POSITIONS (JANMA KUNDALI GRAHA STHITHI) TABLE */}
       {/* ========================================================================= */}
-      <DashaD3Timeline
-        dashaResult={dashaResult}
-        currentLang={currentLang}
-        selectedDate={isCustomDateActive ? new Date(queryDateStr + 'T12:00:00') : new Date()}
-        onSelectMahadasha={(maha) => {
-          const idx = dashaResult.mahadashas.findIndex(m => m.lord.name === maha.lord.name);
-          if (idx !== -1) setExpandedMahaIndex(idx);
-          setSelectedEffectMaha(maha.lord.name);
-        }}
-        onSelectAntardasha={(antar) => {
-          setSelectedEffectAntar(antar.lord.name);
-        }}
-      />
+      <div className="rounded-3xl bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-700 p-4 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 dark:border-stone-800 pb-3">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 text-[10px] font-extrabold border border-amber-300 dark:border-amber-700">
+              <Compass className="w-3 h-3 text-amber-600" />
+              <span>{currentLang === 'kn' ? 'ಜಾತಕ ಗ್ರಹ ಸ್ಥಿತಿ • ೯ ಗ್ರಹಗಳು' : 'Calculated Chart Positions • 9 Grahas'}</span>
+            </div>
+            <h3 className="text-base sm:text-lg font-black text-stone-900 dark:text-stone-100 mt-1 flex items-center gap-2">
+              <span>{currentLang === 'kn' ? 'ಗಣಿತ ಜನ್ಮ ಕುಂಡಲಿ ಗ್ರಹ ಸ್ಥಾನಗಳು' : currentLang === 'hi' ? 'गणित जन्म कुण्डली ग्रह स्थिति' : 'Calculated Planetary Chart Positions'}</span>
+            </h3>
+            <p className="text-xs text-stone-500 mt-0.5">
+              {currentLang === 'kn'
+                ? `ಲಗ್ನ: ${RASHIS[kundaliData.lagnaRashiIndex]?.[currentLang] || RASHIS[kundaliData.lagnaRashiIndex]?.kn || ''} (${kundaliData.lagnaDegree.toFixed(2)}°) • ನಕ್ಷತ್ರ: ${kundaliData.lagnaNakshatra[currentLang]}`
+                : `Ascendant (Lagna): ${RASHIS[kundaliData.lagnaRashiIndex]?.en} (${kundaliData.lagnaDegree.toFixed(2)}°) • Janma Nakshatra: ${kundaliData.lagnaNakshatra[currentLang]}`}
+            </p>
+          </div>
+
+          <div className="no-print flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={handleDownloadPdf}
+              disabled={isExportingPdf}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+              title="Download Formatted PDF Summary of Mahadasha, Antardasha & Chart Positions"
+            >
+              {isExportingPdf ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <FileDown className="w-3.5 h-3.5" />
+              )}
+              <span>{currentLang === 'kn' ? 'ವರದಿ ಡೌನ್‌ಲೋಡ್ (PDF)' : 'Download Report'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Formatted Responsive Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr className="bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-b border-stone-200 dark:border-stone-700 font-extrabold">
+                <th className="py-2.5 px-3">Graha / Body</th>
+                <th className="py-2.5 px-3">Degree (° & ')</th>
+                <th className="py-2.5 px-3">Rashi (Sign)</th>
+                <th className="py-2.5 px-3">Bhava (House)</th>
+                <th className="py-2.5 px-3">Nakshatra & Pada</th>
+                <th className="py-2.5 px-3">Motion</th>
+                <th className="py-2.5 px-3 text-right">Dasha Period Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+              {/* Lagna Row */}
+              <tr className="bg-amber-50/50 dark:bg-amber-950/20 font-bold">
+                <td className="py-2.5 px-3 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-stone-900 text-white flex items-center justify-center text-[10px] font-black">
+                    Asc
+                  </div>
+                  <span>{currentLang === 'kn' ? 'ಲಗ್ನ (Lagna)' : 'Lagna (Ascendant)'}</span>
+                </td>
+                <td className="py-2.5 px-3 font-mono font-bold text-amber-800 dark:text-amber-300">
+                  {Math.floor(kundaliData.lagnaDegree)}° {Math.round((kundaliData.lagnaDegree % 1) * 60).toString().padStart(2, '0')}'
+                </td>
+                <td className="py-2.5 px-3 font-semibold">
+                  {RASHIS[kundaliData.lagnaRashiIndex]?.[currentLang] || RASHIS[kundaliData.lagnaRashiIndex]?.en}
+                </td>
+                <td className="py-2.5 px-3">
+                  <span className="px-2 py-0.5 rounded-md bg-stone-200 dark:bg-stone-700 font-mono text-[11px]">House 1</span>
+                </td>
+                <td className="py-2.5 px-3">
+                  {kundaliData.lagnaNakshatra[currentLang]}
+                </td>
+                <td className="py-2.5 px-3 text-stone-500">
+                  Direct (D)
+                </td>
+                <td className="py-2.5 px-3 text-right">
+                  <span className="px-2 py-0.5 rounded-full bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 text-[10px] font-bold">
+                    Ascendant
+                  </span>
+                </td>
+              </tr>
+
+              {/* 9 Planets Rows */}
+              {kundaliData.planets.map((p) => {
+                const isMaha = p.name.toLowerCase() === currentMaha.lord.name.toLowerCase();
+                const isAntar = p.name.toLowerCase() === currentAntar.lord.name.toLowerCase();
+                const degInt = Math.floor(p.degrees);
+                const degMin = Math.round((p.degrees - degInt) * 60);
+
+                return (
+                  <tr
+                    key={p.name}
+                    className={`transition-colors ${
+                      isMaha && isAntar
+                        ? 'bg-amber-200/70 dark:bg-amber-950/60 font-black'
+                        : isMaha
+                        ? 'bg-amber-100/70 dark:bg-amber-950/40 font-bold'
+                        : isAntar
+                        ? 'bg-orange-50/70 dark:bg-orange-950/30 font-semibold'
+                        : 'hover:bg-stone-50 dark:hover:bg-stone-800/50'
+                    }`}
+                  >
+                    <td className="py-2.5 px-3 flex items-center gap-2">
+                      <div
+                        className="w-6 h-6 rounded-md text-white flex items-center justify-center text-xs font-black shadow-2xs"
+                        style={{ backgroundColor: p.color || '#d97706' }}
+                      >
+                        {p.symbol}
+                      </div>
+                      <span className="font-bold text-stone-900 dark:text-stone-100">
+                        {p.sanskritName[currentLang]} ({p.name})
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono font-bold text-stone-800 dark:text-stone-200">
+                      {degInt}° {degMin.toString().padStart(2, '0')}'
+                    </td>
+                    <td className="py-2.5 px-3">
+                      {p.rashiName[currentLang]}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span className="px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 font-mono text-[11px]">
+                        House {p.bhava}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span>{p.nakshatra[currentLang]}</span>
+                      <span className="text-[10px] text-stone-400 font-mono ml-1">P{p.pada}</span>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      {p.isRetrograde ? (
+                        <span className="px-1.5 py-0.5 rounded-sm bg-rose-100 dark:bg-rose-950/70 text-rose-800 dark:text-rose-300 font-extrabold text-[10px]">
+                          Vakri (R)
+                        </span>
+                      ) : (
+                        <span className="text-stone-500 text-[11px]">Direct</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      {isMaha && isAntar ? (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500 text-stone-950 font-black text-[10px] shadow-2xs">
+                          Maha & Antar Lord
+                        </span>
+                      ) : isMaha ? (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white font-extrabold text-[10px] shadow-2xs">
+                          Mahadasha Lord
+                        </span>
+                      ) : isAntar ? (
+                        <span className="px-2 py-0.5 rounded-full bg-orange-500 text-white font-extrabold text-[10px] shadow-2xs">
+                          Antardasha Lord
+                        </span>
+                      ) : (
+                        <span className="text-stone-400 text-[11px]">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* ========================================================================= */}
       {/* REAL-TIME DASHA & ANTARDASHA COMPLETION PROGRESS BAR SECTION */}
@@ -1008,11 +1273,11 @@ Bangalore, Karnataka, Bharat
             <button
               onClick={handleDownloadPdf}
               disabled={isExportingPdf}
-              className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-stone-800 hover:bg-amber-100 dark:hover:bg-stone-700 text-amber-900 dark:text-amber-200 text-xs font-bold border border-amber-300/80 dark:border-stone-700 flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
-              title="Download PDF Dasha Report"
+              className="px-3.5 py-1.5 rounded-xl bg-amber-50 dark:bg-stone-800 hover:bg-amber-100 dark:hover:bg-stone-700 text-amber-900 dark:text-amber-200 text-xs font-bold border border-amber-300/80 dark:border-stone-700 flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+              title="Download Formatted PDF Summary of Mahadasha, Antardasha & Chart Positions"
             >
               <FileDown className="w-3.5 h-3.5 text-amber-600" />
-              <span>{currentLang === 'kn' ? 'ಪಿಡಿಎಫ್' : 'PDF'}</span>
+              <span>{currentLang === 'kn' ? 'ವರದಿ ಡೌನ್‌ಲೋಡ್ (PDF)' : 'Download Report'}</span>
             </button>
 
             <button
