@@ -34,7 +34,8 @@ import {
   Navigation,
   Globe,
   Eye,
-  Sliders
+  Sliders,
+  Lock
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -60,6 +61,8 @@ import { SvgGrahaIcon } from './RealisticGraha';
 import { DashaD3Timeline } from './DashaD3Timeline';
 import { DashaKundaliDrawer } from './DashaKundaliDrawer';
 import { DashaCalendarView } from './DashaCalendarView';
+import { DashaHorizontalTimeline } from './DashaHorizontalTimeline';
+import { GuptaMantraSection } from './GuptaMantraSection';
 import {
   MAHADASHA_EFFECTS,
   getDashaAntardashaSynthesis,
@@ -187,8 +190,8 @@ export const VimshottariDashaCalculator: React.FC<VimshottariDashaCalculatorProp
     };
   }, [profile]);
 
-  // Visual Navigation: Dasha Calendar vs D3 Timeline vs Janma Kundali
-  const [activeVizTab, setActiveVizTab] = useState<'calendar' | 'timeline' | 'kundali'>('calendar');
+  // Visual Navigation: Dasha Calendar vs D3 Timeline vs Janma Kundali vs 4. Gupta Mantra
+  const [activeVizTab, setActiveVizTab] = useState<'calendar' | 'timeline' | 'kundali' | 'gupta'>('calendar');
 
   // Exact Calculated Janma Kundali Chart Positions for Devotee
   const kundaliData: KundaliData = useMemo(() => {
@@ -984,7 +987,29 @@ Bangalore, Karnataka, Bharat
       </div>
 
       {/* ========================================================================= */}
-      {/* INTERACTIVE VISUALIZATION MODES: DASHA CALENDAR • TIMELINE • KUNDALI     */}
+      {/* HORIZONTAL MAHADASHA SHIFT TIMELINE WITH PLANETARY RULER ICONS            */}
+      {/* ========================================================================= */}
+      <DashaHorizontalTimeline
+        dashaResult={dashaResult}
+        birthDateStr={profile.birthDate}
+        currentLang={currentLang}
+        selectedDate={isCustomDateActive ? new Date(queryDateStr + 'T12:00:00') : new Date()}
+        onSelectMahadasha={(maha) => {
+          const idx = dashaResult.mahadashas.findIndex(m => m.lord.name === maha.lord.name);
+          if (idx !== -1) setExpandedMahaIndex(idx);
+          setSelectedEffectMaha(maha.lord.name);
+        }}
+        onSelectAntardasha={(antar) => {
+          setSelectedEffectAntar(antar.lord.name);
+        }}
+        onInspectShiftDate={(newDate) => {
+          setQueryDateStr(newDate);
+          setIsCustomDateActive(true);
+        }}
+      />
+
+      {/* ========================================================================= */}
+      {/* INTERACTIVE VISUALIZATION MODES: CALENDAR • TIMELINE • KUNDALI • GUPTA    */}
       {/* ========================================================================= */}
       <div id="dasha-viz-section" className="no-print space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 rounded-2xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shadow-xs">
@@ -992,7 +1017,7 @@ Bangalore, Karnataka, Bharat
             <button
               type="button"
               onClick={() => setActiveVizTab('calendar')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer relative ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeVizTab === 'calendar'
                   ? 'bg-amber-600 text-white shadow-xs'
                   : 'text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
@@ -1000,13 +1025,12 @@ Bangalore, Karnataka, Bharat
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>{currentLang === 'kn' ? '೧. ದಶಾ ಕ್ಯಾಲೆಂಡರ್ & ಬದಲಾವಣೆಗಳು' : '1. Dasha Calendar & Shift Dates'}</span>
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse ml-0.5" />
             </button>
 
             <button
               type="button"
               onClick={() => setActiveVizTab('timeline')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeVizTab === 'timeline'
                   ? 'bg-amber-600 text-white shadow-xs'
                   : 'text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
@@ -1019,7 +1043,7 @@ Bangalore, Karnataka, Bharat
             <button
               type="button"
               onClick={() => setActiveVizTab('kundali')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeVizTab === 'kundali'
                   ? 'bg-amber-600 text-white shadow-xs'
                   : 'text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
@@ -1028,13 +1052,26 @@ Bangalore, Karnataka, Bharat
               <Compass className="w-3.5 h-3.5" />
               <span>{currentLang === 'kn' ? '೩. ಜನ್ಮ ಲಗ್ನ ಕುಂಡಲಿ' : '3. Janma Lagna Kundali'}</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveVizTab('gupta')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                activeVizTab === 'gupta'
+                  ? 'bg-stone-900 dark:bg-amber-600 text-white shadow-xs'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
+              }`}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>{currentLang === 'kn' ? '೪. ಗುಪ್ತ ಮಂತ್ರ' : currentLang === 'hi' ? '४. गुप्त मंत्र' : '4. Gupta Mantra'}</span>
+            </button>
           </div>
 
           <button
             type="button"
             onClick={handleDownloadPdf}
             disabled={isExportingPdf}
-            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50 self-end sm:self-auto"
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50 self-end sm:self-auto whitespace-nowrap shrink-0"
             title="Download Formatted PDF Summary of Mahadasha, Antardasha & Chart Positions"
           >
             {isExportingPdf ? (
@@ -1084,6 +1121,10 @@ Bangalore, Karnataka, Bharat
             activeMahadashaLord={currentMaha.lord.name}
             activeAntardashaLord={currentAntar.lord.name}
           />
+        )}
+
+        {activeVizTab === 'gupta' && (
+          <GuptaMantraSection currentLang={currentLang} />
         )}
       </div>
 

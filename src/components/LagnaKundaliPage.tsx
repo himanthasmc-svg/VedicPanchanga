@@ -100,6 +100,7 @@ import { getHouseCoord } from '../utils/drishtiCoordinates';
 import { VedicYogaPostureModule } from './VedicYogaPostureModule';
 import { HouseAstrologicalAnalysisPanel } from './HouseAstrologicalAnalysisPanel';
 import { AstroOfflineArchiveDrawer } from './AstroOfflineArchiveDrawer';
+import { GuptaMantraSection } from './GuptaMantraSection';
 
 interface LagnaKundaliPageProps {
   currentLang: Language;
@@ -109,7 +110,7 @@ interface LagnaKundaliPageProps {
   userPassword?: string;
   onOpenAdmin?: () => void;
   initialSectionTab?: 'chart' | 'dasha' | 'remedies' | 'yoga';
-  initialRemediesSubTab?: 'upayas' | 'dasha' | 'transits' | 'prashna' | 'compatibility';
+  initialRemediesSubTab?: 'upayas' | 'dasha' | 'transits' | 'prashna' | 'compatibility' | 'gupta';
 }
 
 export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
@@ -154,7 +155,7 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
     if (initialSectionTab === 'yoga') return 'yoga';
     return (initialSectionTab as any) === 'remedies' ? 'remedies' : 'chart';
   });
-  const [remediesSubTab, setRemediesSubTab] = useState<'upayas' | 'dasha' | 'transits' | 'prashna' | 'compatibility'>(() => {
+  const [remediesSubTab, setRemediesSubTab] = useState<'upayas' | 'dasha' | 'transits' | 'prashna' | 'compatibility' | 'gupta'>(() => {
     if (initialSectionTab === 'dasha') return 'dasha';
     return initialRemediesSubTab || 'upayas';
   });
@@ -4240,6 +4241,19 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                     <Heart className="w-3.5 h-3.5 text-rose-500" />
                     <span>{currentLang === 'kn' ? '೩.೫ ಗುಣ ಮಿಲನ' : '3.5 Guna Milan'}</span>
                   </button>
+
+                  {/* 4. Gupta Mantra */}
+                  <button
+                    onClick={() => setRemediesSubTab('gupta')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                      remediesSubTab === 'gupta'
+                        ? 'bg-stone-900 dark:bg-amber-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-amber-100 dark:hover:bg-stone-700 border border-stone-200 dark:border-stone-700'
+                    }`}
+                  >
+                    <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>{currentLang === 'kn' ? '೪. ಗುಪ್ತ ಮಂತ್ರ' : currentLang === 'hi' ? '४. गुप्त मंत्र' : '4. Gupta Mantra'}</span>
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
@@ -4302,6 +4316,13 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                     initialTob={timeStr}
                     initialCity={selectedCity}
                   />
+                </div>
+              )}
+
+              {/* SUB-TAB: 4. GUPTA MANTRA (LOCKED SECTION) */}
+              {remediesSubTab === 'gupta' && (
+                <div className="animate-in fade-in">
+                  <GuptaMantraSection currentLang={currentLang} />
                 </div>
               )}
 
