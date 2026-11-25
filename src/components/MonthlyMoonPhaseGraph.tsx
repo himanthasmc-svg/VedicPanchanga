@@ -201,11 +201,12 @@ export const MonthlyMoonPhaseGraph: React.FC<MonthlyMoonPhaseGraphProps> = ({
         </div>
       </div>
 
-      {/* Interactive Responsive SVG Curve */}
-      <div className="relative overflow-x-auto select-none pb-1">
+      {/* Interactive Responsive SVG Curve - Fits mobile screens cleanly without horizontal scroll */}
+      <div className="relative w-full select-none pb-1">
         <svg
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          className="w-full h-auto min-w-[700px] sm:min-w-0"
+          className="w-full h-auto block"
+          preserveAspectRatio="xMidYMid meet"
         >
           <defs>
             {/* Area Fill Gradient */}

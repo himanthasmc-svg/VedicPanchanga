@@ -89,7 +89,6 @@ import { GocharTransitsView } from './GocharTransitsView';
 import { getNakshatraPadaAkshara } from '../utils/nakshatraAksharas';
 import { WorldwidePlacePicker } from './WorldwidePlacePicker';
 import { ChandraKundaliChart } from './ChandraKundaliChart';
-import { BhavaExplorer } from './BhavaExplorer';
 import { DashaDashboard } from './DashaDashboard';
 import { VimshottariDashaCalculator } from './VimshottariDashaCalculator';
 import { CelestialSkyMandala3D } from './CelestialSkyMandala3D';
@@ -98,9 +97,9 @@ import { DrishtiVisualizer } from './DrishtiVisualizer';
 import { GrahaRemedyNutritionView } from './GrahaRemedyNutritionView';
 import { getHouseCoord } from '../utils/drishtiCoordinates';
 import { VedicYogaPostureModule } from './VedicYogaPostureModule';
-import { HouseAstrologicalAnalysisPanel } from './HouseAstrologicalAnalysisPanel';
 import { AstroOfflineArchiveDrawer } from './AstroOfflineArchiveDrawer';
 import { GuptaMantraSection } from './GuptaMantraSection';
+import { KaalSarpaDoshaSection } from './KaalSarpaDoshaSection';
 
 interface LagnaKundaliPageProps {
   currentLang: Language;
@@ -2023,6 +2022,9 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
               dateStr={dateStr}
               timeStr={timeStr}
               cityName={selectedCity.name}
+              selectedCity={selectedCity}
+              defaultViewMode="3d"
+              showRashiStarMapInline={true}
             />
           </div>
         )}
@@ -2037,12 +2039,12 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
           </div>
         )}
 
-        {/* Main Kundali Chart Display & Style Switcher (When Lagna or Both is active) */}
+        {/* Main Kundali Chart Display & Planetary Table (Vertical Full-Width Stack — No Empty Side Column) */}
         {(tab1ChartTab === 'lagna' || tab1ChartTab === 'both') && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start page-break-inside-avoid">
+        <div className="flex flex-col gap-6 page-break-inside-avoid">
           
-          {/* Left: SVG Kundali Chart (7 Cols) */}
-          <div className="lg:col-span-7 bg-white dark:bg-stone-900 rounded-2xl p-6 border border-amber-200/80 dark:border-stone-800 shadow-xl space-y-4">
+          {/* Full-Width: Drishti Visualizer, SVG Kundali Chart & Birth Details Configurator */}
+          <div className="w-full bg-white dark:bg-stone-900 rounded-2xl p-4 sm:p-6 border border-amber-200/80 dark:border-stone-800 shadow-xl space-y-5">
             
             {/* INTERACTIVE DRISHTI VISUALIZER */}
             <DrishtiVisualizer
@@ -2121,16 +2123,29 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                           </radialGradient>
                         </defs>
 
-                        {/* Origin House Highlight Ring */}
-                        <circle cx={originCoord.x} cy={originCoord.y} r="28" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.8" />
+                        {/* Origin House Animated Pulse Ring */}
+                        <circle cx={originCoord.x} cy={originCoord.y} r="28" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.85">
+                          <animate attributeName="r" values="25;32;25" dur="2.2s" repeatCount="indefinite" />
+                        </circle>
 
                         {aspects.map((asp, i) => {
                           const targetCoord = getHouseCoord('north', asp.targetBhava, kundaliData);
                           const midX = (originCoord.x + targetCoord.x) / 2;
                           const midY = (originCoord.y + targetCoord.y) / 2;
+                          const rayPath = `M ${originCoord.x} ${originCoord.y} L ${targetCoord.x} ${targetCoord.y}`;
 
                           return (
                             <g key={i}>
+                              {/* Soft Glowing Under-Beam */}
+                              <line
+                                x1={originCoord.x}
+                                y1={originCoord.y}
+                                x2={targetCoord.x}
+                                y2={targetCoord.y}
+                                stroke="#fb7185"
+                                strokeWidth="6"
+                                opacity="0.22"
+                              />
                               {/* Animated Flowing Aspect Ray */}
                               <line
                                 x1={originCoord.x}
@@ -2138,25 +2153,29 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                                 x2={targetCoord.x}
                                 y2={targetCoord.y}
                                 stroke="#e11d48"
-                                strokeWidth="2.5"
-                                strokeDasharray="6 4"
+                                strokeWidth="2.6"
+                                strokeDasharray="7 5"
                                 markerEnd="url(#aspect-arrow)"
                                 opacity="0.95"
                               >
-                                <animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.2s" repeatCount="indefinite" />
+                                <animate attributeName="stroke-dashoffset" from="48" to="0" dur="1.1s" repeatCount="indefinite" />
                               </line>
+                              {/* Travelling Energy Pulse Particle */}
+                              <circle r="4.5" fill="#fbbf24" stroke="#be123c" strokeWidth="1.5">
+                                <animateMotion dur="1.4s" repeatCount="indefinite" path={rayPath} />
+                              </circle>
                               {/* Target House Pulsing Halo with Animation */}
-                              <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="url(#aspect-pulse)" opacity="0.6">
-                                <animate attributeName="r" values="20;30;20" dur="2s" repeatCount="indefinite" />
-                                <animate attributeName="opacity" values="0.7;0.25;0.7" dur="2s" repeatCount="indefinite" />
+                              <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="url(#aspect-pulse)" opacity="0.65">
+                                <animate attributeName="r" values="18;31;18" dur="1.9s" repeatCount="indefinite" />
+                                <animate attributeName="opacity" values="0.75;0.2;0.75" dur="1.9s" repeatCount="indefinite" />
                               </circle>
                               <circle cx={targetCoord.x} cy={targetCoord.y} r="22" fill="none" stroke="#e11d48" strokeWidth="2" strokeDasharray="3 3">
-                                <animate attributeName="stroke-dashoffset" from="24" to="0" dur="2s" repeatCount="indefinite" />
+                                <animate attributeName="stroke-dashoffset" from="24" to="0" dur="1.8s" repeatCount="indefinite" />
                               </circle>
                               
                               {/* Midpoint Aspect Badge */}
-                              <rect x={midX - 16} y={midY - 9} width="32" height="18" rx="6" fill="#be123c" />
-                              <text x={midX} y={midY + 4} fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">
+                              <rect x={midX - 18} y={midY - 9} width="36" height="18" rx="6" fill="#be123c" />
+                              <text x={midX} y={midY + 4} fill="#ffffff" fontSize="9.5" fontWeight="bold" textAnchor="middle">
                                 {asp.distance}th
                               </text>
                             </g>
@@ -2396,13 +2415,25 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                           <path d="M 0 1 L 10 5 L 0 9 z" fill="#e11d48" />
                         </marker>
                       </defs>
-                      <circle cx={originCoord.x} cy={originCoord.y} r="32" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.85" />
+                      <circle cx={originCoord.x} cy={originCoord.y} r="32" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.85">
+                        <animate attributeName="r" values="28;35;28" dur="2.2s" repeatCount="indefinite" />
+                      </circle>
                       {aspects.map((asp, i) => {
                         const targetCoord = getHouseCoord('south', asp.targetBhava, kundaliData);
                         const midX = (originCoord.x + targetCoord.x) / 2;
                         const midY = (originCoord.y + targetCoord.y) / 2;
+                        const rayPath = `M ${originCoord.x} ${originCoord.y} L ${targetCoord.x} ${targetCoord.y}`;
                         return (
                           <g key={i}>
+                            <line
+                              x1={originCoord.x}
+                              y1={originCoord.y}
+                              x2={targetCoord.x}
+                              y2={targetCoord.y}
+                              stroke="#fb7185"
+                              strokeWidth="6"
+                              opacity="0.22"
+                            />
                             {/* Animated Flowing Aspect Ray */}
                             <line
                               x1={originCoord.x}
@@ -2410,19 +2441,22 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                               x2={targetCoord.x}
                               y2={targetCoord.y}
                               stroke="#e11d48"
-                              strokeWidth="2.5"
-                              strokeDasharray="6 4"
+                              strokeWidth="2.6"
+                              strokeDasharray="7 5"
                               markerEnd="url(#south-aspect-arrow)"
                               opacity="0.95"
                             >
-                              <animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.2s" repeatCount="indefinite" />
+                              <animate attributeName="stroke-dashoffset" from="48" to="0" dur="1.1s" repeatCount="indefinite" />
                             </line>
-                            <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="#f43f5e" fillOpacity="0.18" stroke="#e11d48" strokeWidth="2" strokeDasharray="3 3">
-                              <animate attributeName="r" values="20;30;20" dur="2s" repeatCount="indefinite" />
-                              <animate attributeName="stroke-dashoffset" from="24" to="0" dur="2s" repeatCount="indefinite" />
+                            <circle r="4.5" fill="#fbbf24" stroke="#be123c" strokeWidth="1.5">
+                              <animateMotion dur="1.4s" repeatCount="indefinite" path={rayPath} />
                             </circle>
-                            <rect x={midX - 16} y={midY - 9} width="32" height="18" rx="6" fill="#be123c" />
-                            <text x={midX} y={midY + 4} fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">
+                            <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="#f43f5e" fillOpacity="0.18" stroke="#e11d48" strokeWidth="2" strokeDasharray="3 3">
+                              <animate attributeName="r" values="18;31;18" dur="1.9s" repeatCount="indefinite" />
+                              <animate attributeName="stroke-dashoffset" from="24" to="0" dur="1.8s" repeatCount="indefinite" />
+                            </circle>
+                            <rect x={midX - 18} y={midY - 9} width="36" height="18" rx="6" fill="#be123c" />
+                            <text x={midX} y={midY + 4} fill="#ffffff" fontSize="9.5" fontWeight="bold" textAnchor="middle">
                               {asp.distance}th
                             </text>
                           </g>
@@ -2621,16 +2655,7 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
               </div>
             )}
 
-            {/* ========================================================================= */}
-            {/* ASTROLOGICAL ANALYSIS PANEL: DIRECTLY BELOW CHART ON HOUSE SELECTION */}
-            {/* ========================================================================= */}
-            <HouseAstrologicalAnalysisPanel
-              currentLang={currentLang}
-              kundaliData={kundaliData}
-              selectedBhavaNumber={selectedBhavaNumber}
-              onSelectBhava={(bhava) => setSelectedBhavaNumber(bhava)}
-              onSelectPlanet={(planet) => setSelectedDrishtiPlanet(planet)}
-            />
+            {/* Bhava details have been consolidated into Tab 2 ("2. Vedic Remedies, Dasha & Gochar") */}
 
             {/* ========================================================================= */}
             {/* BELOW CHART: DATE, TIME & GEOGRAPHICAL PLACE CONFIGURATOR */}
@@ -2793,8 +2818,8 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
 
           </div>
 
-          {/* Right: Planetary Ephemeris Table (5 Cols) */}
-          <div className="lg:col-span-5 bg-white dark:bg-stone-900 rounded-2xl p-6 border border-amber-200/80 dark:border-stone-800 shadow-xl space-y-4">
+          {/* Full-Width: Planetary Ephemeris Table (Stacked Directly Below Chart) */}
+          <div className="w-full bg-white dark:bg-stone-900 rounded-2xl p-4 sm:p-6 border border-amber-200/80 dark:border-stone-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
               <h3 className="font-serif font-bold text-lg text-stone-900 dark:text-stone-100">
                 {currentLang === 'kn' ? 'ನವಗ್ರಹ ಸ್ಥಿತಿ (Planetary Ephemeris)' : currentLang === 'hi' ? 'नवग्रह स्थिति' : 'Planetary Positions'}
@@ -2808,17 +2833,17 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
               <table className="w-full text-left text-xs">
                 <thead className="bg-amber-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-bold border-b border-stone-200 dark:border-stone-700">
                   <tr>
-                    <th className="p-2">ಗ್ರಹ (Graha)</th>
-                    <th className="p-2">ರಾಶಿ (Rashi)</th>
-                    <th className="p-2">ಅಂಶ (Deg)</th>
-                    <th className="p-2">ನಕ್ಷತ್ರ (Nakshatra)</th>
-                    <th className="p-2 text-center">ಭಾವ (H)</th>
+                    <th className="p-2 sm:p-2.5">ಗ್ರಹ (Graha)</th>
+                    <th className="p-2 sm:p-2.5">ರಾಶಿ (Rashi)</th>
+                    <th className="p-2 sm:p-2.5">ಅಂಶ (Deg)</th>
+                    <th className="p-2 sm:p-2.5">ನಕ್ಷತ್ರ (Nakshatra)</th>
+                    <th className="p-2 sm:p-2.5 text-center">ಭಾವ (H)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
                   {kundaliData.planets.map((planet) => (
                     <tr key={planet.name} className="hover:bg-amber-500/5">
-                      <td className="p-2 font-bold font-serif text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                      <td className="p-2 sm:p-2.5 font-bold font-serif text-stone-900 dark:text-stone-100 flex items-center gap-2">
                         <SvgGrahaIcon name={planet.name} size={24} isRetrograde={planet.isRetrograde} />
                         <span>{planet.sanskritName[currentLang]}</span>
                         {planet.isRetrograde && (
@@ -2827,16 +2852,16 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                           </span>
                         )}
                       </td>
-                      <td className="p-2 font-semibold text-stone-700 dark:text-stone-300">
+                      <td className="p-2 sm:p-2.5 font-semibold text-stone-700 dark:text-stone-300">
                         {planet.rashiName[currentLang]}
                       </td>
-                      <td className="p-2 font-mono text-stone-600 dark:text-stone-400">
+                      <td className="p-2 sm:p-2.5 font-mono text-stone-600 dark:text-stone-400">
                         {planet.degrees}°
                       </td>
-                      <td className="p-2 text-stone-600 dark:text-stone-400 text-[11px]">
+                      <td className="p-2 sm:p-2.5 text-stone-600 dark:text-stone-400 text-[11px]">
                         {planet.nakshatra[currentLang]}
                       </td>
-                      <td className="p-2 text-center font-bold font-mono text-amber-700 dark:text-amber-400">
+                      <td className="p-2 sm:p-2.5 text-center font-bold font-mono text-amber-700 dark:text-amber-400">
                         {planet.bhava}
                       </td>
                     </tr>
@@ -2844,41 +2869,17 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
                 </tbody>
               </table>
             </div>
-
-            {/* 12 Bhavas Quick Summary */}
-            <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-800/40 text-xs space-y-2">
-              <span className="font-bold text-stone-900 dark:text-stone-100 block border-b border-stone-200 dark:border-stone-700 pb-1">
-                {currentLang === 'kn' ? '೧೨ ಭಾವಗಳ ಸಾರಾಂಶ:' : currentLang === 'hi' ? '१२ भावों का संक्षिप्त विवरण:' : '12 Bhavas (Houses) Overview:'}
-              </span>
-              <div className="grid grid-cols-2 gap-2 text-[11px] text-stone-600 dark:text-stone-400">
-                <div>೧: ತನು ಭಾವ (Lagna - Self)</div>
-                <div>೨: ಧನ ಭಾವ (Wealth)</div>
-                <div>೩: ಸಹಜ ಭಾವ (Siblings)</div>
-                <div>೪: ಸುಖ ಭಾವ (Mother & Home)</div>
-                <div>೫: ಪುತ್ರ ಭಾವ (Intellect & Children)</div>
-                <div>೬: ಶತ್ರು ಭಾವ (Health & Obstacles)</div>
-                <div>೭: ಕಳತ್ರ ಭಾವ (Spouse & Partnership)</div>
-                <div>೮: ಆಯುಷ್ಯ ಭಾವ (Longevity)</div>
-                <div>೯: ಭಾಗ್ಯ ಭಾವ (Fortune & Dharma)</div>
-                <div>೧೦: ಕರ್ಮ ಭಾವ (Profession)</div>
-                <div>೧೧: ಲಾಭ ಭಾವ (Gains)</div>
-                <div>೧೨: ವ್ಯಯ ಭಾವ (Expenditure & Moksha)</div>
-              </div>
-            </div>
           </div>
 
         </div>
         )}
 
         {/* ========================================================================= */}
-        {/* INTERACTIVE BHAVA EXPLORER: 12 HOUSES DEEP-DIVE & EDUCATIONAL PURPOSES */}
+        {/* KAAL SARPA DOSHA ANALYZER & COMBINATION EXPLAINER (GRAHAS, NAKSHATRAS, HOUSES) */}
         {/* ========================================================================= */}
-        <BhavaExplorer
+        <KaalSarpaDoshaSection
           currentLang={currentLang}
           kundaliData={kundaliData}
-          planetaryBalas={planetaryBalas}
-          selectedBhavaNumber={selectedBhavaNumber}
-          onSelectBhava={setSelectedBhavaNumber}
         />
 
         {/* ========================================================================= */}

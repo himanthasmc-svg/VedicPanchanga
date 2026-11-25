@@ -1442,27 +1442,85 @@ export function getPanchangaForDate(date: Date, location: CityLocation = CITIES[
 }
 
 /**
- * Calculates planetary positions and Lagna for Kundali
+ * Parses a local wall-clock date/time string (e.g. "1977-12-27T12:15") in the
+ * given city's IANA timezone, returning the exact UTC Date instant.
+ * If the input already carries an explicit timezone offset or 'Z', parses directly.
+ */
+export function parseDateInCityTimezone(dateTimeStr: string, location: CityLocation): Date {
+  if (!dateTimeStr) return new Date();
+  const trimmed = dateTimeStr.trim();
+
+  // Explicit timezone (ISO UTC 'Z' or '+HH:MM' / '-HH:MM')
+  if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+    const parsed = new Date(trimmed);
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+  }
+
+  // Wall-clock date-time string: YYYY-MM-DDTHH:mm[:ss] or YYYY-MM-DD HH:mm[:ss]
+  const match = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const day = parseInt(match[3], 10);
+    const hour = match[4] !== undefined ? parseInt(match[4], 10) : 12;
+    const minute = match[5] !== undefined ? parseInt(match[5], 10) : 0;
+    const second = match[6] !== undefined ? parseInt(match[6], 10) : 0;
+
+    const tz = location.timezone || 'Asia/Kolkata';
+    const wallAsUtcMs = Date.UTC(year, month - 1, day, hour, minute, second);
+
+    // Resolve IANA timezone offset at this historical instant (2 passes for DST accuracy)
+    const offset1 = getTimezoneOffsetMinutes(tz, new Date(wallAsUtcMs));
+    const approxUtcMs = wallAsUtcMs - offset1 * 60000;
+    const offset2 = getTimezoneOffsetMinutes(tz, new Date(approxUtcMs));
+    return new Date(wallAsUtcMs - offset2 * 60000);
+  }
+
+  const fallback = new Date(trimmed);
+  return isNaN(fallback.getTime()) ? new Date() : fallback;
+}
+
+/**
+ * Calculates planetary positions and Lagna for Kundali using exact spherical
+ * trigonometry for Sidereal Ascendant (Lahiri Nirayana) and Meeus J2000 ephemeris.
  */
 export function calculateKundali(dateTimeStr: string, location: CityLocation): KundaliData {
-  const d = new Date(dateTimeStr);
-  const validDate = isNaN(d.getTime()) ? new Date() : d;
-  
-  const astro = calculateAstronomicalPositions(validDate);
-  const sunTimes = calculateSunTimes(validDate, location.lat, location.lng);
+  const validDate = parseDateInCityTimezone(dateTimeStr, location);
 
-  // Time in minutes from midnight
-  const currentMinutes = validDate.getHours() * 60 + validDate.getMinutes();
-  // Sidereal ascendant (Lagna): at sunrise the eastern horizon is aligned with Sun Sidereal
-  const minsSinceSunrise = (currentMinutes - sunTimes.sunriseMin + 1440) % 1440;
-  // Progress across 360 degrees in 1440 minutes (~0.25 deg/min)
-  const lagnaProgression = (minsSinceSunrise / 1440) * 360;
-  const siderealDeg = (astro.sunSid + lagnaProgression) % 360;
-  
+  const JD = 2440587.5 + validDate.getTime() / 86400000;
+  const dDays = JD - 2451545.0; // Days since J2000.0
+  const T = dDays / 36525.0; // Julian centuries since J2000.0
+  const toRad = Math.PI / 180;
+  const toDeg = 180 / Math.PI;
+
+  // Authentic Lahiri (Chitra Paksha) Ayanamsha: 23°51'11" at J2000.0 + precession 50.29"/yr
+  const ayanamsha = 23.85308 + 0.0139697 * (dDays / 365.25);
+
+  // Exact Sidereal Ascendant (Lagna) via GMST -> Local Sidereal Time (RAMC) -> Spherical Trig
+  // Meeus Astronomical Algorithms, Ch. 12
+  const gmstDeg = (280.46061837 + 360.98564736629 * dDays + 0.000387933 * T * T - (T * T * T) / 38710000) % 360;
+  const lstDeg = ((gmstDeg + location.lng) % 360 + 360) % 360; // RAMC in degrees
+  const ramcRad = lstDeg * toRad;
+
+  // Mean obliquity of the ecliptic
+  const epsDeg = 23.4392911 - 0.013004167 * T - 0.0000001639 * T * T;
+  const epsRad = epsDeg * toRad;
+  const latRad = location.lat * toRad;
+
+  // Standard spherical-astronomy formula for Tropical Ascendant (Eastern horizon ecliptic intersection)
+  const ascY = Math.cos(ramcRad);
+  const ascX = -(Math.sin(ramcRad) * Math.cos(epsRad) + Math.tan(latRad) * Math.sin(epsRad));
+  const ascTrop = (Math.atan2(ascY, ascX) * toDeg + 360) % 360;
+
+  // Nirayana (Sidereal) Lagna longitude
+  const siderealDeg = (ascTrop - ayanamsha + 360) % 360;
+
   const lagnaRashiIndex = Math.floor(siderealDeg / 30) % 12;
   const lagnaDegree = Number((siderealDeg % 30).toFixed(2));
-  
-  const nakIndex = Math.floor((siderealDeg / 360) * 27) % 27;
+
+  const nakSpan = 360 / 27;
+  const padaSpan = 360 / 108;
+  const nakIndex = Math.floor(siderealDeg / nakSpan) % 27;
   const nakRecord = RASHI_NAKSHATRA_CHART[nakIndex] || RASHI_NAKSHATRA_CHART[0];
   const lagnaNakshatra: LocalizedString = {
     en: nakRecord.nakshatraEn,
@@ -1470,103 +1528,157 @@ export function calculateKundali(dateTimeStr: string, location: CityLocation): K
     hi: nakRecord.nakshatraHi
   };
 
-  const JD = 2440587.5 + validDate.getTime() / 86400000;
-  const T = (JD - 2451545.0) / 36525;
-  const ayanamsha = astro.ayanamsha;
-  const toRad = Math.PI / 180;
-  const toDeg = 180 / Math.PI;
-
-  // High-precision geocentric planetary coordinates calculator
+  // High-precision geocentric planetary coordinates calculator (J2000.0 Meeus / Standish)
   const getEphemerisPositions = (timeMs: number) => {
     const jdVal = 2440587.5 + timeMs / 86400000;
-    const tVal = (jdVal - 2451545.0) / 36525;
+    const dVal = jdVal - 2451545.0;
+    const tVal = dVal / 36525.0;
+    const ayanVal = 23.85308 + 0.0139697 * (dVal / 365.25);
 
-    // Earth - Sun
-    const L0_sun = 280.46646 + 36000.76983 * tVal;
-    const M_sun = ((357.52911 + 35999.05029 * tVal) % 360 + 360) % 360;
-    const C_sun = (1.914602 - 0.004817 * tVal) * Math.sin(M_sun * toRad) + (0.019993 - 0.000101 * tVal) * Math.sin(2 * M_sun * toRad);
-    const sunTrop = (L0_sun + C_sun + 360000) % 360;
+    // Earth - Sun (Meeus Ch. 25)
+    const L0_sun = 280.46646 + 36000.76983 * tVal + 0.0003032 * tVal * tVal;
+    const M_sun = ((357.52911 + 35999.05029 * tVal - 0.0001537 * tVal * tVal) % 360 + 360) % 360;
+    const M_sunRad = M_sun * toRad;
+    const C_sun = (1.914602 - 0.004817 * tVal - 0.000014 * tVal * tVal) * Math.sin(M_sunRad)
+                + (0.019993 - 0.000101 * tVal) * Math.sin(2 * M_sunRad)
+                + 0.000289 * Math.sin(3 * M_sunRad);
+    const sunTrop = (L0_sun + C_sun + 3600000) % 360;
     const earthHelio = (sunTrop + 180) * toRad;
-    const R_earth = 1.00014 - 0.01671 * Math.cos(M_sun * toRad);
+    const eEarth = 0.016708634 - 0.000042037 * tVal;
+    const trueAnomSun = M_sunRad + C_sun * toRad;
+    const R_earth = (1.000001018 * (1 - eEarth * eEarth)) / (1 + eEarth * Math.cos(trueAnomSun));
     const xE = R_earth * Math.cos(earthHelio);
     const yE = R_earth * Math.sin(earthHelio);
 
-    // Moon (perturbed Meeus algorithm)
-    const L_moon_mean = (218.3164477 + 481267.88123421 * tVal) % 360;
-    const D = ((297.8501921 + 445267.1114034 * tVal) % 360 + 360) % 360 * toRad;
-    const M_moon = ((134.9633964 + 477198.8675055 * tVal) % 360 + 360) % 360 * toRad;
-    const F = ((93.272095 + 483202.0175233 * tVal) % 360 + 360) % 360 * toRad;
+    // Moon (Meeus Ch. 47 principal periodic terms)
+    const L_moon_mean = (218.3164477 + 481267.88123421 * tVal - 0.0015786 * tVal * tVal) % 360;
+    const D = ((297.8501921 + 445267.1114034 * tVal - 0.0018819 * tVal * tVal) % 360 + 360) % 360 * toRad;
+    const M_moon = ((134.9633964 + 477198.8675055 * tVal + 0.0087414 * tVal * tVal) % 360 + 360) % 360 * toRad;
+    const F = ((93.2720950 + 483202.0175233 * tVal - 0.0036539 * tVal * tVal) % 360 + 360) % 360 * toRad;
     const dMoon = 6.288774 * Math.sin(M_moon)
                 + 1.274027 * Math.sin(2 * D - M_moon)
                 + 0.658314 * Math.sin(2 * D)
                 + 0.213618 * Math.sin(2 * M_moon)
-                - 0.185116 * Math.sin(M_sun * toRad)
-                - 0.114332 * Math.sin(2 * F);
-    const moonTrop = (L_moon_mean + dMoon + 360000) % 360;
+                - 0.185116 * Math.sin(M_sunRad)
+                - 0.114332 * Math.sin(2 * F)
+                + 0.058793 * Math.sin(2 * D - 2 * M_moon)
+                + 0.057066 * Math.sin(2 * D - M_sunRad - M_moon)
+                + 0.053322 * Math.sin(2 * D + M_moon)
+                + 0.045758 * Math.sin(2 * D - M_sunRad)
+                - 0.040923 * Math.sin(M_sunRad - M_moon);
+    const moonTrop = (L_moon_mean + dMoon + 3600000) % 360;
 
-    // Helper for geocentric tropical longitude from Keplerian orbital elements
-    const calcGeocentric = (a: number, e: number, meanL: number, peri: number) => {
-      const M = ((meanL - peri) % 360 + 360) % 360;
-      const C = (2 * e - (e * e * e) / 4) * Math.sin(M * toRad) * toDeg + (1.25 * e * e) * Math.sin(2 * M * toRad) * toDeg;
-      const trueL = (meanL + C) * toRad;
-      const r = (a * (1 - e * e)) / (1 + e * Math.cos(trueL - peri * toRad));
-      const xP = r * Math.cos(trueL);
-      const yP = r * Math.sin(trueL);
+    // Iterative Newton-Raphson Keplerian 3D heliocentric-to-geocentric longitude solver
+    const calcGeocentric = (
+      a: number,
+      e: number,
+      incDeg: number,
+      nodeDeg: number,
+      periDeg: number,
+      meanLDeg: number,
+      extraLongPerturbDeg: number = 0
+    ) => {
+      const Mdeg = ((meanLDeg - periDeg) % 360 + 360) % 360;
+      const Mrad = Mdeg * toRad;
+      // Solve Kepler's Equation: E - e * sin(E) = M
+      let E = Mrad + e * Math.sin(Mrad) * (1 + e * Math.cos(Mrad));
+      for (let iter = 0; iter < 6; iter++) {
+        const dE = (E - e * Math.sin(E) - Mrad) / (1 - e * Math.cos(E));
+        E -= dE;
+        if (Math.abs(dE) < 1e-8) break;
+      }
+
+      const xv = a * (Math.cos(E) - e);
+      const yv = a * Math.sqrt(1 - e * e) * Math.sin(E);
+      const trueAnom = Math.atan2(yv, xv);
+      const r = Math.hypot(xv, yv);
+
+      const omegaRad = nodeDeg * toRad;
+      const argPeriRad = (periDeg - nodeDeg) * toRad;
+      const incRad = incDeg * toRad;
+      const u = trueAnom + argPeriRad + extraLongPerturbDeg * toRad;
+
+      const xP = r * (Math.cos(omegaRad) * Math.cos(u) - Math.sin(omegaRad) * Math.sin(u) * Math.cos(incRad));
+      const yP = r * (Math.sin(omegaRad) * Math.cos(u) + Math.cos(omegaRad) * Math.sin(u) * Math.cos(incRad));
+
       const dx = xP - xE;
       const dy = yP - yE;
-      let geo = Math.atan2(dy, dx) * toDeg;
+      const geo = Math.atan2(dy, dx) * toDeg;
       return (geo % 360 + 360) % 360;
     };
 
+    // Mean anomalies of Jupiter & Saturn for mutual Great Inequality perturbations
+    const M_jup = (((34.3515 + 3036.3028 * tVal) - (14.3312 + 1.6126 * tVal)) % 360 + 360) % 360 * toRad;
+    const M_sat = (((50.0774 + 1223.5110 * tVal) - (93.0568 + 1.9638 * tVal)) % 360 + 360) % 360 * toRad;
+    const jupPerturb = -0.332 * Math.sin(2 * M_jup - 5 * M_sat - 67.6 * toRad)
+                     - 0.056 * Math.sin(2 * M_jup - 2 * M_sat + 21 * toRad)
+                     + 0.042 * Math.sin(3 * M_jup - 5 * M_sat + 21 * toRad);
+    const satPerturb = 0.812 * Math.sin(2 * M_jup - 5 * M_sat - 67.6 * toRad)
+                     - 0.229 * Math.cos(2 * M_jup - 4 * M_sat - 2 * toRad)
+                     + 0.119 * Math.sin(M_jup - 2 * M_sat - 3 * toRad);
+
+    // Standish / JPL J2000.0 Orbital Elements (1800–2050+ AD)
     const mercTrop = calcGeocentric(
-      0.387098,
-      0.205630 + 0.000025 * tVal,
-      252.2509 + 149474.0722 * tVal,
-      77.4564 + 1.5565 * tVal
+      0.38709927,
+      0.20563593 + 0.00001906 * tVal,
+      7.00497902 - 0.00594749 * tVal,
+      48.33076593 - 0.12534081 * tVal,
+      77.45779628 + 1.5564775 * tVal,
+      252.25032350 + 149474.0722491 * tVal
     );
 
     const venTrop = calcGeocentric(
-      0.723332,
-      0.006773 - 0.000049 * tVal,
-      181.9798 + 58519.2130 * tVal,
-      131.5637 + 1.4022 * tVal
+      0.72333566,
+      0.00677672 - 0.00004107 * tVal,
+      3.39467605 - 0.00078890 * tVal,
+      76.67984255 - 0.27769418 * tVal,
+      131.60246718 + 1.4022288 * tVal,
+      181.97909950 + 58519.2130302 * tVal
     );
 
     const marsTrop = calcGeocentric(
-      1.523679,
-      0.093405 + 0.000092 * tVal,
-      355.4330 + 19141.6964 * tVal,
-      336.0602 + 1.8410 * tVal
+      1.52371034,
+      0.09339410 + 0.00007882 * tVal,
+      1.84969142 - 0.00813131 * tVal,
+      49.55953891 - 0.29257343 * tVal,
+      336.04084 + 1.8410449 * tVal,
+      355.45332 + 19141.6964471 * tVal
     );
 
     const jupTrop = calcGeocentric(
-      5.20260,
-      0.048498 + 0.000163 * tVal,
-      34.3515 + 3036.3028 * tVal,
-      14.3312 + 1.6126 * tVal
+      5.20288700,
+      0.04838624 - 0.00013253 * tVal,
+      1.30439695 - 0.00183714 * tVal,
+      100.47390909 + 0.20469106 * tVal,
+      14.72847983 + 1.61259 * tVal,
+      34.39644051 + 3036.3027748 * tVal,
+      jupPerturb
     );
 
     const satTrop = calcGeocentric(
-      9.5549,
-      0.055546 - 0.000346 * tVal,
-      50.0774 + 1223.5110 * tVal,
-      93.0568 + 1.9638 * tVal
+      9.53667594,
+      0.05386179 - 0.00050991 * tVal,
+      2.48599187 + 0.00193609 * tVal,
+      113.66242448 - 0.28867794 * tVal,
+      92.59887831 + 1.96376 * tVal,
+      49.95424423 + 1223.5110686 * tVal,
+      satPerturb
     );
 
-    // Rahu (Mean lunar node) & Ketu (180 deg opposite)
-    const rahuTrop = (259.1833 - 1934.1420 * tVal + 360000) % 360;
+    // Rahu (Mean Ascending Lunar Node at J2000.0 - Meeus Ch. 47) & Ketu (180° opposite)
+    const rahuTrop = (125.0445479 - 1934.1362891 * tVal + 0.0020754 * tVal * tVal + (tVal * tVal * tVal) / 467441 + 3600000) % 360;
     const ketuTrop = (rahuTrop + 180) % 360;
 
     return {
-      Sun: (sunTrop - ayanamsha + 360000) % 360,
-      Moon: (moonTrop - ayanamsha + 360000) % 360,
-      Mars: (marsTrop - ayanamsha + 360000) % 360,
-      Mercury: (mercTrop - ayanamsha + 360000) % 360,
-      Jupiter: (jupTrop - ayanamsha + 360000) % 360,
-      Venus: (venTrop - ayanamsha + 360000) % 360,
-      Saturn: (satTrop - ayanamsha + 360000) % 360,
-      Rahu: (rahuTrop - ayanamsha + 360000) % 360,
-      Ketu: (ketuTrop - ayanamsha + 360000) % 360
+      Sun: (sunTrop - ayanVal + 360000) % 360,
+      Moon: (moonTrop - ayanVal + 360000) % 360,
+      Mars: (marsTrop - ayanVal + 360000) % 360,
+      Mercury: (mercTrop - ayanVal + 360000) % 360,
+      Jupiter: (jupTrop - ayanVal + 360000) % 360,
+      Venus: (venTrop - ayanVal + 360000) % 360,
+      Saturn: (satTrop - ayanVal + 360000) % 360,
+      Rahu: (rahuTrop - ayanVal + 360000) % 360,
+      Ketu: (ketuTrop - ayanVal + 360000) % 360
     };
   };
 
@@ -1584,7 +1696,7 @@ export function calculateKundali(dateTimeStr: string, location: CityLocation): K
     { name: 'Sun', sanskrit: { en: 'Surya (Sun)', kn: 'ಸೂರ್ಯ', hi: 'सूर्य' }, symbol: 'Su (ಸೂರ್ಯ)', exactLong: posToday.Sun, speed: getDailyMotion(posToday.Sun, posTomorrow.Sun), isVakri: false, lordOf: [4], color: '#f59e0b' },
     { name: 'Moon', sanskrit: { en: 'Chandra (Moon)', kn: 'ಚಂದ್ರ', hi: 'ಚಂದ್ರ' }, symbol: 'Mo (ಚಂದ್ರ)', exactLong: posToday.Moon, speed: getDailyMotion(posToday.Moon, posTomorrow.Moon), isVakri: false, lordOf: [3], color: '#0284c7' },
     { name: 'Mars', sanskrit: { en: 'Mangala (Mars)', kn: 'ಮಂಗಳ (ಕುಜ)', hi: 'मंगल' }, symbol: 'Ma (ಮಂಗಳ)', exactLong: posToday.Mars, speed: getDailyMotion(posToday.Mars, posTomorrow.Mars), isVakri: getDailyMotion(posToday.Mars, posTomorrow.Mars) < -0.001, lordOf: [0, 7], color: '#dc2626' },
-    { name: 'Mercury', sanskrit: { en: 'Budha (Mercury)', kn: 'ಬುಧ', hi: 'ಬುಧ' }, symbol: 'Me (ಬುಧ)', exactLong: posToday.Mercury, speed: getDailyMotion(posToday.Mercury, posTomorrow.Mercury), isVakri: getDailyMotion(posToday.Mercury, posTomorrow.Mercury) < -0.001, lordOf: [2, 5], color: '#059669' },
+    { name: 'Mercury', sanskrit: { en: 'Budha (Mercury)', kn: 'ಬುಧ', hi: 'बुध' }, symbol: 'Me (ಬುಧ)', exactLong: posToday.Mercury, speed: getDailyMotion(posToday.Mercury, posTomorrow.Mercury), isVakri: getDailyMotion(posToday.Mercury, posTomorrow.Mercury) < -0.001, lordOf: [2, 5], color: '#059669' },
     { name: 'Jupiter', sanskrit: { en: 'Guru (Jupiter)', kn: 'ಗುರು', hi: 'गुरु' }, symbol: 'Ju (ಗುರು)', exactLong: posToday.Jupiter, speed: getDailyMotion(posToday.Jupiter, posTomorrow.Jupiter), isVakri: getDailyMotion(posToday.Jupiter, posTomorrow.Jupiter) < -0.001, lordOf: [8, 11], color: '#d97706' },
     { name: 'Venus', sanskrit: { en: 'Shukra (Venus)', kn: 'ಶುಕ್ರ', hi: 'शुक्र' }, symbol: 'Ve (ಶುಕ್ರ)', exactLong: posToday.Venus, speed: getDailyMotion(posToday.Venus, posTomorrow.Venus), isVakri: getDailyMotion(posToday.Venus, posTomorrow.Venus) < -0.001, lordOf: [1, 6], color: '#ec4899' },
     { name: 'Saturn', sanskrit: { en: 'Shani (Saturn)', kn: 'ಶನಿ', hi: 'शनि' }, symbol: 'Sa (ಶನಿ)', exactLong: posToday.Saturn, speed: getDailyMotion(posToday.Saturn, posTomorrow.Saturn), isVakri: getDailyMotion(posToday.Saturn, posTomorrow.Saturn) < -0.001, lordOf: [9, 10], color: '#4f46e5' },
@@ -1597,9 +1709,9 @@ export function calculateKundali(dateTimeStr: string, location: CityLocation): K
     const rashiIndex = Math.floor(long / 30) % 12;
     const degrees = Number((long % 30).toFixed(2));
     const rashiMeta = RASHIS[rashiIndex];
-    const nIndex = Math.floor((long / 360) * 27) % 27;
+    const nIndex = Math.floor(long / nakSpan) % 27;
     const nRec = RASHI_NAKSHATRA_CHART[nIndex];
-    const padaNum = (Math.floor((long % 13.333) / 3.333) % 4) + 1;
+    const padaNum = Math.min(4, Math.max(1, Math.floor((long % nakSpan) / padaSpan) + 1));
     const bhava = ((rashiIndex - lagnaRashiIndex + 12) % 12) + 1;
 
     return {

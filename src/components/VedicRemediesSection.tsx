@@ -32,12 +32,16 @@ import { CityLocation, KundaliData, Language } from '../types';
 import { VedicRemediesResult } from '../utils/vedicRemedies';
 import { COUNTRIES_AND_CITIES } from '../utils/worldPlaces';
 import { CITIES, RASHIS, RASHI_NAKSHATRA_CHART } from '../utils/panchanga';
-import { BHAVA_LIST, getGrahaBhavaEffect, WHAT_IS_BHAVA_GUIDE } from '../utils/bhavaDetails';
 import { WorldwidePlacePicker } from './WorldwidePlacePicker';
 import { ChandraKundaliChart } from './ChandraKundaliChart';
+import { UnifiedBhavaSection } from './UnifiedBhavaSection';
+import { DrishtiVisualizer } from './DrishtiVisualizer';
+import { CelestialSkyMandala3D } from './CelestialSkyMandala3D';
 import { getNakshatraPadaAkshara } from '../utils/nakshatraAksharas';
 import { VimshottariDashaResult } from '../utils/vimshottariDasha';
 import { PlanetaryBalaBreakdown } from '../utils/planetaryBala';
+import { getAspectingHousesForGraha } from '../utils/grahaDrishti';
+import { getHouseCoord } from '../utils/drishtiCoordinates';
 
 interface VedicRemediesSectionProps {
   currentLang: Language;
@@ -86,17 +90,13 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
 }) => {
   // Currently highlighted Bhava for in-depth inspection (1 to 12)
   const [selectedBhava, setSelectedBhava] = useState<number>(1);
-  const [showWhatIsBhava, setShowWhatIsBhava] = useState<boolean>(true);
   const [activeChartTab, setActiveChartTab] = useState<'lagna' | 'chandra' | 'both'>('lagna');
   const [selectedTimelineMahadasha, setSelectedTimelineMahadasha] = useState<number | null>(null);
+  const [selectedDrishtiPlanet, setSelectedDrishtiPlanet] = useState<string>('Jupiter');
+  const [showAspectLines, setShowAspectLines] = useState<boolean>(true);
 
   // Find country metadata for city dropdowns
   const currentCountry = COUNTRIES_AND_CITIES.find(c => c.code === selectedCountryCode) || COUNTRIES_AND_CITIES[0];
-
-  // Selected Bhava Information
-  const bhavaMeta = BHAVA_LIST.find(b => b.bhava === selectedBhava) || BHAVA_LIST[0];
-  const houseData = kundaliData.houses.find(h => h.bhava === selectedBhava);
-  const planetsInSelectedHouse = kundaliData.planets.filter(p => p.bhava === selectedBhava);
 
   // Derived Janma Vivara (Birth Details) based on entered Date, Time and Place
   const janmaVivara = useMemo(() => {
@@ -369,127 +369,15 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. WHAT IS BHAVA? (MASTER EDUCATIONAL VEDIC GUIDE) */}
+      {/* 2. UNIFIED BHAVA ANALYSIS & EXPLORER (SINGLE COLLAPSIBLE HEADING, HIDDEN BY DEFAULT) */}
       {/* ========================================================================= */}
-      <div className="rounded-2xl p-5 sm:p-6 bg-gradient-to-br from-stone-900 via-indigo-950 to-stone-900 text-white border-2 border-amber-500/50 shadow-2xl space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-500/30 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center font-serif text-lg font-bold shadow-lg shrink-0">
-              <BookOpen className="w-5 h-5 text-amber-200" />
-            </div>
-            <div>
-              <h3 className="font-serif font-bold text-base sm:text-lg text-amber-300">
-                {WHAT_IS_BHAVA_GUIDE.title[currentLang]}
-              </h3>
-              <p className="text-xs text-stone-300">
-                {currentLang === 'kn' ? 'ಭಾವ ಎಂದರೇನು? ಕುಂಡಲಿಯ ೧೨ ಭಾವಗಳ ಉದ್ದೇಶ ಮತ್ತು ಅವುಗಳ ಮಹತ್ವ' : 'The cosmic philosophy and life purpose of the 12 Bhavas (houses) in Jyotisha.'}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowWhatIsBhava(!showWhatIsBhava)}
-            className="text-xs font-bold text-amber-300 hover:text-white px-3 py-1.5 rounded-lg border border-amber-500/40 bg-white/5 cursor-pointer self-start sm:self-auto"
-          >
-            {showWhatIsBhava ? 'Hide Guide' : 'Read Full Bhava Guide'}
-          </button>
-        </div>
-
-        {showWhatIsBhava && (
-          <div className="space-y-4 animate-in fade-in">
-            {/* Meaning & Origin */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                <span className="font-bold text-amber-400 text-sm block font-serif">
-                  ೧. ಭಾವ ಎಂದರೇನು? (Definition & Meaning)
-                </span>
-                <p className="text-stone-200 leading-relaxed text-[11.5px] sm:text-xs">
-                  {WHAT_IS_BHAVA_GUIDE.meaning[currentLang]}
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                <span className="font-bold text-amber-400 text-sm block font-serif">
-                  ೨. ರಾಶಿ ಮತ್ತು ಭಾವಗಳ ನಡುವಿನ ವ್ಯತ್ಯಾಸ (Rashi vs Bhava)
-                </span>
-                <p className="text-stone-200 leading-relaxed text-[11.5px] sm:text-xs">
-                  {WHAT_IS_BHAVA_GUIDE.differenceRashiBhava[currentLang]}
-                </p>
-              </div>
-            </div>
-
-            {/* The 4 Purusharthas (Dharma, Artha, Kama, Moksha) */}
-            <div className="p-4 rounded-xl bg-black/40 border border-amber-500/30 space-y-3">
-              <span className="font-bold text-amber-300 text-xs uppercase tracking-wider block font-mono">
-                {currentLang === 'kn' ? '೪ ಪುರುಷಾರ್ಥಗಳು: ೧೨ ಭಾವಗಳ ಆಧ್ಯಾತ್ಮಿಕ ವರ್ಗೀಕರಣ' : 'The 4 Purusharthas: Classification of 12 Bhavas'}
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                <div className="p-3 rounded-lg bg-white/5 border border-amber-500/20">
-                  <strong className="text-amber-400 block mb-1">👑 ಧರ್ಮ (Dharma)</strong>
-                  <p className="text-[11px] text-stone-300">{WHAT_IS_BHAVA_GUIDE.fourPurusharthas.dharma[currentLang]}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-white/5 border border-emerald-500/20">
-                  <strong className="text-emerald-400 block mb-1">💰 ಅರ್ಥ (Artha)</strong>
-                  <p className="text-[11px] text-stone-300">{WHAT_IS_BHAVA_GUIDE.fourPurusharthas.artha[currentLang]}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-white/5 border border-purple-500/20">
-                  <strong className="text-purple-400 block mb-1">💖 ಕಾಮ (Kama)</strong>
-                  <p className="text-[11px] text-stone-300">{WHAT_IS_BHAVA_GUIDE.fourPurusharthas.kama[currentLang]}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-white/5 border border-blue-500/20">
-                  <strong className="text-blue-400 block mb-1">🕊️ ಮೋಕ್ಷ (Moksha)</strong>
-                  <p className="text-[11px] text-stone-300">{WHAT_IS_BHAVA_GUIDE.fourPurusharthas.moksha[currentLang]}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* The 12 Bhavas and the 9 Grahas Relation */}
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 text-xs">
-              <span className="font-bold text-amber-400 text-sm block font-serif">
-                ೩. ೧೨ ಭಾವಗಳು ಮತ್ತು ೯ ನವಗ್ರಹಗಳ ಸಂಬಂಧ (The 12 Bhavas & 9 Nava Grahas)
-              </span>
-              <p className="text-stone-200 leading-relaxed text-[11.5px] sm:text-xs">
-                {currentLang === 'kn'
-                  ? 'ಜ್ಯೋತಿಷ್ಯದಲ್ಲಿ ಮನುಷ್ಯನ ಸಮಗ್ರ ಜೀವನವನ್ನು ೧೨ ಭಾವಗಳಾಗಿ (ಮನೆಗಳು) ವಿಭಾಗಿಸಲಾಗಿದೆ. ಸೂರ್ಯ, ಚಂದ್ರ, ಮಂಗಳ, ಬುಧ, ಗುರು, ಶುಕ್ರ, ಶನಿ, ರಾಹು ಮತ್ತು ಕೇತು ಎಂಬ ೯ ನವಗ್ರಹಗಳು ಈ ೧೨ ಭಾವಗಳಲ್ಲಿ ಸಂಚರಿಸುತ್ತಾ, ತಮ್ಮ ಕಾರಕತ್ವ ಮತ್ತು ಸ್ಥಾನ ಬಲಕ್ಕೆ ತಕ್ಕಂತೆ ಫಲಗಳನ್ನು ನೀಡುತ್ತವೆ. ಪ್ರತಿಯೊಂದು ಭಾವಕ್ಕೂ ನಿರ್ದಿಷ್ಟ ಕಾರಕ ಗ್ರಹ ಮತ್ತು ಉದ್ದೇಶವಿರುತ್ತದೆ.'
-                  : 'In Vedic Astrology, human life is structured into 12 Bhavas (houses). The 9 Nava Grahas (Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, Ketu) occupy and aspect these 12 Bhavas, delivering karmic fruit according to their natural attributes, lordships, and house positions.'}
-              </p>
-            </div>
-
-            {/* Quick 12-Bhava Purpose Grid */}
-            <div className="space-y-2 pt-1">
-              <span className="font-bold text-amber-300 text-xs uppercase tracking-wider block font-mono">
-                {currentLang === 'kn' ? 'ಪ್ರತಿಯೊಂದು ಭಾವದಲ್ಲಿ ಏನು ನೋಡಬೇಕು? (Each Bhava - What Purpose to See):' : 'Each Bhava - What Purpose to See:'}
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 text-xs">
-                {BHAVA_LIST.map((b) => (
-                  <div
-                    key={b.bhava}
-                    onClick={() => {
-                      setSelectedBhava(b.bhava);
-                      if (activeChartTab === 'chandra') setActiveChartTab('lagna');
-                    }}
-                    className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
-                      selectedBhava === b.bhava
-                        ? 'bg-amber-500/20 border-amber-400 text-white ring-1 ring-amber-400'
-                        : 'bg-white/5 border-white/10 text-stone-300 hover:bg-white/10'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-mono font-bold text-[10px] text-amber-400 mb-0.5">
-                      <span>House {b.bhava}</span>
-                      <span className="text-[9px] text-stone-400">{b.sanskritName.split(' ')[0]}</span>
-                    </div>
-                    <strong className="block text-stone-100 text-[11px] truncate">{b.name[currentLang]}</strong>
-                    <p className="text-[10px] text-stone-300 line-clamp-2 mt-0.5 leading-snug">
-                      {b.purposeToInspect[currentLang]}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      <UnifiedBhavaSection
+        currentLang={currentLang}
+        kundaliData={kundaliData}
+        planetaryBalas={planetaryBalas || []}
+        selectedBhavaNumber={selectedBhava}
+        onSelectBhava={setSelectedBhava}
+      />
 
       {/* ========================================================================= */}
       {/* 3. DRAWN CHARTS: LAGNA KUNDALI & CHANDRA KUNDALI SELECTOR */}
@@ -559,12 +447,23 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
         </div>
       )}
 
-      {/* LAGNA KUNDALI & INTERACTIVE BHAVA EXPLORER (If Lagna or Both selected) */}
+      {/* LAGNA KUNDALI (Full-width stacked layout — zero empty side columns) */}
       {(activeChartTab === 'lagna' || activeChartTab === 'both') && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start page-break-inside-avoid">
+        <div className="flex flex-col gap-6 page-break-inside-avoid">
         
-        {/* Left (7 Cols): Drawn Birth Chart (North & South Style) */}
-        <div className="lg:col-span-7 bg-white dark:bg-stone-900 rounded-2xl p-5 sm:p-6 border border-amber-300/80 dark:border-stone-800 shadow-xl space-y-4">
+        {/* Drawn Birth Chart (North & South Style) with Interactive Drishti Animation & Summary Table */}
+        <div className="w-full bg-white dark:bg-stone-900 rounded-2xl p-4 sm:p-6 border border-amber-300/80 dark:border-stone-800 shadow-xl space-y-5">
+          {/* Interactive Drishti Visualizer (Consistent with Tab 1 + Concise 9-Graha Summary Table) */}
+          <DrishtiVisualizer
+            currentLang={currentLang}
+            kundaliData={kundaliData}
+            selectedPlanetName={selectedDrishtiPlanet}
+            onSelectPlanet={setSelectedDrishtiPlanet}
+            showAspectLines={showAspectLines}
+            onToggleAspectLines={setShowAspectLines}
+            onSelectHouse={setSelectedBhava}
+          />
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 dark:border-stone-800 pb-3">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-amber-600" />
@@ -599,7 +498,7 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
             </div>
           </div>
 
-          {/* North Indian Diamond Chart */}
+          {/* North Indian Diamond Chart with Animated Drishti Rays */}
           {chartStyle === 'north' ? (
             <div className="relative w-full aspect-square max-w-[340px] xs:max-w-[400px] sm:max-w-[480px] mx-auto bg-amber-50/70 rounded-2xl p-2 border-2 border-amber-500 shadow-xl overflow-hidden select-none">
               <svg viewBox="0 0 500 500" className="absolute inset-0 w-full h-full pointer-events-none">
@@ -607,6 +506,71 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
                 <line x1="0" y1="0" x2="500" y2="500" stroke="#d97706" strokeWidth="2" />
                 <line x1="500" y1="0" x2="0" y2="500" stroke="#d97706" strokeWidth="2" />
                 <polygon points="250,0 500,250 250,500 0,250" fill="none" stroke="#b45309" strokeWidth="2.5" />
+
+                {/* Cardinal Directions */}
+                <text x="250" y="14" fill="#b45309" fontSize="10.5" fontWeight="bold" textAnchor="middle">E (East • ಪೂರ್ವ - ಲಗ್ನ)</text>
+                <text x="14" y="254" fill="#b45309" fontSize="9.5" fontWeight="bold" textAnchor="middle" transform="rotate(-90, 14, 254)">N (North • ಉತ್ತರ)</text>
+                <text x="250" y="494" fill="#b45309" fontSize="10.5" fontWeight="bold" textAnchor="middle">W (West • ಪಶ್ಚಿಮ)</text>
+                <text x="486" y="254" fill="#b45309" fontSize="9.5" fontWeight="bold" textAnchor="middle" transform="rotate(90, 486, 254)">S (South • ದಕ್ಷಿಣ)</text>
+
+                {/* Animated Drishti Aspect Rays */}
+                {showAspectLines && (() => {
+                  const originPlanet =
+                    kundaliData.planets.find(
+                      (p) => p.name.toLowerCase() === selectedDrishtiPlanet.toLowerCase()
+                    ) || kundaliData.planets[0];
+                  const originBhava = originPlanet ? originPlanet.bhava : 1;
+                  const originCoord = getHouseCoord('north', originBhava, kundaliData);
+                  const aspects = getAspectingHousesForGraha(originPlanet.name, originBhava);
+
+                  return (
+                    <g className="drishti-aspect-rays">
+                      <defs>
+                        <marker id="vedic-north-aspect-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                          <path d="M 0 1 L 10 5 L 0 9 z" fill="#e11d48" />
+                        </marker>
+                        <radialGradient id="vedic-north-aspect-pulse" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.8" />
+                          <stop offset="100%" stopColor="#f43f5e" stopOpacity="0" />
+                        </radialGradient>
+                      </defs>
+
+                      <circle cx={originCoord.x} cy={originCoord.y} r="28" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.85">
+                        <animate attributeName="r" values="25;32;25" dur="2.2s" repeatCount="indefinite" />
+                      </circle>
+
+                      {aspects.map((asp, i) => {
+                        const targetCoord = getHouseCoord('north', asp.targetBhava, kundaliData);
+                        const midX = (originCoord.x + targetCoord.x) / 2;
+                        const midY = (originCoord.y + targetCoord.y) / 2;
+                        const rayPath = `M ${originCoord.x} ${originCoord.y} L ${targetCoord.x} ${targetCoord.y}`;
+
+                        return (
+                          <g key={i}>
+                            <line x1={originCoord.x} y1={originCoord.y} x2={targetCoord.x} y2={targetCoord.y} stroke="#fb7185" strokeWidth="6" opacity="0.22" />
+                            <line x1={originCoord.x} y1={originCoord.y} x2={targetCoord.x} y2={targetCoord.y} stroke="#e11d48" strokeWidth="2.6" strokeDasharray="7 5" markerEnd="url(#vedic-north-aspect-arrow)" opacity="0.95">
+                              <animate attributeName="stroke-dashoffset" from="48" to="0" dur="1.1s" repeatCount="indefinite" />
+                            </line>
+                            <circle r="4.5" fill="#fbbf24" stroke="#be123c" strokeWidth="1.5">
+                              <animateMotion dur="1.4s" repeatCount="indefinite" path={rayPath} />
+                            </circle>
+                            <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="url(#vedic-north-aspect-pulse)" opacity="0.65">
+                              <animate attributeName="r" values="18;31;18" dur="1.9s" repeatCount="indefinite" />
+                              <animate attributeName="opacity" values="0.75;0.2;0.75" dur="1.9s" repeatCount="indefinite" />
+                            </circle>
+                            <circle cx={targetCoord.x} cy={targetCoord.y} r="22" fill="none" stroke="#e11d48" strokeWidth="2" strokeDasharray="3 3">
+                              <animate attributeName="stroke-dashoffset" from="24" to="0" dur="1.8s" repeatCount="indefinite" />
+                            </circle>
+                            <rect x={midX - 18} y={midY - 9} width="36" height="18" rx="6" fill="#be123c" />
+                            <text x={midX} y={midY + 4} fill="#ffffff" fontSize="9.5" fontWeight="bold" textAnchor="middle">
+                              {asp.distance}th
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </g>
+                  );
+                })()}
               </svg>
 
               <div className="absolute inset-0 w-full h-full pointer-events-none">
@@ -761,8 +725,55 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
               </div>
             </div>
           ) : (
-            /* South Indian Square Chart */
+            /* South Indian Square Chart with Animated Drishti Rays */
             <div className="relative w-full aspect-square max-w-[340px] xs:max-w-[400px] sm:max-w-[480px] mx-auto bg-amber-50 rounded-2xl p-2 border-2 border-amber-600 shadow-xl select-none">
+              {showAspectLines && (() => {
+                const originPlanet =
+                  kundaliData.planets.find(
+                    (p) => p.name.toLowerCase() === selectedDrishtiPlanet.toLowerCase()
+                  ) || kundaliData.planets[0];
+                const originBhava = originPlanet ? originPlanet.bhava : 1;
+                const originCoord = getHouseCoord('south', originBhava, kundaliData);
+                const aspects = getAspectingHousesForGraha(originPlanet.name, originBhava);
+
+                return (
+                  <svg viewBox="0 0 500 500" className="absolute inset-0 w-full h-full pointer-events-none z-20">
+                    <defs>
+                      <marker id="vedic-south-aspect-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1 L 10 5 L 0 9 z" fill="#e11d48" />
+                      </marker>
+                    </defs>
+                    <circle cx={originCoord.x} cy={originCoord.y} r="28" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.85">
+                      <animate attributeName="r" values="25;32;25" dur="2.2s" repeatCount="indefinite" />
+                    </circle>
+                    {aspects.map((asp, i) => {
+                      const targetCoord = getHouseCoord('south', asp.targetBhava, kundaliData);
+                      const midX = (originCoord.x + targetCoord.x) / 2;
+                      const midY = (originCoord.y + targetCoord.y) / 2;
+                      const rayPath = `M ${originCoord.x} ${originCoord.y} L ${targetCoord.x} ${targetCoord.y}`;
+                      return (
+                        <g key={i}>
+                          <line x1={originCoord.x} y1={originCoord.y} x2={targetCoord.x} y2={targetCoord.y} stroke="#fb7185" strokeWidth="6" opacity="0.22" />
+                          <line x1={originCoord.x} y1={originCoord.y} x2={targetCoord.x} y2={targetCoord.y} stroke="#e11d48" strokeWidth="2.6" strokeDasharray="7 5" markerEnd="url(#vedic-south-aspect-arrow)" opacity="0.95">
+                            <animate attributeName="stroke-dashoffset" from="48" to="0" dur="1.1s" repeatCount="indefinite" />
+                          </line>
+                          <circle r="4.5" fill="#fbbf24" stroke="#be123c" strokeWidth="1.5">
+                            <animateMotion dur="1.4s" repeatCount="indefinite" path={rayPath} />
+                          </circle>
+                          <circle cx={targetCoord.x} cy={targetCoord.y} r="26" fill="#f43f5e" fillOpacity="0.18" stroke="#e11d48" strokeWidth="2" strokeDasharray="3 3">
+                            <animate attributeName="r" values="18;31;18" dur="1.9s" repeatCount="indefinite" />
+                            <animate attributeName="stroke-dashoffset" from="24" to="0" dur="1.8s" repeatCount="indefinite" />
+                          </circle>
+                          <rect x={midX - 18} y={midY - 9} width="36" height="18" rx="6" fill="#be123c" />
+                          <text x={midX} y={midY + 4} fill="#ffffff" fontSize="9.5" fontWeight="bold" textAnchor="middle">
+                            {asp.distance}th
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                );
+              })()}
               <div className="w-full h-full grid grid-cols-4 grid-rows-4 gap-1.5 p-1 bg-amber-100/60 border border-amber-300 rounded-xl">
                 {/* 12 Signs layout for South Indian style */}
                 {[
@@ -827,143 +838,24 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
           )}
         </div>
 
-        {/* Right (5 Cols): Selected Bhava Deep Purpose & Graha Impact Card */}
-        <div className="lg:col-span-5 bg-white dark:bg-stone-900 rounded-2xl p-5 sm:p-6 border-2 border-amber-400/80 dark:border-stone-800 shadow-xl space-y-4">
-          
-          {/* Quick House Selector Buttons (1 to 12) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1 font-mono">
-                <Compass className="w-3.5 h-3.5" />
-                <span>{currentLang === 'kn' ? 'ಭಾವ ಆಯ್ಕೆಮಾಡಿ (Select Bhava 1-12):' : 'Inspect Bhava (1-12):'}</span>
-              </span>
-              <span className="text-[11px] font-mono text-stone-500 font-bold">
-                House {selectedBhava} of 12
-              </span>
-            </div>
-
-            <div className="grid grid-cols-6 sm:grid-cols-12 lg:grid-cols-6 gap-1">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((bNum) => (
-                <button
-                  key={bNum}
-                  onClick={() => setSelectedBhava(bNum)}
-                  className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    selectedBhava === bNum
-                      ? 'bg-amber-600 text-white shadow-xs scale-105'
-                      : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-amber-100'
-                  }`}
-                >
-                  H{bNum}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Active Bhava Header */}
-          <div className="p-4 rounded-xl bg-gradient-to-r from-amber-600/15 via-orange-600/10 to-amber-700/15 border border-amber-400/50 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-600 text-white">
-                BHAVA {bhavaMeta.bhava}
-              </span>
-              <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300">
-                {bhavaMeta.category[currentLang]}
-              </span>
-            </div>
-            <h4 className="font-serif font-bold text-base text-stone-900 dark:text-stone-100">
-              {bhavaMeta.name[currentLang]}
-            </h4>
-            <div className="text-xs text-stone-600 dark:text-stone-400 pt-1 flex items-center justify-between border-t border-amber-200/60 dark:border-stone-800">
-              <span>Sign in Chart: <strong>{houseData?.rashiName[currentLang]}</strong></span>
-              <span>Karaka: <strong>{bhavaMeta.karakas[currentLang]}</strong></span>
-            </div>
-          </div>
-
-          {/* What Purpose to See in this Bhava */}
-          <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200 dark:border-stone-700 space-y-1.5 text-xs">
-            <strong className="text-amber-800 dark:text-amber-300 flex items-center gap-1 font-serif text-xs">
-              <HelpCircle className="w-3.5 h-3.5" />
-              <span>{currentLang === 'kn' ? 'ಈ ಭಾವದಲ್ಲಿ ಏನು ನೋಡಬೇಕು? (Purpose to Inspect):' : 'What Purpose to Inspect in this Bhava:'}</span>
-            </strong>
-            <p className="text-stone-700 dark:text-stone-300 leading-relaxed text-[11.5px]">
-              {bhavaMeta.purposeToInspect[currentLang]}
-            </p>
-            <div className="text-[11px] text-stone-500 pt-1 border-t border-black/5 dark:border-white/5">
-              <span>Body Parts: <strong>{bhavaMeta.bodyParts[currentLang]}</strong></span>
-            </div>
-          </div>
-
-          {/* Occupying Grahas in this Bhava */}
-          <div className="space-y-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-stone-800 dark:text-stone-200 block">
-              {currentLang === 'kn' ? `ಭಾವ ${selectedBhava} ರಲ್ಲಿ ನೆಲೆಸಿದ ಗ್ರಹಗಳು & ಅವುಗಳ ಪ್ರಭಾವ:` : `Planets in House ${selectedBhava} & Their Effects:`}
-            </span>
-
-            {planetsInSelectedHouse.length === 0 ? (
-              <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs text-stone-500 text-center space-y-1">
-                <p className="font-semibold text-stone-700 dark:text-stone-300">
-                  {currentLang === 'kn' ? 'ಈ ಭಾವದಲ್ಲಿ ಯಾವುದೇ ಗ್ರಹಗಳು ನೆಲೆಸಿಲ್ಲ (Empty House).' : 'No planets directly occupy this house.'}
-                </p>
-                <p className="text-[11px] text-stone-500">
-                  {currentLang === 'kn' 
-                    ? `ಈ ಭಾವದ ಫಲಗಳು ರಾಶ್ಯಾಧಿಪತಿಯಾದ ${houseData?.rashiName[currentLang]} ಅಧಿಪತಿಯ ಸ್ಥಿತಿ ಮತ್ತು ದೃಷ್ಟಿಯ ಮೇಲೆ ಅವಲಂಬಿತವಾಗಿರುತ್ತವೆ.` 
-                    : `Results are governed by the house lord of ${houseData?.rashiName.en} and aspects received from other Grahas.`}
-                </p>
-              </div>
-            ) : (
-              planetsInSelectedHouse.map((p) => {
-                const effect = getGrahaBhavaEffect(p.name, selectedBhava);
-                return (
-                  <div 
-                    key={p.name}
-                    className="p-3.5 rounded-xl border border-amber-300/80 dark:border-stone-700 bg-amber-50/40 dark:bg-stone-800/80 space-y-2 text-xs shadow-xs"
-                  >
-                    <div className="flex items-center justify-between border-b border-amber-200/60 dark:border-stone-700 pb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color || '#d97706' }} />
-                        <span className="font-serif font-bold text-stone-900 dark:text-stone-100 text-sm">
-                          {p.sanskritName[currentLang]} ({p.name})
-                        </span>
-                        {p.isRetrograde && (
-                          <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1 rounded">R (ವಕ್ರಿ)</span>
-                        )}
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        effect.nature === 'Auspicious' 
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
-                          : effect.nature === 'Remedy Needed'
-                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                      }`}>
-                        {effect.nature}
-                      </span>
-                    </div>
-
-                    <h5 className="font-bold text-amber-900 dark:text-amber-300 text-xs">
-                      {effect.title[currentLang]}
-                    </h5>
-
-                    <p className="text-stone-700 dark:text-stone-300 text-[11px] leading-relaxed">
-                      {effect.description[currentLang]}
-                    </p>
-
-                    <div className="p-2 rounded-lg bg-white/70 dark:bg-stone-900 border border-amber-200/80 dark:border-stone-700 text-[10.5px]">
-                      <strong className="text-amber-800 dark:text-amber-400 block mb-0.5">
-                        {currentLang === 'kn' ? 'ಶಾಂತಿ ಪರಿಹಾರ:' : 'Prescribed Remedy:'}
-                      </strong>
-                      <span className="text-stone-600 dark:text-stone-300">
-                        {effect.remedy[currentLang]}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-        </div>
-
       </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* 3.15 FULL ALL-SIDES 3D CELESTIAL MANDALA & RASHI STAR MAP (SKY DIRECTION) */}
+      {/* ========================================================================= */}
+      <div className="space-y-3">
+        <CelestialSkyMandala3D
+          currentLang={currentLang}
+          kundaliData={kundaliData}
+          dateStr={dateStr}
+          timeStr={timeStr}
+          cityName={selectedCity.name}
+          selectedCity={selectedCity}
+          defaultViewMode="3d"
+          showRashiStarMapInline={true}
+        />
+      </div>
 
       {/* ========================================================================= */}
       {/* 3.2 VIMSHOTTARI DASHA HORIZONTAL TIMELINE & REMEDIAL CROSS-REFERENCE */}

@@ -25,7 +25,6 @@ import {
 import { CityLocation, Festival, Language, PanchangaDay } from '../types';
 import { 
   formatJustNumber, 
-  formatNumberWithEnglishBracket, 
   getPanchangaForDate, 
   getLocalizedPlaceName,
   toIndicNumeral 
@@ -36,8 +35,6 @@ import { NavaratriColorsFeature } from './NavaratriColorsFeature';
 import { NavaratriRitualsModal } from './NavaratriRitualsModal';
 import { AstroDetailWindows } from './AstroDetailWindows';
 import { InlineDayDetailPanel } from './InlineDayDetailPanel';
-import { DashboardWidget } from './DashboardWidget';
-import { MonthlyMoonPhaseGraph } from './MonthlyMoonPhaseGraph';
 import { Activity } from 'lucide-react';
 import { 
   fetchDailyAstrologicalTip, 
@@ -82,7 +79,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [showNavaratriRitualsModal, setShowNavaratriRitualsModal] = useState<boolean>(false);
   const [ritualsModalTab, setRitualsModalTab] = useState<'kalasha' | 'akhandaDeepa' | 'dailyDurga' | 'kushmandaBali' | 'ayudhaPuja' | 'vijayadashami'>('kalasha');
   const [ritualsModalDayNum, setRitualsModalDayNum] = useState<number>(1);
-  const [showMoonPhaseGraph, setShowMoonPhaseGraph] = useState<boolean>(true);
+  const [showMoonPhaseGraph, setShowMoonPhaseGraph] = useState<boolean>(false);
 
   // Today's Panchanga calculation for Daily Insights
   const todayPanchangaDay = useMemo(() => getPanchangaForDate(today, selectedCity), [selectedCity]);
@@ -317,9 +314,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const [showMonthlyOverview, setShowMonthlyOverview] = useState<boolean>(false);
   const [expandedPortal, setExpandedPortal] = useState<'mantras' | 'sankalpa' | 'kundali' | null>(null);
-  const [showGocharWidget, setShowGocharWidget] = useState<boolean>(true);
-  const [showDashboardWidget, setShowDashboardWidget] = useState<boolean>(true);
-  const [showMoonPhaseWidget, setShowMoonPhaseWidget] = useState<boolean>(true);
+  const [showGocharWidget, setShowGocharWidget] = useState<boolean>(false);
+  const [showDashboardWidget, setShowDashboardWidget] = useState<boolean>(false);
+  const [showMoonPhaseWidget, setShowMoonPhaseWidget] = useState<boolean>(false);
   const [showNavaratriColors, setShowNavaratriColors] = useState<boolean>(false);
   const [showMonthSpecialFestivals, setShowMonthSpecialFestivals] = useState<boolean>(false);
   const [selectedMoonDay, setSelectedMoonDay] = useState<PanchangaDay>(() => {
@@ -509,20 +506,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <span>{currentLang === 'kn' ? 'ಮಾಸಿಕ PDF ರಫ್ತು' : currentLang === 'hi' ? 'मासिक PDF निर्यात' : 'Export Monthly PDF'}</span>
             </button>
 
-            {/* Moon Phase Progression Graph Toggle */}
-            <button
-              onClick={() => setShowMoonPhaseGraph(!showMoonPhaseGraph)}
-              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all shadow-md flex items-center gap-1.5 ml-1 backdrop-blur-xs cursor-pointer ${
-                showMoonPhaseGraph
-                  ? 'bg-gradient-to-r from-indigo-700 to-purple-700 text-white font-extrabold ring-2 ring-indigo-300'
-                  : 'bg-white/90 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-300 dark:border-stone-700 hover:bg-stone-100'
-              }`}
-              title="Show/Hide Moon's phase progression (waxing/waning) throughout current month"
-            >
-              <Moon className="w-4 h-4 text-amber-300" />
-              <span>{currentLang === 'kn' ? 'ಚಂದ್ರ ಕಲಾ ರೇಖೆ' : currentLang === 'hi' ? 'चन्द्र कला ग्राफ' : 'Moon Phase Graph'}</span>
-            </button>
-
             {/* Conditional Navaratri Controls vs Month's Special Festivals */}
             {isNavaratriMonth ? (
               <>
@@ -611,34 +594,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 1. MAIN LIVE DASHBOARD WIDGET: TITHI, NAKSHATRA & KARANA SUMMARY          */}
-      {/* ========================================================================= */}
-      {showDashboardWidget && (
-        <div className="no-print animate-in fade-in duration-200">
-          <DashboardWidget
-            currentLang={currentLang}
-            selectedCity={selectedCity}
-            onOpenDayDetail={(day) => handleDayClick(day, 'quickToday')}
-            onOpenKundali={onOpenKundali}
-            onOpenMantras={onOpenMantras}
-            onOpenSankalpa={onOpenSankalpa}
-          />
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 2. MONTHLY MOON PHASE PROGRESSION (WAXING / WANING) GRAPH                 */}
-      {/* ========================================================================= */}
-      {showMoonPhaseGraph && (
-        <div className="no-print animate-in fade-in duration-200">
-          <MonthlyMoonPhaseGraph
-            monthDays={monthDays}
-            currentLang={currentLang}
-            onSelectDay={(day) => handleDayClick(day, 'quickToday')}
-          />
-        </div>
-      )}
+      {/* Live Panchanga & Monthly Moon Phase Curve are housed inside the collapsible Astronomical Detail Windows header below */}
 
       {/* ========================================================================= */}
       {/* DAILY INSIGHTS (GEMINI AI ASTROLOGICAL GUIDANCE) */}
@@ -876,7 +832,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             📅 {item.dateStr}
                           </span>
                           <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300">
-                            Day {formatJustNumber(item.dayNum, currentLang)}
+                            {currentLang === 'kn' ? 'ದಿನ' : currentLang === 'hi' ? 'दिन' : 'Day'} {toIndicNumeral(item.dayNum, currentLang)}
                           </span>
                         </div>
 
@@ -979,13 +935,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         setShowGocharWidget={setShowGocharWidget}
         showMoonPhaseWidget={showMoonPhaseWidget}
         setShowMoonPhaseWidget={setShowMoonPhaseWidget}
+        showMoonPhaseGraph={showMoonPhaseGraph}
+        setShowMoonPhaseGraph={setShowMoonPhaseGraph}
         showTrendChart={showTrendChart}
         setShowTrendChart={setShowTrendChart}
         trendMetric={trendMetric}
         setTrendMetric={setTrendMetric}
         selectedMoonDay={selectedMoonDay}
         setSelectedMoonDay={setSelectedMoonDay}
-        onSelectDay={onSelectDay}
+        onSelectDay={(day) => handleDayClick(day, 'grid')}
         onSelectFestival={onSelectFestival}
         onOpenKundali={onOpenKundali}
         onOpenMantras={onOpenMantras}
@@ -995,28 +953,29 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       {/* Main Calendar Grid */}
       <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-md border border-amber-200/80 dark:border-stone-800 overflow-hidden">
         
-        {/* Days of Week Header */}
+        {/* Days of Week Header - Compact on mobile, full on desktop */}
         <div className="grid grid-cols-7 border-b border-amber-200/60 dark:border-stone-800 bg-amber-50/70 dark:bg-stone-950/60 text-center">
           {weekDayHeaders.map((head, i) => (
             <div 
               key={i} 
-              className={`py-3 text-xs font-bold uppercase tracking-wider ${
+              className={`py-2 sm:py-3 px-0.5 text-[10px] sm:text-xs font-bold uppercase tracking-tight sm:tracking-wider truncate ${
                 i === 0 ? 'text-red-600 dark:text-red-400' : 'text-stone-700 dark:text-stone-300'
               }`}
             >
-              {head[currentLang]}
+              <span className="sm:hidden">{head[currentLang].split(' ')[0].slice(0, 3)}</span>
+              <span className="hidden sm:inline">{head[currentLang]}</span>
             </div>
           ))}
         </div>
 
-        {/* Calendar Cells Grid: Balanced Grid maintaining consistent aspect ratios across screen sizes */}
+        {/* Calendar Cells Grid: Compact balanced tiles on mobile (no tall lean boxes), rich full cards on desktop */}
         <div className="grid grid-cols-7 divide-x divide-y divide-amber-100/80 dark:divide-stone-800/80 bg-stone-50/30 dark:bg-stone-900/30">
           
           {/* Empty cells for leading days */}
           {Array.from({ length: leadingEmptyDays }).map((_, i) => (
             <div
               key={`empty-lead-${i}`}
-              className="aspect-square sm:aspect-[1/1.05] p-1 sm:p-1.5 bg-stone-100/30 dark:bg-stone-950/20 opacity-40 select-none border-t border-l"
+              className="min-h-[64px] sm:min-h-[135px] md:min-h-[150px] p-1 sm:p-1.5 bg-stone-100/30 dark:bg-stone-950/20 opacity-40 select-none border-t border-l"
             />
           ))}
 
@@ -1029,6 +988,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
             const isSunday = panchangDay.varaIndex === 0;
             const hasFestivals = panchangDay.festivals.length > 0;
+            const isSelectedCell = inlineSelectedDay?.gregorianDate === panchangDay.gregorianDate;
 
             return (
               <div
@@ -1037,59 +997,75 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   setSelectedMoonDay(panchangDay);
                   handleDayClick(panchangDay, 'grid');
                 }}
-                className={`min-h-[110px] xs:min-h-[120px] sm:min-h-[135px] md:min-h-[150px] p-1 sm:p-1.5 transition-all relative flex flex-col justify-between cursor-pointer group border-t border-l ${
+                className={`min-h-[64px] sm:min-h-[135px] md:min-h-[150px] p-1 sm:p-1.5 transition-all relative flex flex-col justify-between cursor-pointer group border-t border-l min-w-0 overflow-hidden ${
                   panchangDay.colorTheme
                 } ${
-                  isToday 
+                  isSelectedCell
+                    ? 'ring-2 ring-indigo-600 ring-inset bg-indigo-50/70 dark:bg-indigo-950/40'
+                    : isToday 
                     ? 'ring-2 ring-amber-500 ring-inset bg-amber-50/70 dark:bg-amber-950/40' 
                     : hasFestivals
-                    ? 'ring-1.5 ring-amber-400/80 bg-amber-50/40 dark:bg-amber-950/25 shadow-xs'
+                    ? 'ring-1 ring-amber-400/80 bg-amber-50/40 dark:bg-amber-950/25 shadow-xs'
                     : ''
                 }`}
               >
-                {/* Cell Top Bar: Gregorian Date with localized & English bracket */}
-                <div className="flex items-start justify-between">
-                  <div className="flex flex-col">
-                    <span className={`text-[11px] xs:text-xs sm:text-sm md:text-base font-bold font-serif leading-none ${
+                {/* Cell Top Bar: Single Clean Date Number (No Duplicate Bracket Numbers) + Moon Phase */}
+                <div className="flex items-start justify-between gap-0.5">
+                  <div className="flex flex-col min-w-0">
+                    <span className={`text-xs sm:text-sm md:text-base font-bold font-serif leading-none ${
                       isToday 
                         ? 'text-amber-700 dark:text-amber-300' 
                         : isSunday 
                         ? 'text-red-600 dark:text-red-400' 
                         : 'text-stone-800 dark:text-stone-100'
                     }`}>
-                      {formatNumberWithEnglishBracket(panchangDay.day, currentLang)}
+                      {toIndicNumeral(panchangDay.day, currentLang)}
                     </span>
-                    <span className="text-[7px] xs:text-[7.5px] sm:text-[9px] font-medium text-stone-500 dark:text-stone-400 mt-0.5 leading-none">
-                      {panchangDay.paksha === 'Shukla' ? (currentLang === 'kn' ? 'ಶು' : currentLang === 'hi' ? 'शु' : 'Sh') : (currentLang === 'kn' ? 'ಕೃ' : currentLang === 'hi' ? 'कृ' : 'Kr')} {formatJustNumber(panchangDay.tithiNumber, currentLang)}
+                    <span className="text-[7.5px] sm:text-[9px] font-medium text-stone-500 dark:text-stone-400 mt-0.5 leading-none truncate">
+                      {panchangDay.paksha === 'Shukla' ? (currentLang === 'kn' ? 'ಶು' : currentLang === 'hi' ? 'शु' : 'Sh') : (currentLang === 'kn' ? 'ಕೃ' : currentLang === 'hi' ? 'कृ' : 'Kr')} {toIndicNumeral(panchangDay.tithiNumber, currentLang)}
                     </span>
                   </div>
 
-                  {/* CSS-based Moon Phase (waxing/waning) integrated with Panchanga */}
-                  <div className="flex items-center gap-1 shrink-0">
+                  {/* Moon Phase Icon */}
+                  <div className="flex items-center shrink-0">
                     <MoonPhaseIcon
                       paksha={panchangDay.paksha}
                       tithiNumber={panchangDay.tithiNumber}
-                      size={13}
+                      size={12}
                       currentLang={currentLang}
                     />
                   </div>
                 </div>
 
-                {/* Sanskrit Tithi & Nakshatra Name */}
-                <div className="my-0.5 space-y-0.5 overflow-hidden">
-                  <div className="text-[7.5px] xs:text-[8px] sm:text-[9.5px] font-semibold text-stone-800 dark:text-stone-200 truncate leading-tight">
+                {/* Mobile Compact Tithi & Festival Dot (Keeps mobile cell clean & balanced, tap shows full panel) */}
+                <div className="sm:hidden mt-1 space-y-0.5 min-w-0">
+                  <div className="text-[8px] font-semibold text-stone-700 dark:text-stone-300 truncate leading-tight">
+                    {panchangDay.tithiName[currentLang].split(' ')[0]}
+                  </div>
+                  {hasFestivals && (
+                    <div className="flex items-center gap-0.5">
+                      <span className="inline-block w-full truncate text-[7px] font-extrabold px-1 py-0.2 rounded bg-amber-500/90 text-stone-950 leading-tight">
+                        ✨ {panchangDay.festivals[0].name[currentLang].split(' ')[0]}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Desktop/Tablet Rich Tithi, Nakshatra & Progress Details */}
+                <div className="hidden sm:block my-0.5 space-y-0.5 overflow-hidden">
+                  <div className="text-[9.5px] font-semibold text-stone-800 dark:text-stone-200 truncate leading-tight">
                     {panchangDay.tithiName[currentLang]}
                   </div>
                   {panchangDay.tithiTiming && (
                     <div 
-                      className="text-[6px] xs:text-[6.5px] sm:text-[7.5px] font-mono text-amber-700 dark:text-amber-400 truncate leading-tight font-medium"
+                      className="text-[7.5px] font-mono text-amber-700 dark:text-amber-400 truncate leading-tight font-medium"
                       title={panchangDay.tithiTiming.summary[currentLang]}
                     >
                       <span>{currentLang === 'kn' ? 'ಮುಕ್ತಾಯ: ' : currentLang === 'hi' ? 'समाप्ति: ' : 'Ends: '}</span>
                       <span>{panchangDay.tithiTiming.endTimeFormatted[currentLang]?.split(',')[1] || panchangDay.tithiTiming.endTime}</span>
                     </div>
                   )}
-                  <div className="text-[6.5px] xs:text-[7px] sm:text-[8px] text-stone-500 dark:text-stone-400 truncate leading-tight">
+                  <div className="text-[8px] text-stone-500 dark:text-stone-400 truncate leading-tight">
                     {panchangDay.nakshatra[currentLang]}
                   </div>
 
@@ -1120,7 +1096,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         className="my-0.5 space-y-0.5 bg-amber-500/10 dark:bg-stone-800/60 p-0.5 rounded border border-amber-200/50 dark:border-stone-700/50"
                         title={`Tithi: ${tithiPercent}% elapsed • Nakshatra: ${nakPercent}% elapsed`}
                       >
-                        <div className="flex items-center justify-between text-[6px] xs:text-[6.5px] font-mono leading-none">
+                        <div className="flex items-center justify-between text-[6.5px] font-mono leading-none">
                           <span className="text-amber-800 dark:text-amber-400 font-bold">
                             {currentLang === 'kn' ? 'ತಿ' : 'T'}: {tithiPercent}%
                           </span>
@@ -1139,9 +1115,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   })()}
                 </div>
 
-                {/* Festival Tags rendered cleanly & prominently on each date cell */}
+                {/* Desktop/Tablet Festival Tags rendered cleanly & prominently on each date cell */}
                 {panchangDay.festivals.length > 0 && (
-                  <div className="space-y-1 my-1">
+                  <div className="hidden sm:block space-y-1 my-1">
                     {/* Special Navaratri Day Ritual Badge if present */}
                     {panchangDay.festivals.some(f => f.isNavaratri || f.id.startsWith('navaratri_day')) && (() => {
                       const nFest = panchangDay.festivals.find(f => f.isNavaratri || f.id.startsWith('navaratri_day'))!;
@@ -1160,7 +1136,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             e.stopPropagation();
                             handleFestivalClick(nFest, panchangDay, 'grid');
                           }}
-                          className="w-full text-left text-[7.5px] xs:text-[8.5px] sm:text-[9.5px] font-extrabold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white flex items-center gap-1 shadow-xs hover:scale-[1.02] cursor-pointer transition-transform border border-amber-300/60 leading-tight"
+                          className="w-full text-left text-[9.5px] font-extrabold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white flex items-center gap-1 shadow-xs hover:scale-[1.02] cursor-pointer transition-transform border border-amber-300/60 leading-tight"
                           title={nFest.name[currentLang]}
                         >
                           <span className="line-clamp-2 break-words">{ritualBadge}</span>
@@ -1168,7 +1144,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       );
                     })()}
 
-                    {/* All Festivals on this Day (Deepavali, Naraka Chaturdashi, Dhanteras, Bali Padyami, Sharad Purnima, Karwa Chauth, etc.) */}
+                    {/* All Festivals on this Day */}
                     {panchangDay.festivals
                       .filter(f => !f.isNavaratri && !f.id.startsWith('navaratri_day'))
                       .map(fest => {
@@ -1202,7 +1178,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               e.stopPropagation();
                               handleFestivalClick(fest, panchangDay, 'grid');
                             }}
-                            className={`w-full text-left text-[7px] xs:text-[8px] sm:text-[9px] font-extrabold px-1.5 py-0.5 rounded-md transition-all hover:scale-[1.02] border flex items-center gap-1 cursor-pointer shadow-xs leading-tight ${
+                            className={`w-full text-left text-[9px] font-extrabold px-1.5 py-0.5 rounded-md transition-all hover:scale-[1.02] border flex items-center gap-1 cursor-pointer shadow-xs leading-tight ${
                               isDeepavaliFest
                                 ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-stone-950 border-amber-300 ring-1 ring-amber-400 font-black'
                                 : isPurnimaFest
@@ -1220,8 +1196,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   </div>
                 )}
 
-                {/* Quick daily timings preview: Sunrise / Rahu Kaal icon */}
-                <div className="mt-auto pt-0.5 flex items-center justify-between text-[7px] xs:text-[7.5px] sm:text-[8.5px] text-stone-400 dark:text-stone-500 font-mono leading-none">
+                {/* Desktop Quick daily timings preview: Sunrise / Rahu Kaal icon */}
+                <div className="hidden sm:flex mt-auto pt-0.5 items-center justify-between text-[8.5px] text-stone-400 dark:text-stone-500 font-mono leading-none">
                   <span title={`Suryodaya: ${panchangDay.sunrise}`}>
                     🌅 {panchangDay.sunrise.split(' ')[0]}
                   </span>
@@ -1237,7 +1213,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           {Array.from({ length: trailingEmptyDays }).map((_, i) => (
             <div
               key={`empty-trail-${i}`}
-              className="aspect-square sm:aspect-[1/1.05] p-1 sm:p-1.5 bg-stone-100/30 dark:bg-stone-950/20 opacity-40 select-none border-t border-l"
+              className="min-h-[64px] sm:min-h-[135px] md:min-h-[150px] p-1 sm:p-1.5 bg-stone-100/30 dark:bg-stone-950/20 opacity-40 select-none border-t border-l"
             />
           ))}
         </div>

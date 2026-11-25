@@ -24,6 +24,7 @@ import { getLocalizedPlaceName } from '../utils/panchanga';
 import { DashboardWidget } from './DashboardWidget';
 import { GocharTransitsView } from './GocharTransitsView';
 import { MoonPhaseCalendarWidget } from './MoonPhaseCalendarWidget';
+import { MonthlyMoonPhaseGraph } from './MonthlyMoonPhaseGraph';
 
 export interface AstroDetailWindowsProps {
   currentLang: Language;
@@ -59,6 +60,8 @@ export interface AstroDetailWindowsProps {
   setShowGocharWidget: (val: boolean) => void;
   showMoonPhaseWidget: boolean;
   setShowMoonPhaseWidget: (val: boolean) => void;
+  showMoonPhaseGraph: boolean;
+  setShowMoonPhaseGraph: (val: boolean) => void;
   showTrendChart: boolean;
   setShowTrendChart: (val: boolean) => void;
   trendMetric: 'tithi' | 'nakshatra';
@@ -91,6 +94,8 @@ export const AstroDetailWindows: React.FC<AstroDetailWindowsProps> = ({
   setShowGocharWidget,
   showMoonPhaseWidget,
   setShowMoonPhaseWidget,
+  showMoonPhaseGraph,
+  setShowMoonPhaseGraph,
   showTrendChart,
   setShowTrendChart,
   trendMetric,
@@ -200,10 +205,27 @@ export const AstroDetailWindows: React.FC<AstroDetailWindowsProps> = ({
             </span>
           </button>
 
+          {/* Button 4b: Monthly Moon Phase & Illumination Curve (Hidden by default until clicked) */}
+          <button
+            onClick={() => setShowMoonPhaseGraph(!showMoonPhaseGraph)}
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer border ${
+              showMoonPhaseGraph
+                ? 'bg-amber-400 text-stone-950 border-amber-300 ring-2 ring-amber-300/60 shadow-amber-500/20'
+                : 'bg-stone-800 hover:bg-stone-750 text-white border-stone-700 hover:border-amber-400/60'
+            }`}
+            title="Monthly Moon Phase & Illumination Curve (Waxing/Waning progression across the month)"
+          >
+            <Moon className="w-4 h-4 text-amber-300" />
+            <span>{currentLang === 'kn' ? 'ಚಂದ್ರ ಕಲಾ ರೇಖೆ' : currentLang === 'hi' ? 'चन्द्र कला आरेख' : 'Moon Illumination Curve'}</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${showMoonPhaseGraph ? 'bg-stone-900 text-amber-300' : 'bg-stone-700 text-stone-300'}`}>
+              {showMoonPhaseGraph ? '✕' : '▼'}
+            </span>
+          </button>
+
           {/* Button 5: Cosmic Trends */}
           <button
             onClick={() => setShowTrendChart(!showTrendChart)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer border ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer border ${
               showTrendChart 
                 ? 'bg-amber-400 text-stone-950 border-amber-300 ring-2 ring-amber-300/60 shadow-amber-500/20' 
                 : 'bg-stone-800 hover:bg-stone-750 text-white border-stone-700 hover:border-amber-400/60'
@@ -259,8 +281,8 @@ export const AstroDetailWindows: React.FC<AstroDetailWindowsProps> = ({
             </div>
           </div>
 
-          {/* Scrollable Content */}
-          <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-stone-800 dark:text-stone-200">
+          {/* Content without inner vertical scrollbar to prevent double scroll */}
+          <div className="p-4 sm:p-6 space-y-6 text-sm text-stone-800 dark:text-stone-200">
             {/* Section 1: Important Tithis of the Month */}
             <div className="rounded-xl border border-amber-200/80 dark:border-stone-800 bg-amber-50/40 dark:bg-stone-850 p-4 space-y-3">
               <h4 className="font-serif font-bold text-base text-stone-900 dark:text-stone-100 flex items-center gap-2 border-b border-amber-200/60 dark:border-stone-700 pb-2">
@@ -397,9 +419,9 @@ export const AstroDetailWindows: React.FC<AstroDetailWindowsProps> = ({
                 </span>
               </h4>
 
-              <div className="border border-stone-200 dark:border-stone-800 rounded-xl overflow-x-auto text-xs max-h-72">
+              <div className="border border-stone-200 dark:border-stone-800 rounded-xl overflow-x-auto text-xs">
                 <table className="w-full text-left border-collapse">
-                  <thead className="sticky top-0 bg-stone-100 dark:bg-stone-800 shadow-2xs z-10">
+                  <thead className="bg-stone-100 dark:bg-stone-800 shadow-2xs">
                     <tr className="border-b border-stone-200 dark:border-stone-700 font-bold text-stone-700 dark:text-stone-300">
                       <th className="p-2.5 text-center w-14">
                         {currentLang === 'kn' ? 'ದಿನಾಂಕ' : currentLang === 'hi' ? 'दिनांक' : 'Date'}
@@ -546,6 +568,36 @@ export const AstroDetailWindows: React.FC<AstroDetailWindowsProps> = ({
           <MoonPhaseCalendarWidget
             selectedDay={selectedMoonDay}
             currentLang={currentLang}
+          />
+        </div>
+      )}
+
+      {/* WINDOW 4B: MONTHLY MOON PHASE & ILLUMINATION CURVE */}
+      {showMoonPhaseGraph && (
+        <div className="rounded-2xl border-2 border-indigo-500/50 dark:border-stone-700 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200 relative">
+          <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 px-4 py-2.5 text-white flex items-center justify-between border-b border-indigo-600/40">
+            <div className="flex items-center gap-2 min-w-0">
+              <Moon className="w-4 h-4 text-amber-300 shrink-0" />
+              <span className="font-serif font-bold text-xs sm:text-sm truncate">
+                {currentLang === 'kn' ? 'ಮಾಸಿಕ ಚಂದ್ರ ಕಲಾ ರೇಖೆ & ಪ್ರಕಾಶಮಾನತೆ' : currentLang === 'hi' ? 'मासिक चन्द्र कला एवं प्रकाश आरेख' : 'Monthly Moon Phase & Illumination Curve'}
+              </span>
+            </div>
+            <button
+              onClick={() => setShowMoonPhaseGraph(false)}
+              className="p-1 rounded-lg bg-black/30 hover:bg-black/50 text-white transition-colors cursor-pointer text-xs flex items-center gap-1 px-2 shrink-0"
+              title="Close Moon Phase Curve"
+            >
+              <span>✕</span>
+              <span>{currentLang === 'kn' ? 'ಮುಚ್ಚಿ' : 'Close'}</span>
+            </button>
+          </div>
+          <MonthlyMoonPhaseGraph
+            monthDays={monthDays}
+            currentLang={currentLang}
+            onSelectDay={(day) => {
+              setSelectedMoonDay(day);
+              onSelectDay(day);
+            }}
           />
         </div>
       )}

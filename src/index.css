@@ -1,5 +1,44 @@
 @import "tailwindcss";
 
+/* Single-scroll guarantee & zero horizontal overflow across mobile and embedded iframes */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+  overflow-y: visible;
+  height: auto;
+  overscroll-behavior-x: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* Clean utility to hide horizontal scrollbar on pill/tab strips without adding extra chrome */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth animated Drishti energy beam */
+@keyframes drishtiBeamFlow {
+  from {
+    stroke-dashoffset: 36;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.drishti-ray-animated {
+  animation: drishtiBeamFlow 1.1s linear infinite;
+}
+
 @media print {
   body {
     background: #ffffff !important;

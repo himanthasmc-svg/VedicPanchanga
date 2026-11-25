@@ -388,8 +388,44 @@ export default function App() {
     if (data.booksList) setBooksList(data.booksList);
   };
 
+  // Broadcast document height to parent webpage when embedded in an iframe so parent page auto-sizes without dual scrollbars
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.self === window.top) return;
+
+    let rafId = 0;
+    const postHeight = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const rootEl = document.getElementById('root');
+        const height = Math.max(
+          rootEl ? Math.ceil(rootEl.getBoundingClientRect().height) : 0,
+          document.body.scrollHeight
+        );
+        try {
+          window.parent.postMessage({ type: 'hcmm-resize', height }, '*');
+          window.parent.postMessage({ type: 'resize', height }, '*');
+        } catch {
+          // ignore cross-origin restrictions
+        }
+      });
+    };
+
+    postHeight();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(postHeight) : null;
+    if (ro && document.body) ro.observe(document.body);
+    window.addEventListener('resize', postHeight);
+    window.addEventListener('load', postHeight);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      ro?.disconnect();
+      window.removeEventListener('resize', postHeight);
+      window.removeEventListener('load', postHeight);
+    };
+  }, [activeView]);
+
   return (
-    <div className={`min-h-screen bg-amber-50/30 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans transition-colors ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`min-h-screen w-full max-w-full overflow-x-clip bg-amber-50/30 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans transition-colors ${isDarkMode ? 'dark' : ''}`}>
       
       {/* Top Application Header */}
       <Header
@@ -485,8 +521,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Content Area - Dynamically responsive for mobile and desktop windows */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-2 xs:px-3 sm:px-6 lg:px-8 py-3 sm:py-6 overflow-x-hidden">
+      {/* Main Content Area - Dynamically responsive for mobile and desktop windows without nested vertical scrollbars */}
+      <main className="flex-1 max-w-7xl w-full min-w-0 mx-auto px-2 xs:px-3 sm:px-6 lg:px-8 py-3 sm:py-6 overflow-x-clip">
         
         {/* VIEW 1: Main Calendar View (1900 to 2100+) */}
         {activeView === 'calendar' && (
