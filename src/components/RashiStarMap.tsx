@@ -9,6 +9,9 @@ import {
   Navigation,
   ChevronLeft,
   ChevronRight,
+  Search,
+  Calendar,
+  X,
 } from 'lucide-react';
 import { CityLocation, KundaliData, Language } from '../types';
 import {
@@ -16,6 +19,7 @@ import {
   getAllRashisSkyPositions,
 } from '../utils/rashiConstellations';
 import { NAKSHATRA_AKSHARAS } from '../utils/nakshatraAksharas';
+import { calculateKundali } from '../utils/panchanga';
 import { SvgGrahaIcon } from './RealisticGraha';
 
 interface RashiStarMapProps {
@@ -37,6 +41,8 @@ export const RashiStarMap: React.FC<RashiStarMapProps> = ({
 }) => {
   const [selectedRashiIdx, setSelectedRashiIdx] = useState<number>(initialRashiIndex);
   const [useEveningSkyPreview, setUseEveningSkyPreview] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [eventFilter, setEventFilter] = useState<'all' | 'ingress' | 'major'>('all');
 
   const effectiveTimeStr = useEveningSkyPreview ? '21:00' : timeStr || '21:00';
 
@@ -62,6 +68,185 @@ export const RashiStarMap: React.FC<RashiStarMapProps> = ({
 
   // Visible Rashis right now above horizon
   const visibleNowCount = allSkyPositions.filter((s) => s.visibilityStatus !== 'below_horizon').length;
+
+  // Quick Search Matching Rashis (matches Kannada, Hindi, English, Western Sign, or bright star name)
+  const searchMatches = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return RASHI_CONSTELLATIONS.filter((r) => {
+      const text = [
+        String(r.rashiIndex + 1),
+        r.rashiName.en,
+        r.rashiName.kn,
+        r.rashiName.hi,
+        r.shapeTitle.en,
+        r.lord.en,
+        r.lord.kn,
+        ...r.stars.map((s) => s.name),
+      ]
+        .join(' ')
+        .toLowerCase();
+      return text.includes(q);
+    });
+  }, [searchQuery]);
+
+  // Celestial Events: Real upcoming planetary ingress & lunar events for the selected Rashi over the next 365 days
+  const celestialEvents = useMemo(() => {
+    interface CelestialEventItem {
+      id: string;
+      planetName: string;
+      dateIso: string;
+      dateLabel: string;
+      daysAway: number;
+      type: 'sankranti' | 'moon' | 'purnima' | 'transit' | 'active';
+      isMajor: boolean;
+      badgeLabel: Record<Language, string>;
+      title: Record<Language, string>;
+      detail: Record<Language, string>;
+    }
+
+    const events: CelestialEventItem[] = [];
+    const baseParts = (dateStr || new Date().toISOString().split('T')[0]).split('-').map(Number);
+    const startDate = new Date(baseParts[0] || 2026, (baseParts[1] || 1) - 1, baseParts[2] || 1, 12, 0, 0);
+
+    const fmtIso = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const fmtDisplayDate = (d: Date) =>
+      d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    const tracked = ['Sun', 'Moon', 'Mars', 'Mercury', 'Venus', 'Jupiter', 'Saturn', 'Rahu', 'Ketu'];
+    const majorPlanets = new Set(['Sun', 'Mars', 'Jupiter', 'Saturn', 'Rahu', 'Ketu']);
+    const foundIngress = new Set<string>();
+    let foundPurnima = false;
+
+    const prevMap: Record<string, number> = {};
+    const day0Kundali = calculateKundali(`${fmtIso(startDate)}T12:00`, selectedCity);
+    day0Kundali.planets.forEach((p) => {
+      prevMap[p.name] = p.rashiIndex;
+      if (tracked.includes(p.name) && p.rashiIndex === selectedRashiIdx) {
+        events.push({
+          id: `active-${p.name}`,
+          planetName: p.name,
+          dateIso: fmtIso(startDate),
+          dateLabel: fmtDisplayDate(startDate),
+          daysAway: 0,
+          type: 'active',
+          isMajor: majorPlanets.has(p.name),
+          badgeLabel: { kn: 'ಈಗ ಸಕ್ರಿಯ', hi: 'वर्तमान गोचर', en: 'ACTIVE TRANSIT' },
+          title: {
+            kn: `${p.sanskritName.kn} ಈಗ ಈ ರಾಶಿಯಲ್ಲಿದೆ (${p.degrees.toFixed(1)}°)`,
+            hi: `${p.sanskritName.hi} अभी इसी राशि में हैं (${p.degrees.toFixed(1)}°)`,
+            en: `${p.sanskritName.en} Currently in ${activeConstellation.rashiName.en.split(' ')[0]} (${p.degrees.toFixed(1)}°)`,
+          },
+          detail: {
+            kn: 'ಈ ದಿನ ಗೋಚಾರದಲ್ಲಿ ಈ ನಕ್ಷತ್ರ ಮಂಡಲದಲ್ಲಿ ಸಕ್ರಿಯವಾಗಿದೆ.',
+            hi: 'वर्तमान गोचर में इस तारामंडल में सक्रिय स्थिति।',
+            en: 'Currently transiting this constellation on the selected date.',
+          },
+        });
+      }
+    });
+
+    // Scan forward 365 days (daily for first 40 days, every 3 days thereafter) to parse exact planetary ingress
+    for (let offset = 1; offset <= 365; offset += offset < 40 ? 1 : 3) {
+      const dt = new Date(startDate.getTime() + offset * 86400000);
+      const iso = fmtIso(dt);
+      const disp = fmtDisplayDate(dt);
+      const kd = calculateKundali(`${iso}T12:00`, selectedCity);
+
+      const sunP = kd.planets.find((p) => p.name === 'Sun');
+      const moonP = kd.planets.find((p) => p.name === 'Moon');
+
+      if (!foundPurnima && moonP && sunP && moonP.rashiIndex === selectedRashiIdx && sunP.rashiIndex === (selectedRashiIdx + 6) % 12) {
+        foundPurnima = true;
+        events.push({
+          id: `purnima-${iso}`,
+          planetName: 'Moon',
+          dateIso: iso,
+          dateLabel: disp,
+          daysAway: offset,
+          type: 'purnima',
+          isMajor: true,
+          badgeLabel: { kn: 'ಪೂರ್ಣಿಮಾ', hi: 'पूर्णिमा', en: 'FULL MOON' },
+          title: {
+            kn: `🌕 ಪೂರ್ಣಿಮಾ ಚಂದ್ರ ದರ್ಶನ (${activeConstellation.rashiName.kn})`,
+            hi: `🌕 पूर्णिमा चन्द्र दर्शन (${activeConstellation.rashiName.hi})`,
+            en: `🌕 Full Moon (Purnima) in ${activeConstellation.rashiName.en.split(' ')[0]}`,
+          },
+          detail: {
+            kn: 'ಸೂರ್ಯನು ೭ನೇ ರಾಶಿಯಲ್ಲಿರುವಾಗ ಚಂದ್ರನು ಈ ರಾಶಿಯಲ್ಲಿ ಪೂರ್ಣ ಪ್ರಕಾಶಮಾನವಾಗಿ ಹೊಳೆಯುತ್ತಾನೆ.',
+            hi: 'सूर्य के सप्तम राशि में रहते हुए चन्द्रमा इस तारामंडल में पूर्ण प्रकाशित होगा।',
+            en: 'The Full Moon shines directly within this Rashi constellation all night.',
+          },
+        });
+      }
+
+      for (const p of kd.planets) {
+        if (!tracked.includes(p.name)) continue;
+        const prevIdx = prevMap[p.name];
+        if (prevIdx !== selectedRashiIdx && p.rashiIndex === selectedRashiIdx && !foundIngress.has(p.name)) {
+          foundIngress.add(p.name);
+          const isSun = p.name === 'Sun';
+          const isMoon = p.name === 'Moon';
+          events.push({
+            id: `ingress-${p.name}-${iso}`,
+            planetName: p.name,
+            dateIso: iso,
+            dateLabel: disp,
+            daysAway: offset,
+            type: isSun ? 'sankranti' : isMoon ? 'moon' : 'transit',
+            isMajor: majorPlanets.has(p.name),
+            badgeLabel: isSun
+              ? { kn: 'ಸೂರ್ಯ ಸಂಕ್ರಾಂತಿ', hi: 'सूर्य संक्रान्ति', en: 'SOLAR INGRESS' }
+              : isMoon
+              ? { kn: 'ಚಂದ್ರ ಪ್ರವೇಶ', hi: 'चन्द्र प्रवेश', en: 'LUNAR INGRESS' }
+              : { kn: 'ಗ್ರಹ ಪ್ರವೇಶ', hi: 'ग्रह प्रवेश', en: 'PLANETARY INGRESS' },
+            title: isSun
+              ? {
+                  kn: `☀️ ಸೂರ್ಯ ಸಂಕ್ರಾಂತಿ (${activeConstellation.rashiName.kn} ಪ್ರವೇಶ)`,
+                  hi: `☀️ सूर्य संक्रान्ति (${activeConstellation.rashiName.hi} प्रवेश)`,
+                  en: `☀️ Surya Sankranti — Sun Enters ${activeConstellation.rashiName.en.split(' ')[0]}`,
+                }
+              : {
+                  kn: `${p.sanskritName.kn} ರಾಶಿ ಪ್ರವೇಶ (${activeConstellation.rashiName.kn})`,
+                  hi: `${p.sanskritName.hi} राशि प्रवेश (${activeConstellation.rashiName.hi})`,
+                  en: `${p.sanskritName.en} Ingress into ${activeConstellation.rashiName.en.split(' ')[0]}`,
+                },
+            detail: isSun
+              ? {
+                  kn: 'ಸೂರ್ಯನು ಈ ನಕ್ಷತ್ರ ಮಂಡಲವನ್ನು ಪ್ರವೇಶಿಸಿ ಸುಮಾರು ೩೦ ದಿನ ಸಂಚರಿಸುತ್ತಾನೆ.',
+                  hi: 'सूर्य इस तारामंडल में प्रवेश कर लगभग 30 दिनों तक संचरण करेंगे।',
+                  en: 'Solar ingress (Sankranti) marking ~30 days of Sun transit through this constellation.',
+                }
+              : isMoon
+              ? {
+                  kn: 'ಚಂದ್ರನು ಈ ರಾಶಿಯನ್ನು ಪ್ರವೇಶಿಸಿ ಸುಮಾರು ೨.೨೫ ದಿನಗಳ ಕಾಲ ಇರುತ್ತಾನೆ.',
+                  hi: 'चन्द्रमा इस राशि में प्रवेश कर लगभग सवा दो दिन रहेंगे।',
+                  en: 'Lunar ingress (~2.25 days) making this constellation easy to locate near the Moon.',
+                }
+              : {
+                  kn: `${p.sanskritName.kn} ಗ್ರಹದ ನಿಖರ ರಾಶಿ ಪ್ರವೇಶ (ಸಿದ್ಧಾಂತ ಗೋಚಾರ ಲೆಕ್ಕಾಚಾರ).`,
+                  hi: `${p.sanskritName.hi} ग्रह का सटीक राशि प्रवेश (निरयण गोचर गणना)।`,
+                  en: `Sidereal planetary ingress of ${p.name} into ${activeConstellation.rashiName.en}.`,
+                },
+          });
+        }
+        prevMap[p.name] = p.rashiIndex;
+      }
+    }
+
+    return events.sort((a, b) => a.daysAway - b.daysAway);
+  }, [selectedRashiIdx, dateStr, selectedCity, activeConstellation]);
+
+  const filteredCelestialEvents = useMemo(() => {
+    if (eventFilter === 'ingress') {
+      return celestialEvents.filter((e) => e.type !== 'active').slice(0, 9);
+    }
+    if (eventFilter === 'major') {
+      return celestialEvents.filter((e) => e.isMajor).slice(0, 9);
+    }
+    return celestialEvents.slice(0, 9);
+  }, [celestialEvents, eventFilter]);
 
   // Compass dial pointer angle (0° North at top, clockwise)
   const azRad = ((activeSkyPos.azimuthDeg - 90) * Math.PI) / 180;
@@ -127,6 +312,92 @@ export const RashiStarMap: React.FC<RashiStarMapProps> = ({
             </span>
           </button>
         </div>
+      </div>
+
+      {/* Quick Search Input to Jump Immediately to Any Rashi Constellation or Star */}
+      <div className="relative">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-amber-300 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchMatches.length > 0) {
+                  setSelectedRashiIdx(searchMatches[0].rashiIndex);
+                  setSearchQuery('');
+                }
+              }}
+              placeholder={
+                currentLang === 'kn'
+                  ? 'ರಾಶಿ ಅಥವಾ ತಾರೆ ಹುಡುಕಿ (ಉದಾ: ಸಿಂಹ, ಮೇಷ, Simha, Leo, Rohini, Spica...)'
+                  : currentLang === 'hi'
+                  ? 'राशि या तारा खोजें (जैसे: सिंह, मेष, Simha, Leo, Rohini...)'
+                  : 'Quick jump to Rashi or Star (e.g. Simha, Leo, ಸಿಂಹ, Mesha, Rohini, Antares)...'
+              }
+              className="w-full pl-9 pr-9 py-2 rounded-xl bg-slate-900/90 border border-amber-400/40 focus:border-amber-400 focus:outline-none text-xs sm:text-sm text-white placeholder:text-slate-400 shadow-inner"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-white cursor-pointer"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <span className="text-[11px] font-mono text-amber-200/80 shrink-0">
+            {currentLang === 'kn'
+              ? `ಆಯ್ಕೆ: ${activeConstellation.rashiName.kn} (${activeSkyPos.compassCode})`
+              : `Viewing: ${activeConstellation.rashiName.en.split(' ')[0]} (${activeSkyPos.compassCode})`}
+          </span>
+        </div>
+
+        {/* Instant Search Suggestions Dropdown */}
+        {searchQuery.trim().length > 0 && (
+          <div className="absolute left-0 right-0 top-full mt-1.5 z-30 rounded-2xl bg-slate-950 border-2 border-amber-400/60 shadow-2xl p-2 max-h-60 overflow-y-auto space-y-1">
+            {searchMatches.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-slate-400">
+                {currentLang === 'kn'
+                  ? 'ಯಾವುದೇ ರಾಶಿ ಅಥವಾ ತಾರೆ ಕಂಡುಬಂದಿಲ್ಲ.'
+                  : 'No matching Rashi or star found.'}
+              </div>
+            ) : (
+              searchMatches.map((match) => {
+                const mSky = allSkyPositions[match.rashiIndex];
+                return (
+                  <button
+                    key={match.rashiIndex}
+                    type="button"
+                    onClick={() => {
+                      setSelectedRashiIdx(match.rashiIndex);
+                      setSearchQuery('');
+                    }}
+                    className="w-full px-3 py-2 rounded-xl hover:bg-amber-500/20 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-base text-amber-300 font-bold">{match.symbol}</span>
+                      <div className="min-w-0">
+                        <div className="text-xs font-serif font-bold text-white truncate">
+                          {match.rashiIndex + 1}. {match.rashiName[currentLang]} — {match.rashiName.en}
+                        </div>
+                        <div className="text-[10px] text-sky-300 truncate">
+                          {match.stars.slice(0, 4).map((s) => s.name).join(' • ')}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[10.5px] font-mono px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-400/35 shrink-0">
+                      {mSky.compassLabel[currentLang]} ({mSky.altitudeDeg > 0 ? `+${mSky.altitudeDeg}°` : `${mSky.altitudeDeg}°`})
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
       {/* 12-Rashi Interactive Selector Strip */}
@@ -244,7 +515,7 @@ export const RashiStarMap: React.FC<RashiStarMapProps> = ({
                 );
               })}
 
-              {/* Constellation Connecting Figure Lines */}
+              {/* Constellation Connecting Figure Lines (High-Contrast Neon Gold) */}
               {activeConstellation.lines.map(([a, b], idx) => {
                 const sA = activeConstellation.stars[a];
                 const sB = activeConstellation.stars[b];
@@ -256,9 +527,9 @@ export const RashiStarMap: React.FC<RashiStarMapProps> = ({
                     y1={sA.y}
                     x2={sB.x}
                     y2={sB.y}
-                    stroke="#38bdf8"
-                    strokeWidth="0.55"
-                    strokeOpacity="0.72"
+                    stroke="#fde047"
+                    strokeWidth="0.65"
+                    strokeOpacity="0.9"
                   />
                 );
               })}
@@ -516,6 +787,119 @@ export const RashiStarMap: React.FC<RashiStarMapProps> = ({
               </div>
               <div className="text-[9px] font-mono text-stone-300">
                 {pd.aksharaKannada}/{pd.akshara}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Celestial Events & Planetary Ingress Calendar Specific to the Selected Rashi */}
+      <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900/95 via-indigo-950/60 to-slate-950 border border-amber-400/45 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-white/10 pb-2.5">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+            <div>
+              <h4 className="font-serif font-bold text-sm sm:text-base text-amber-200">
+                {currentLang === 'kn'
+                  ? `ಖಗೋಳ ಘಟನೆಗಳು & ಗ್ರಹ ಪ್ರವೇಶ ಕ್ಯಾಲೆಂಡರ್ — ${activeConstellation.rashiName.kn}`
+                  : currentLang === 'hi'
+                  ? `खगोलीय घटनाएँ एवं ग्रह प्रवेश कैलेंडर — ${activeConstellation.rashiName.hi}`
+                  : `Celestial Events & Planetary Ingress Calendar — ${activeConstellation.rashiName.en}`}
+              </h4>
+              <p className="text-[11px] text-slate-300">
+                {currentLang === 'kn'
+                  ? 'ಈ ರಾಶಿ ನಕ್ಷತ್ರ ಮಂಡಲಕ್ಕೆ ಮುಂದಿನ ೧೨ ತಿಂಗಳಲ್ಲಿ ಗ್ರಹಗಳ ಪ್ರವೇಶ ದಿನಾಂಕಗಳು ಮತ್ತು ಪೂರ್ಣಿಮಾ ಯೋಗ.'
+                  : 'Upcoming planetary ingress dates, active transits, and Full Moon alignments for this constellation.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] font-bold">
+            {(
+              [
+                { id: 'all', kn: 'ಎಲ್ಲಾ ಘಟನೆಗಳು', hi: 'सभी', en: 'All Events' },
+                { id: 'ingress', kn: 'ಗ್ರಹ ಪ್ರವೇಶ', hi: 'ग्रह प्रवेश', en: 'Planetary Ingress' },
+                { id: 'major', kn: 'ಪ್ರಮುಖ ಗ್ರಹಗಳು', hi: 'प्रमुख ग्रह', en: 'Major Grahas' },
+              ] as const
+            ).map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setEventFilter(f.id)}
+                className={`px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                  eventFilter === f.id
+                    ? 'bg-amber-400 text-stone-950 border-amber-300'
+                    : 'bg-stone-900 text-stone-300 border-stone-700 hover:border-amber-400/50'
+                }`}
+              >
+                {f[currentLang]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          {filteredCelestialEvents.map((ev) => (
+            <div
+              key={ev.id}
+              className={`p-3 rounded-xl border flex flex-col justify-between gap-2 ${
+                ev.type === 'sankranti'
+                  ? 'bg-amber-500/15 border-amber-400/55'
+                  : ev.type === 'purnima'
+                  ? 'bg-indigo-500/15 border-indigo-400/55'
+                  : ev.type === 'active'
+                  ? 'bg-emerald-500/15 border-emerald-400/55'
+                  : 'bg-white/5 border-white/15'
+              }`}
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={`text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+                      ev.type === 'sankranti'
+                        ? 'bg-amber-400/20 text-amber-200 border-amber-400/45'
+                        : ev.type === 'active'
+                        ? 'bg-emerald-400/20 text-emerald-200 border-emerald-400/45'
+                        : ev.type === 'purnima'
+                        ? 'bg-indigo-400/20 text-indigo-200 border-indigo-400/45'
+                        : 'bg-yellow-400/15 text-yellow-200 border-yellow-400/35'
+                    }`}
+                  >
+                    {ev.badgeLabel[currentLang]}
+                  </span>
+                  <span
+                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md shrink-0 ${
+                      ev.daysAway === 0
+                        ? 'bg-emerald-400 text-stone-950'
+                        : 'bg-stone-900 text-amber-300 border border-amber-400/40'
+                    }`}
+                  >
+                    {ev.daysAway === 0
+                      ? currentLang === 'kn'
+                        ? 'ಈಗ'
+                        : 'TODAY'
+                      : `In ${ev.daysAway}d`}
+                  </span>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <SvgGrahaIcon name={ev.planetName} size={20} />
+                  <strong className="text-xs font-serif text-white leading-snug">
+                    {ev.title[currentLang]}
+                  </strong>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                {ev.detail[currentLang]}
+              </p>
+
+              {/* Prominent Date Indicator Footer */}
+              <div className="flex items-center justify-between text-[10.5px] font-mono text-amber-200 pt-1.5 border-t border-white/10">
+                <span className="px-2 py-0.5 rounded bg-stone-950/90 border border-amber-400/35 font-bold text-amber-300">
+                  📅 {ev.dateLabel} ({ev.dateIso})
+                </span>
+                <span className="text-amber-300/90 font-bold">{activeConstellation.symbol}</span>
               </div>
             </div>
           ))}

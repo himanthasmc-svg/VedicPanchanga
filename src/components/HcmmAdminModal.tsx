@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   KeyRound, 
@@ -117,6 +117,29 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
   const [adminTab, setAdminTab] = useState<'sourcecode' | 'logo' | 'events' | 'books' | 'security'>('sourcecode');
   const [codeFormat, setCodeFormat] = useState<'standalone' | 'iframe'>('standalone');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [fullBundledHtml, setFullBundledHtml] = useState<string>('');
+  const [loadingFullBundle, setLoadingFullBundle] = useState<boolean>(false);
+
+  // Fetch the 100% complete compiled independent single-file HTML bundle once authenticated
+  useEffect(() => {
+    if (!isAuthenticated || fullBundledHtml) return;
+    let cancelled = false;
+    setLoadingFullBundle(true);
+    fetch('/hcmm-react-singlefile.html')
+      .then((res) => (res.ok ? res.text() : ''))
+      .then((text) => {
+        if (!cancelled && text && (text.includes('<!doctype html') || text.includes('<!DOCTYPE html'))) {
+          setFullBundledHtml(text);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingFullBundle(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, fullBundledHtml]);
 
   // Generates the 100% complete, fully workable single-file HTML program
   const generateStandaloneHtmlProgram = (logoUrl: string) => `<!DOCTYPE html>
@@ -748,9 +771,24 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
   </body>
 </html>`;
 
-  const handleCopyProgramCode = () => {
-    const code = codeFormat === 'standalone' ? standaloneHtmlProgram : fullProgramHtmlSnippet;
-    navigator.clipboard.writeText(code);
+  const resolvedFullStandaloneHtml = fullBundledHtml || standaloneHtmlProgram;
+  const fullBundleSizeKb = fullBundledHtml ? (new Blob([fullBundledHtml]).size / 1024).toFixed(1) : null;
+
+  const handleCopyProgramCode = async () => {
+    let code = codeFormat === 'standalone' ? resolvedFullStandaloneHtml : fullProgramHtmlSnippet;
+    if (codeFormat === 'standalone' && !fullBundledHtml) {
+      try {
+        const res = await fetch('/hcmm-react-singlefile.html');
+        if (res.ok) {
+          const fetched = await res.text();
+          if (fetched.length > 50000) {
+            setFullBundledHtml(fetched);
+            code = fetched;
+          }
+        }
+      } catch {}
+    }
+    await navigator.clipboard.writeText(code);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2500);
   };
@@ -1407,39 +1445,32 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
                 <div>
                   <div className="flex items-center gap-2 text-amber-200 text-xs font-bold uppercase tracking-wider mb-1">
                     <Sparkles className="w-4 h-4 text-amber-300" />
-                    <span>STANDALONE COMPLETE SINGLE-FILE PROGRAM</span>
+                    <span>100% COMPLETE INDEPENDENT SINGLE-FILE HTML PROGRAM (LOCKED)</span>
                   </div>
                   <h3 className="text-base sm:text-lg font-serif font-bold text-white">
-                    Standalone HTML Program Code (Self-Contained)
+                    Complete Independent Full App (.HTML) {fullBundleSizeKb ? `• ${fullBundleSizeKb} KB` : ''}
                   </h3>
                   <p className="text-xs text-amber-100 mt-1 max-w-xl leading-relaxed">
-                    100% complete program with astronomical ephemeris, panchanga, gochar, mantras, and kundali algorithms. Copy the complete code below to embed directly into your website.
+                    Contains 100% of everything in this application — Panchanga Calendar, D3.js Moon Phase Curve, Lagna Kundali, Drishti Visualizer &amp; Table, 3D Night Sky Sphere, Rashi Star Map + Celestial Calendar, Sankalpa Animation, Remedies, Dasha, Gochar &amp; Mantras in a single independent HTML file!
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap shrink-0">
-                  <button
-                    onClick={() => {
-                      const element = document.createElement("a");
-                      const file = new Blob([generateStandaloneHtmlProgram(newLogoUrl || hcmmLogoUrl || '')], {type: 'text/html'});
-                      element.href = URL.createObjectURL(file);
-                      element.download = "hcmm-panchanga-interactive-program.html";
-                      document.body.appendChild(element);
-                      element.click();
-                      document.body.removeChild(element);
-                    }}
-                    className="px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs sm:text-sm shadow-xl transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
-                    title="Download complete program as single .html file"
+                  <a
+                    href="/download-full-html"
+                    download="HCMM-Vedic-Panchanga-Full-Program.html"
+                    className="px-4 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs sm:text-sm shadow-xl transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
+                    title="Download 100% complete independent single-file .html program"
                   >
                     <Download className="w-5 h-5 text-stone-950 stroke-[2.5]" />
-                    <span>Download .HTML File</span>
-                  </button>
+                    <span>Download Full .HTML Program</span>
+                  </a>
 
                   <button
                     onClick={handleCopyProgramCode}
                     className="px-5 py-3 rounded-xl bg-white hover:bg-amber-100 text-stone-950 font-black text-xs sm:text-sm shadow-xl transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
                   >
                     {copiedCode ? <Check className="w-5 h-5 text-emerald-600 stroke-[2.5]" /> : <Copy className="w-5 h-5 text-amber-700 stroke-[2.5]" />}
-                    <span>{copiedCode ? 'HTML Code Copied!' : 'Copy Complete HTML Code'}</span>
+                    <span>{copiedCode ? 'Complete HTML Copied!' : loadingFullBundle ? 'Preparing Full HTML...' : 'Copy Complete HTML Code'}</span>
                   </button>
                 </div>
               </div>
@@ -1571,9 +1602,15 @@ export const HcmmAdminModal: React.FC<HcmmAdminModalProps> = ({
                 </button>
               </div>
 
-              {/* Wide Code Container */}
-              <div className="p-4 rounded-xl bg-stone-950 text-amber-200 font-mono text-[11px] overflow-x-auto max-h-[460px] border border-stone-800 leading-relaxed select-all">
-                <pre>{codeFormat === 'standalone' ? standaloneHtmlProgram : fullProgramHtmlSnippet}</pre>
+              {/* Wide Code Container (shows safe preview of multi-MB compiled bundle; Copy & Download buttons export 100% of every byte) */}
+              <div className="p-4 rounded-xl bg-stone-950 text-amber-200 font-mono text-[11px] overflow-x-auto max-h-[420px] border border-stone-800 leading-relaxed select-all">
+                <pre>
+                  {codeFormat === 'standalone'
+                    ? fullBundledHtml
+                      ? `${fullBundledHtml.slice(0, 12000)}\n\n/* ... [${fullBundleSizeKb} KB complete self-contained HTML bundle — click "Download Full .HTML Program" or "Copy Complete HTML Code" above to get 100% of the full file] ... */`
+                      : standaloneHtmlProgram
+                    : fullProgramHtmlSnippet}
+                </pre>
               </div>
 
               <p className="text-[11px] text-stone-500 italic">

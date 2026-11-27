@@ -361,7 +361,7 @@ export function MuhurtaFinderPage({
   }, [activity, searchDaysRange, onlyShuklaPaksha, selectedCity, currentLang]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="w-full max-w-none px-1 sm:px-4 lg:px-6 py-4 space-y-6">
       
       {/* Top Hero Banner */}
       <div className="rounded-3xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white p-6 sm:p-8 shadow-xl border border-amber-500/30 relative overflow-hidden">

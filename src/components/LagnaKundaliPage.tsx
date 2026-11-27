@@ -1505,7 +1505,7 @@ export const LagnaKundaliPage: React.FC<LagnaKundaliPageProps> = ({
   );
 
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto px-2 xs:px-3 sm:px-6 lg:px-8 py-2 sm:py-4">
+    <div className="space-y-6 sm:space-y-8 w-full max-w-none px-1 xs:px-2 sm:px-4 lg:px-6 py-2 sm:py-4">
       
       {/* Top Banner Notice: Today's Nakshatra Notice prominently shown at the top of the window */}
       <div className="no-print p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-100/80 to-amber-50 dark:from-stone-900 dark:via-amber-950/40 dark:to-stone-900 border border-amber-300 dark:border-amber-700/60 shadow-xs flex items-center justify-between gap-3">

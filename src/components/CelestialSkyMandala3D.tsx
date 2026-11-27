@@ -1155,8 +1155,8 @@ export const CelestialSkyMandala3D: React.FC<CelestialSkyMandala3DProps> = ({
               </div>
               <p className="text-[11px] text-stone-300 leading-relaxed">
                 {currentLang === 'kn'
-                  ? 'ಭೂಮಿಯ ೨೩.೪° ಓರೆಯ ಅಕ್ಷ (ಉತ್ತರ-ದಕ್ಷಿಣ ಧ್ರುವ), ನೀಲಿ ಖಗೋಳ ವಿಷುವದ್ವೃತ್ತ ಮತ್ತು ಚಿನ್ನದ ಯಾಮ್ಯೋತ್ತರ ವೃತ್ತಗಳನ್ನು ಮೇಲಿನಿಂದ, ಪಕ್ಕದಿಂದ ಹಾಗೂ ಕೆಳಗಿನಿಂದ ೩೬೦° ತಿರುಗಿಸಿ ನೋಡಬಹುದು.'
-                  : 'Earth’s 23.4° tilted polar axis (NCP–SCP), cyan Celestial Equator, and brass Meridian rings let you inspect top, side, and southern underside views.'}
+                  ? 'ಭೂಮಿಯ ೨೩.೪° ಓರೆಯ ಅಕ್ಷ (ಉತ್ತರ-ದಕ್ಷಿಣ ಧ್ರುವ), ಪ್ರಕಾಶಮಾನ ಹಳದಿ-ಚಿನ್ನದ ಖಗೋಳ ವಿಷುವದ್ವೃತ್ತ ಮತ್ತು ಯಾಮ್ಯೋತ್ತರ ವೃತ್ತಗಳನ್ನು ಮೇಲಿನಿಂದ, ಪಕ್ಕದಿಂದ ಹಾಗೂ ಕೆಳಗಿನಿಂದ ೩೬೦° ತಿರುಗಿಸಿ ನೋಡಬಹುದು.'
+                  : 'Earth’s 23.4° tilted polar axis (NCP–SCP), high-contrast neon-yellow Celestial Equator, and radiant golden Meridian rings let you inspect top, side, and southern underside views.'}
               </p>
             </div>
             <div className="p-3 rounded-xl bg-stone-900/90 border border-rose-500/30 space-y-1">
@@ -1326,19 +1326,19 @@ export const CelestialSkyMandala3D: React.FC<CelestialSkyMandala3DProps> = ({
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  stroke="rgba(217, 119, 6, 0.25)"
-                  strokeWidth="1.1"
+                  stroke="rgba(253, 224, 71, 0.55)"
+                  strokeWidth="1.2"
                   strokeDasharray="3,3"
                 />
                 <text
                   x={tx}
                   y={ty}
-                  fill="#94a3b8"
+                  fill="#fde047"
                   fontSize="9"
                   fontFamily="monospace"
                   textAnchor="middle"
                   dominantBaseline="central"
-                  opacity="0.85"
+                  opacity="0.92"
                 >
                   {angle}°
                 </text>
@@ -1346,10 +1346,10 @@ export const CelestialSkyMandala3D: React.FC<CelestialSkyMandala3DProps> = ({
             );
           })}
 
-          {/* Concentric Orbital Reference Rings */}
-          <circle cx={CX} cy={CY} r={108} fill="none" stroke="rgba(56, 189, 248, 0.16)" strokeWidth="1" strokeDasharray="4,4" />
-          <circle cx={CX} cy={CY} r={162} fill="none" stroke="rgba(56, 189, 248, 0.18)" strokeWidth="1" strokeDasharray="4,4" />
-          <circle cx={CX} cy={CY} r={216} fill="none" stroke="rgba(56, 189, 248, 0.2)" strokeWidth="1" strokeDasharray="4,4" />
+          {/* Concentric Orbital Reference Rings (High-Contrast Neon Yellow & Gold) */}
+          <circle cx={CX} cy={CY} r={108} fill="none" stroke="rgba(253, 224, 71, 0.6)" strokeWidth="1.35" strokeDasharray="4,4" />
+          <circle cx={CX} cy={CY} r={162} fill="none" stroke="rgba(250, 204, 21, 0.65)" strokeWidth="1.35" strokeDasharray="4,4" />
+          <circle cx={CX} cy={CY} r={216} fill="none" stroke="rgba(254, 240, 138, 0.65)" strokeWidth="1.35" strokeDasharray="4,4" />
 
           {/* ========================================================================= */}
           {/* 12 RASHIS BELT (CLICK ANY RASHI TO ZOOM IN-PLACE) */}

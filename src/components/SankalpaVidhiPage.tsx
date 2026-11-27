@@ -38,8 +38,8 @@ import { RitualVisuals } from './RitualVisuals';
 import { PoojaDeepaGuidelinesSection } from './PoojaDeepaGuidelinesSection';
 import { PoojaAudioGuide } from './PoojaAudioGuide';
 import { DigitalOfferingLog } from './DigitalOfferingLog';
-import { RitualProgressIndicator, RitualStepMeta } from './RitualProgressIndicator';
 import { SankalpaMuhurtaTimer } from './SankalpaMuhurtaTimer';
+import { SankalpaMantraAnimation } from './SankalpaMantraAnimation';
 import { Lock, Volume2, BookMarked, Sun, Moon, Compass, Bell } from 'lucide-react';
 
 interface SankalpaVidhiPageProps {
@@ -109,56 +109,6 @@ export const SankalpaVidhiPage: React.FC<SankalpaVidhiPageProps> = ({
   const [stotraLang, setStotraLang] = useState<Language>(currentLang);
   const [copiedStotra, setCopiedStotra] = useState(false);
   const [pakshaOverride, setPakshaOverride] = useState<'auto' | 'Shukla' | 'Krishna'>('auto');
-
-  // Persistent Ritual Progress Indicator State
-  const [activeRitualStep, setActiveRitualStep] = useState<number>(() => {
-    const saved = localStorage.getItem('hcmm_sankalpa_active_step');
-    return saved ? Math.max(1, Math.min(6, Number(saved))) : 1;
-  });
-
-  const [completedRitualSteps, setCompletedRitualSteps] = useState<number[]>(() => {
-    try {
-      const saved = localStorage.getItem('hcmm_sankalpa_completed_steps');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const handleStepSelect = (stepNumber: number, tabKey: RitualStepMeta['tabKey']) => {
-    setActiveRitualStep(stepNumber);
-    localStorage.setItem('hcmm_sankalpa_active_step', String(stepNumber));
-    if (tabKey) {
-      setActiveTab(tabKey);
-    }
-  };
-
-  const handleToggleCompleteStep = (stepNumber: number) => {
-    setCompletedRitualSteps(prev => {
-      const isDone = prev.includes(stepNumber);
-      const next = isDone ? prev.filter(s => s !== stepNumber) : [...prev, stepNumber];
-      localStorage.setItem('hcmm_sankalpa_completed_steps', JSON.stringify(next));
-      if (!isDone && stepNumber < 6) {
-        setActiveRitualStep(stepNumber + 1);
-        localStorage.setItem('hcmm_sankalpa_active_step', String(stepNumber + 1));
-      }
-      return next;
-    });
-  };
-
-  const handleResetRitualProgress = () => {
-    const confirmMsg = currentLang === 'kn' 
-      ? 'ಪೂಜಾ ಸಂಕಲ್ಪ ಪ್ರಗತಿಯನ್ನು ಪುನರಾರಂಭಿಸಲು ಬಯಸುವಿರಾ?' 
-      : currentLang === 'hi' 
-      ? 'क्या आप अनुष्ठान प्रगति को पुनः आरंभ करना चाहते हैं?' 
-      : 'Reset ritual progress back to Step 1?';
-    if (window.confirm(confirmMsg)) {
-      setActiveRitualStep(1);
-      setCompletedRitualSteps([]);
-      localStorage.setItem('hcmm_sankalpa_active_step', '1');
-      localStorage.setItem('hcmm_sankalpa_completed_steps', JSON.stringify([]));
-    }
-  };
 
   const handleSwitchStotraLang = (lang: Language) => {
     setStotraLang(lang);
@@ -271,18 +221,8 @@ ${effectivePart1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. ${dashe
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="space-y-8 w-full max-w-none px-2 xs:px-3 sm:px-5 lg:px-8 py-4">
       
-      {/* Persistent Ritual Progress Indicator (Sticky Top Bar) */}
-      <RitualProgressIndicator
-        currentLang={stotraLang}
-        activeStep={activeRitualStep}
-        onStepSelect={handleStepSelect}
-        completedSteps={completedRitualSteps}
-        onToggleComplete={handleToggleCompleteStep}
-        onResetProgress={handleResetRitualProgress}
-      />
-
       {/* Real-time Timezone-Aware Sankalpa & Sandhyavandana Muhurta Countdown Timer */}
       <SankalpaMuhurtaTimer
         currentLang={stotraLang}
@@ -991,6 +931,14 @@ ${effectivePart1} (1. ${dashedValues.c1})${mantraTemplate.citySuffix}(2. ${dashe
           </p>
 
         </div>
+
+        {/* Cosmic Sankalpa Mantra Animation (Placed directly below Sankalpa Mantra with Punya Pradeshe & Shubha chanting) */}
+        <SankalpaMantraAnimation
+          stotraLang={stotraLang}
+          sankalpaSampradaya={sankalpaSampradaya}
+          deityName={deityName}
+          granthaName={granthaName}
+        />
 
         {/* Legend Table Explaining Lines 1 to 9 (from PDF Page 2) */}
         <div className="border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden text-xs">

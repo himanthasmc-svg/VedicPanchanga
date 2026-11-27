@@ -569,7 +569,7 @@ Bangalore, Karnataka, Bharat
   }, [activeEffectMahaName, activeEffectAntarName]);
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-6">
+    <div className="w-full max-w-none px-1 sm:px-3 py-4 sm:py-6 space-y-6">
       {/* Top Banner & Header */}
       <div className="rounded-3xl bg-gradient-to-br from-amber-500 via-orange-600 to-amber-700 text-white p-5 sm:p-7 shadow-xl relative overflow-hidden">
         <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none">

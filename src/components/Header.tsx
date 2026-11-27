@@ -185,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
       <header className={`sticky top-0 z-40 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-b border-amber-200/60 dark:border-stone-800 transition-all duration-300 shadow-xs ${
         isScrolledDown ? '-translate-y-full md:translate-y-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto' : 'translate-y-0 opacity-100'
       }`}>
-        <div className="max-w-7xl mx-auto px-2 xs:px-3 sm:px-6 lg:px-8 py-1 sm:py-2">
+        <div className="w-full max-w-none px-2 xs:px-3 sm:px-5 lg:px-8 py-1 sm:py-2">
           
           {/* Main Top Row: Brand, Quick Actions, City & Lang */}
           <div className="flex items-center justify-between gap-2">
@@ -414,37 +414,54 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               </div>
 
-              {/* Global Administrative Lock State Button */}
+              {/* Global Administrative Lock State Button + Unlocked-only Full Independent HTML Program Button */}
               {onToggleGlobalLock && (
-                <button
-                  onClick={onToggleGlobalLock}
-                  className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs font-bold transition-all shadow-2xs cursor-pointer ${
-                    isGlobalLocked
-                      ? 'border-red-400 bg-red-500/10 text-red-700 dark:text-red-300 ring-1 ring-red-400/50'
-                      : 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/50'
-                  }`}
-                  title={
-                    isGlobalLocked
-                      ? currentLang === 'kn' ? 'ವ್ಯವಸ್ಥೆ ಲಾಕ್ ಆಗಿದೆ (ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ)' : 'Locked Mode Active (Click to Unlock with password)'
-                      : currentLang === 'kn' ? 'ವ್ಯವಸ್ಥೆ ಅನ್‌ಲಾಕ್ ಆಗಿದೆ (ಮರು-ಲಾಕ್ ಮಾಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ)' : 'System Unlocked (Click to Re-lock)'
-                  }
-                >
-                  {isGlobalLocked ? (
-                    <>
-                      <Lock className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                      <span className="text-[11px] font-mono uppercase">
-                        {currentLang === 'kn' ? 'ಲಾಕ್' : 'Locked'}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Unlock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-[11px] font-mono uppercase">
-                        {currentLang === 'kn' ? 'ಅನ್‌ಲಾಕ್' : 'Unlocked'}
-                      </span>
-                    </>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={onToggleGlobalLock}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+                      isGlobalLocked
+                        ? 'border-red-400 bg-red-500/10 text-red-700 dark:text-red-300 ring-1 ring-red-400/50'
+                        : 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/50'
+                    }`}
+                    title={
+                      isGlobalLocked
+                        ? currentLang === 'kn' ? 'ವ್ಯವಸ್ಥೆ ಲಾಕ್ ಆಗಿದೆ (ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ)' : 'Locked Mode Active (Click to Unlock with password)'
+                        : currentLang === 'kn' ? 'ವ್ಯವಸ್ಥೆ ಅನ್‌ಲಾಕ್ ಆಗಿದೆ (ಮರು-ಲಾಕ್ ಮಾಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ)' : 'System Unlocked (Click to Re-lock)'
+                    }
+                  >
+                    {isGlobalLocked ? (
+                      <>
+                        <Lock className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                        <span className="text-[11px] font-mono uppercase">
+                          {currentLang === 'kn' ? 'ಲಾಕ್' : 'Locked'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Unlock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-[11px] font-mono uppercase">
+                          {currentLang === 'kn' ? 'ಅನ್‌ಲಾಕ್' : 'Unlocked'}
+                        </span>
+                      </>
+                    )}
+                  </button>
+
+                  {!isGlobalLocked && (
+                    <button
+                      onClick={onOpenHcmmAdmin}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg border border-amber-500 bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 text-[11px] font-mono font-bold transition-all shadow-2xs cursor-pointer"
+                      title={
+                        currentLang === 'kn'
+                          ? 'ಸಂಪೂರ್ಣ ಸ್ವತಂತ್ರ HTML ಪ್ರೋಗ್ರಾಂ ಡೌನ್‌ಲೋಡ್ / ಕಾಪಿ (ಲಾಕ್ ಒಳಗೆ ಸುರಕ್ಷಿತ)'
+                          : 'Download / Copy Complete Independent Full HTML Program (Unlocked)'
+                      }
+                    >
+                      <span>&lt;/&gt;</span>
+                      <span className="hidden xs:inline">HTML</span>
+                    </button>
                   )}
-                </button>
+                </div>
               )}
 
               {/* Dark mode, Notifications & Widget (visible on larger screens or toggled) */}

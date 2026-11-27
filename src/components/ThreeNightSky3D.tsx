@@ -471,56 +471,62 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
     if (showArmillary) {
       const armillaryGroup = new THREE.Group();
 
-      // Celestial Equator tilted at 23.44°
+      // Celestial Equator tilted at 23.44° (High-Contrast Neon Yellow-Gold)
       const eqTorus = new THREE.Mesh(
-        new THREE.TorusGeometry(182, 0.9, 12, 96),
+        new THREE.TorusGeometry(182, 1.2, 12, 96),
         new THREE.MeshStandardMaterial({
-          color: 0x38bdf8,
-          metalness: 0.65,
-          roughness: 0.3,
+          color: 0xffea00,
+          emissive: 0xfacc15,
+          emissiveIntensity: 0.72,
+          metalness: 0.25,
+          roughness: 0.2,
           transparent: true,
-          opacity: 0.55,
+          opacity: 0.92,
         })
       );
       eqTorus.rotation.x = Math.PI / 2;
       eqTorus.rotation.y = THREE.MathUtils.degToRad(23.44);
       armillaryGroup.add(eqTorus);
 
-      // Vertical Meridian Ring (North-South Celestial Arch visible from side & below)
+      // Vertical Meridian Ring (High-Contrast Radiant Gold Arch)
       const meridianTorus = new THREE.Mesh(
-        new THREE.TorusGeometry(182, 0.85, 12, 96),
+        new THREE.TorusGeometry(182, 1.1, 12, 96),
         new THREE.MeshStandardMaterial({
-          color: 0xd99b26,
-          metalness: 0.82,
-          roughness: 0.25,
+          color: 0xfde047,
+          emissive: 0xeab308,
+          emissiveIntensity: 0.65,
+          metalness: 0.35,
+          roughness: 0.22,
           transparent: true,
-          opacity: 0.45,
+          opacity: 0.85,
         })
       );
       armillaryGroup.add(meridianTorus);
 
-      // Prime Vertical Ring (East-West Celestial Arch)
+      // Prime Vertical Ring (High-Contrast Warm Gold Arch)
       const primeTorus = new THREE.Mesh(
-        new THREE.TorusGeometry(182, 0.85, 12, 96),
+        new THREE.TorusGeometry(182, 1.1, 12, 96),
         new THREE.MeshStandardMaterial({
-          color: 0xd99b26,
-          metalness: 0.82,
-          roughness: 0.25,
+          color: 0xfacc15,
+          emissive: 0xca8a04,
+          emissiveIntensity: 0.6,
+          metalness: 0.35,
+          roughness: 0.22,
           transparent: true,
-          opacity: 0.45,
+          opacity: 0.85,
         })
       );
       primeTorus.rotation.y = Math.PI / 2;
       armillaryGroup.add(primeTorus);
 
-      // Outer 3D Celestial Sphere Wireframe Cage (subtle latitude/longitude dome)
+      // Outer 3D Celestial Sphere Wireframe Cage (High-Contrast Luminous Gold)
       const cageMesh = new THREE.Mesh(
         new THREE.SphereGeometry(225, 24, 16),
         new THREE.MeshBasicMaterial({
-          color: 0x334155,
+          color: 0xfacc15,
           wireframe: true,
           transparent: true,
-          opacity: 0.14,
+          opacity: 0.3,
         })
       );
       armillaryGroup.add(cageMesh);
@@ -528,15 +534,15 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
       scene.add(armillaryGroup);
     }
 
-    // 8. Cardinal Horizon Compass & Concentric Planetary Track Rings
+    // 8. Cardinal Horizon Compass & Concentric Planetary Orbital Paths (High-Contrast Neon Yellow)
     const orbitRadii = [54, 85, 119];
     orbitRadii.forEach((r) => {
       const ringTorus = new THREE.Mesh(
-        new THREE.TorusGeometry(r, 0.22, 8, 96),
+        new THREE.TorusGeometry(r, 0.42, 8, 96),
         new THREE.MeshBasicMaterial({
-          color: 0x38bdf8,
+          color: 0xffea00,
           transparent: true,
-          opacity: 0.22,
+          opacity: 0.78,
         })
       );
       ringTorus.rotation.x = Math.PI / 2;
@@ -546,9 +552,9 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
     if (showDirections) {
       const dirR = 232;
       const dirs: Array<{ label: string; color: string; x: number; z: number }> = [
-        { label: currentLang === 'kn' ? 'E • ಪೂರ್ವ (East)' : 'E • East (Rising)', color: '#fbbf24', x: dirR, z: 0 },
+        { label: currentLang === 'kn' ? 'E • ಪೂರ್ವ (East)' : 'E • East (Rising)', color: '#fde047', x: dirR, z: 0 },
         { label: currentLang === 'kn' ? 'W • ಪಶ್ಚಿಮ (West)' : 'W • West (Setting)', color: '#fb7185', x: -dirR, z: 0 },
-        { label: currentLang === 'kn' ? 'N • ಉತ್ತರ (North)' : 'N • North', color: '#38bdf8', x: 0, z: -dirR },
+        { label: currentLang === 'kn' ? 'N • ಉತ್ತರ (North)' : 'N • North', color: '#fef08a', x: 0, z: -dirR },
         { label: currentLang === 'kn' ? 'S • ದಕ್ಷಿಣ (South)' : 'S • South', color: '#34d399', x: 0, z: dirR },
       ];
       dirs.forEach((d) => {
@@ -558,11 +564,11 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
       });
 
       const axisLineMat = new THREE.LineDashedMaterial({
-        color: 0x94a3b8,
+        color: 0xfef08a,
         dashSize: 5,
         gapSize: 4,
         transparent: true,
-        opacity: 0.32,
+        opacity: 0.82,
       });
       const ewGeo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(-212, 0, 0),
@@ -596,7 +602,7 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
     outerRim.rotation.x = Math.PI / 2;
     scene.add(outerRim);
 
-    const elementTints = [0x9a3412, 0x166534, 0x075985, 0x3730a3]; // Fire, Earth, Air, Water
+    const elementTints = [0xc2410c, 0x15803d, 0xd97706, 0x9333ea]; // Bright Fire, Earth, Air-Gold, Water-Violet
 
     RASHIS.forEach((rashi, idx) => {
       const startDeg = idx * 30;
@@ -608,11 +614,11 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
       const arcGeo = new THREE.RingGeometry(rashiInnerR + 0.8, rashiOuterR - 0.8, 12, 1, -startRad - Math.PI / 6, Math.PI / 6);
       const arcMat = new THREE.MeshStandardMaterial({
         color: elementTints[idx % 4],
-        roughness: 0.45,
-        metalness: 0.25,
+        roughness: 0.42,
+        metalness: 0.2,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.32,
+        opacity: 0.4,
       });
       const arcMesh = new THREE.Mesh(arcGeo, arcMat);
       arcMesh.rotation.x = Math.PI / 2;
@@ -634,7 +640,7 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
       scene.add(rSprite);
       interactableObjects.push(rSprite);
 
-      // Radial 30° divider spoke
+      // Radial 30° divider spoke (High-Contrast Neon Yellow-Gold)
       const divGeo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(rashiInnerR * Math.cos(startRad), 0, rashiInnerR * Math.sin(startRad)),
         new THREE.Vector3(rashiOuterR * Math.cos(startRad), 0, rashiOuterR * Math.sin(startRad)),
@@ -642,7 +648,7 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
       scene.add(
         new THREE.Line(
           divGeo,
-          new THREE.LineBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.72 })
+          new THREE.LineBasicMaterial({ color: 0xffea00, transparent: true, opacity: 0.9 })
         )
       );
 
@@ -685,9 +691,9 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
           if (segPts.length > 0) {
             const cGeo = new THREE.BufferGeometry().setFromPoints(segPts);
             const cMat = new THREE.LineBasicMaterial({
-              color: 0xfcd34d,
+              color: 0xffea00,
               transparent: true,
-              opacity: 0.72,
+              opacity: 0.95,
             });
             figGroup.add(new THREE.LineSegments(cGeo, cMat));
           }
@@ -700,11 +706,11 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
           const tieLine = new THREE.Line(
             tieGeo,
             new THREE.LineDashedMaterial({
-              color: 0xf59e0b,
+              color: 0xfde047,
               dashSize: 3,
               gapSize: 3,
               transparent: true,
-              opacity: 0.35,
+              opacity: 0.72,
             })
           );
           tieLine.computeLineDistances();
@@ -784,7 +790,7 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
       scene.add(
         new THREE.LineSegments(
           new THREE.BufferGeometry().setFromPoints(minorPts),
-          new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.4 })
+          new THREE.LineBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.72 })
         )
       );
     }
@@ -839,7 +845,7 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
           clusterGroup.add(
             new THREE.LineSegments(
               new THREE.BufferGeometry().setFromPoints(linePts),
-              new THREE.LineBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.55 })
+              new THREE.LineBasicMaterial({ color: 0xfde047, transparent: true, opacity: 0.88 })
             )
           );
         }
@@ -927,7 +933,7 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
       scene.add(pGroup);
       animatedPlanets.push({ mesh: pGroup, speed: planet.name === 'Sun' ? 0.008 : 0.005 });
 
-      // Vertical Drop-Stem down to the Ecliptic Plane (shows exact longitude clearly from side/under views!)
+      // Vertical Drop-Stem down to the Ecliptic Plane (High-Contrast Gold)
       const stemGeo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(px, py, pz),
         new THREE.Vector3(px, 0, pz),
@@ -935,17 +941,17 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
       scene.add(
         new THREE.Line(
           stemGeo,
-          new THREE.LineBasicMaterial({ color: planet.def.color, transparent: true, opacity: 0.6 })
+          new THREE.LineBasicMaterial({ color: 0xfde047, transparent: true, opacity: 0.85 })
         )
       );
       const footDot = new THREE.Mesh(
-        new THREE.SphereGeometry(1.4, 8, 8),
-        new THREE.MeshBasicMaterial({ color: planet.def.color })
+        new THREE.SphereGeometry(1.5, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffea00 })
       );
       footDot.position.set(px, 0, pz);
       scene.add(footDot);
 
-      // True Sidereal Sightline Ray (Earth → Ecliptic Projection → Rashi Inner Edge)
+      // True Sidereal Sightline Ray (Earth → Ecliptic Projection → Rashi Inner Edge, High-Contrast Neon Gold)
       const rayGeo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(earthRadius * Math.cos(rad), 0, earthRadius * Math.sin(rad)),
         new THREE.Vector3(rashiInnerR * Math.cos(rad), 0, rashiInnerR * Math.sin(rad)),
@@ -953,11 +959,11 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
       const rayLine = new THREE.Line(
         rayGeo,
         new THREE.LineDashedMaterial({
-          color: planet.def.color,
-          dashSize: 3,
+          color: 0xfde047,
+          dashSize: 4,
           gapSize: 3,
           transparent: true,
-          opacity: 0.36,
+          opacity: 0.65,
         })
       );
       rayLine.computeLineDistances();
@@ -1143,119 +1149,121 @@ export const ThreeNightSky3D: React.FC<ThreeNightSky3DProps> = ({
   ]);
 
   return (
-    <div className="relative w-full h-[500px] sm:h-[620px] rounded-2xl overflow-hidden bg-[#040712] border border-amber-500/45 shadow-inner select-none">
-      {/* Dedicated Isolated WebGL Canvas Mount */}
-      <div ref={canvasMountRef} className="w-full h-full touch-none" />
+    <div className="space-y-3 select-none">
+      {/* Unobstructed Full-View 3D Visual Animation Window (Zero Floating Overlays Inside) */}
+      <div className="relative w-full h-[500px] sm:h-[620px] rounded-2xl overflow-hidden bg-[#040712] border-2 border-amber-400/55 shadow-inner">
+        <div ref={canvasMountRef} className="w-full h-full touch-none" />
+      </div>
 
-      {/* Minimal Top-Left Hover Target Readout (Solid background, zero backdrop-blur) */}
-      {hoveredLabel && (
-        <div className="absolute top-3 left-3 z-10 px-3 py-1.5 rounded-xl bg-[#090d1a]/95 border border-amber-400/70 text-[11px] font-mono text-amber-200 shadow-lg pointer-events-none">
-          {hoveredLabel} • {currentLang === 'kn' ? 'ವಿವರಕ್ಕಾಗಿ ಕ್ಲಿಕ್ ಮಾಡಿ' : 'Click to inspect'}
-        </div>
-      )}
-
-      {/* Unified Collapsible Bottom Control Dock (Solid dark surface — zero backdrop-filter) */}
-      <div className="absolute bottom-3 left-3 right-3 z-10 flex justify-center pointer-events-none">
-        <div className="pointer-events-auto max-w-full rounded-2xl bg-[#090d1a]/94 border border-amber-500/45 shadow-2xl px-3 py-2 space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-mono text-amber-300 font-bold">
+      {/* External Control Bar Placed Cleanly Below the 3D Visual Window */}
+      <div className="w-full rounded-2xl bg-[#090d1a] border border-amber-500/45 shadow-xl px-3.5 py-2.5 space-y-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-amber-300 font-bold">
+            <span className="flex items-center gap-1.5">
               <Orbit className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span>
                 {currentLang === 'kn'
-                  ? '೩೬೦° ಸರ್ವದಿಕ್ಕು ೩D ಖಗೋಳ (Drag • Zoom • Click)'
-                  : 'All-Sides 360° Celestial Armillary • Drag Any Side, Zoom & Click'}
+                  ? '೩೬೦° ಸರ್ವದಿಕ್ಕು ೩D ಖಗೋಳ ನಿಯಂತ್ರಣಗಳು (Drag • Zoom • Click)'
+                  : 'All-Sides 360° Celestial Armillary Controls • Drag Any Side, Zoom & Click'}
               </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setDockExpanded(!dockExpanded)}
-              className="px-2 py-0.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-[10.5px] font-bold flex items-center gap-1 cursor-pointer border border-stone-600"
-            >
-              <span>{dockExpanded ? (currentLang === 'kn' ? 'ಕಿರಿದುಗೊಳಿಸಿ' : 'Minimize') : (currentLang === 'kn' ? 'ನಿಯಂತ್ರಣಗಳು' : 'Controls')}</span>
-              {dockExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
-            </button>
+            </span>
+
+            {hoveredLabel && (
+              <span className="px-2.5 py-0.5 rounded-lg bg-amber-400/15 border border-amber-400/60 text-amber-200 text-[10.5px]">
+                {hoveredLabel} • {currentLang === 'kn' ? 'ವಿವರಕ್ಕಾಗಿ ಕ್ಲಿಕ್ ಮಾಡಿ' : 'Click to inspect'}
+              </span>
+            )}
           </div>
 
-          {dockExpanded && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-stone-800">
-              {/* All-Sides Camera View Presets */}
-              {(
-                [
-                  { id: 'iso', en: '3D Isometric', kn: '೩D ನೋಟ' },
-                  { id: 'top', en: 'Top 360°', kn: 'ಮೇಲಿನ ನೋಟ' },
-                  { id: 'side', en: 'Side Ecliptic', kn: 'ಪಾರ್ಶ್ವ ನೋಟ' },
-                  { id: 'under', en: 'Under / South Pole', kn: 'ಕೆಳಗಿನ / ದಕ್ಷಿಣ ಧ್ರುವ' },
-                ] as const
-              ).map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => triggerPreset(preset.id)}
-                  className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-colors cursor-pointer border flex items-center gap-1 ${
-                    activePreset === preset.id
-                      ? 'bg-amber-500 text-stone-950 border-amber-300'
-                      : 'bg-stone-900 text-stone-200 border-stone-700 hover:bg-stone-800'
-                  }`}
-                >
-                  <Eye className="w-3 h-3" />
-                  <span>{currentLang === 'kn' ? preset.kn : preset.en}</span>
-                </button>
-              ))}
-
-              <span className="h-4 w-px bg-stone-700 mx-0.5 hidden sm:inline-block" />
-
-              {/* Toggles */}
-              <button
-                type="button"
-                onClick={() => setIsAutoOrbit(!isAutoOrbit)}
-                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-colors cursor-pointer border flex items-center gap-1 ${
-                  isAutoOrbit
-                    ? 'bg-emerald-600 text-white border-emerald-400'
-                    : 'bg-stone-900 text-stone-400 border-stone-700'
-                }`}
-              >
-                <Compass className="w-3 h-3" />
-                <span>{isAutoOrbit ? (currentLang === 'kn' ? 'ಸ್ವಯಂ ತಿರುಗುವಿಕೆ: ON' : 'Auto-Orbit: ON') : (currentLang === 'kn' ? 'ತಿರುಗುವಿಕೆ: OFF' : 'Auto-Orbit: OFF')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowArmillary(!showArmillary)}
-                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-colors cursor-pointer border flex items-center gap-1 ${
-                  showArmillary
-                    ? 'bg-sky-600/30 text-sky-200 border-sky-400/60'
-                    : 'bg-stone-900 text-stone-400 border-stone-700'
-                }`}
-              >
-                <Layers className="w-3 h-3" />
-                <span>{currentLang === 'kn' ? 'ಖಗೋಳ ವೃತ್ತಗಳು' : 'Armillary'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowZodiacFigures(!showZodiacFigures)}
-                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-colors cursor-pointer border flex items-center gap-1 ${
-                  showZodiacFigures
-                    ? 'bg-amber-600/30 text-amber-200 border-amber-400/60'
-                    : 'bg-stone-900 text-stone-400 border-stone-700'
-                }`}
-              >
-                <Star className="w-3 h-3" />
-                <span>{currentLang === 'kn' ? 'ರಾಶಿ ತಾರಾ ಪುಂಜ' : 'Rashi Stars'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => triggerPreset('iso')}
-                className="px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-600 cursor-pointer flex items-center gap-1"
-                title="Reset 3D Camera View"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>{currentLang === 'kn' ? 'ಮರುಹೊಂದಿಸಿ' : 'Reset'}</span>
-              </button>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => setDockExpanded(!dockExpanded)}
+            className="px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-[10.5px] font-bold flex items-center gap-1 cursor-pointer border border-stone-600"
+          >
+            <span>{dockExpanded ? (currentLang === 'kn' ? 'ಕಿರಿದುಗೊಳಿಸಿ' : 'Minimize') : (currentLang === 'kn' ? 'ನಿಯಂತ್ರಣಗಳು' : 'Controls')}</span>
+            {dockExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+          </button>
         </div>
+
+        {dockExpanded && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-stone-800">
+            {/* All-Sides Camera View Presets */}
+            {(
+              [
+                { id: 'iso', en: '3D Isometric', kn: '೩D ನೋಟ' },
+                { id: 'top', en: 'Top 360°', kn: 'ಮೇಲಿನ ನೋಟ' },
+                { id: 'side', en: 'Side Ecliptic', kn: 'ಪಾರ್ಶ್ವ ನೋಟ' },
+                { id: 'under', en: 'Under / South Pole', kn: 'ಕೆಳಗಿನ / ದಕ್ಷಿಣ ಧ್ರುವ' },
+              ] as const
+            ).map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => triggerPreset(preset.id)}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer border flex items-center gap-1 ${
+                  activePreset === preset.id
+                    ? 'bg-amber-400 text-stone-950 border-amber-300'
+                    : 'bg-stone-900 text-stone-200 border-stone-700 hover:bg-stone-800'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>{currentLang === 'kn' ? preset.kn : preset.en}</span>
+              </button>
+            ))}
+
+            <span className="h-4 w-px bg-stone-700 mx-0.5 hidden sm:inline-block" />
+
+            {/* Toggles */}
+            <button
+              type="button"
+              onClick={() => setIsAutoOrbit(!isAutoOrbit)}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer border flex items-center gap-1 ${
+                isAutoOrbit
+                  ? 'bg-emerald-600 text-white border-emerald-400'
+                  : 'bg-stone-900 text-stone-400 border-stone-700'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>{isAutoOrbit ? (currentLang === 'kn' ? 'ಸ್ವಯಂ ತಿರುಗುವಿಕೆ: ON' : 'Auto-Orbit: ON') : (currentLang === 'kn' ? 'ತಿರುಗುವಿಕೆ: OFF' : 'Auto-Orbit: OFF')}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowArmillary(!showArmillary)}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer border flex items-center gap-1 ${
+                showArmillary
+                  ? 'bg-amber-500/25 text-amber-200 border-amber-400/70'
+                  : 'bg-stone-900 text-stone-400 border-stone-700'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>{currentLang === 'kn' ? 'ಖಗೋಳ ವೃತ್ತಗಳು' : 'Armillary'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowZodiacFigures(!showZodiacFigures)}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer border flex items-center gap-1 ${
+                showZodiacFigures
+                  ? 'bg-amber-600/30 text-amber-200 border-amber-400/60'
+                  : 'bg-stone-900 text-stone-400 border-stone-700'
+              }`}
+            >
+              <Star className="w-3.5 h-3.5" />
+              <span>{currentLang === 'kn' ? 'ರಾಶಿ ತಾರಾ ಪುಂಜ' : 'Rashi Stars'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => triggerPreset('iso')}
+              className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-600 cursor-pointer flex items-center gap-1"
+              title="Reset 3D Camera View"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{currentLang === 'kn' ? 'ಮರುಹೊಂದಿಸಿ' : 'Reset'}</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

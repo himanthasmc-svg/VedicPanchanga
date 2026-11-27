@@ -245,13 +245,13 @@ export const AstroDetailWindows: React.FC<AstroDetailWindowsProps> = ({
       {showMonthlyOverview && (
         <div className="rounded-2xl bg-white dark:bg-stone-900 shadow-2xl border-2 border-amber-400 dark:border-stone-700 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Header */}
-          <div className="bg-gradient-to-r from-amber-700 via-orange-600 to-amber-600 p-5 text-white flex items-center justify-between">
+          <div className="bg-gradient-to-r from-amber-700 via-orange-600 to-amber-600 p-4 sm:p-5 text-white flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-xs">
                 <Compass className="w-6 h-6 text-amber-200" />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-xl sm:text-2xl text-white">
+                <h3 className="font-serif font-bold text-lg sm:text-2xl text-white">
                   {currentLang === 'kn' 
                     ? `${currentMonthName} ${selectedYear} - ಮಾಸಿಕ ಅವಲೋಕನ` 
                     : currentLang === 'hi' 
@@ -264,7 +264,33 @@ export const AstroDetailWindows: React.FC<AstroDetailWindowsProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowMoonPhaseGraph(!showMoonPhaseGraph)}
+                className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer border ${
+                  showMoonPhaseGraph
+                    ? 'bg-indigo-950 text-amber-300 border-amber-300 ring-1 ring-amber-300/60'
+                    : 'bg-white/20 hover:bg-white/30 text-white border-white/30'
+                }`}
+                title="Toggle D3.js Lunar Illumination & Moon Phase Curve"
+              >
+                <Moon className="w-3.5 h-3.5 text-amber-200" />
+                <span>
+                  {currentLang === 'kn'
+                    ? showMoonPhaseGraph
+                      ? 'ಚಂದ್ರ ಕಲಾ ರೇಖೆ ಮುಚ್ಚಿ'
+                      : 'ಚಂದ್ರ ಕಲಾ ರೇಖೆ (D3)'
+                    : currentLang === 'hi'
+                    ? showMoonPhaseGraph
+                      ? 'चन्द्र कला आरेख बंद करें'
+                      : 'चन्द्र कला आरेख (D3)'
+                    : showMoonPhaseGraph
+                    ? 'Hide Moon Phase Curve'
+                    : 'Moon Phase Curve (D3)'}
+                </span>
+              </button>
+
               <button
                 onClick={() => window.print()}
                 className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
@@ -280,6 +306,20 @@ export const AstroDetailWindows: React.FC<AstroDetailWindowsProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Toggleable D3.js Lunar Illumination & Moon Phase Visualization inside Monthly Overview */}
+          {showMoonPhaseGraph && (
+            <div className="p-3 sm:p-5 bg-stone-950 border-b border-amber-300/40 dark:border-stone-700 animate-in fade-in slide-in-from-top-2 duration-200">
+              <MonthlyMoonPhaseGraph
+                monthDays={monthDays}
+                currentLang={currentLang}
+                onSelectDay={(day) => {
+                  setSelectedMoonDay(day);
+                  onSelectDay(day);
+                }}
+              />
+            </div>
+          )}
 
           {/* Content without inner vertical scrollbar to prevent double scroll */}
           <div className="p-4 sm:p-6 space-y-6 text-sm text-stone-800 dark:text-stone-200">

@@ -294,7 +294,7 @@ export const MantrasPage: React.FC<MantrasPageProps> = ({
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="space-y-8 w-full max-w-none px-1 sm:px-4 lg:px-6 py-4">
       
       {/* Top Banner with HCMM Logo & Action Header */}
       <div className="rounded-2xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white p-6 shadow-xl border border-amber-500/30">

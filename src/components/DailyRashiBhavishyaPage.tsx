@@ -70,7 +70,7 @@ export const DailyRashiBhavishyaPage: React.FC<DailyRashiBhavishyaPageProps> = (
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto px-2 xs:px-3 sm:px-6 lg:px-8 py-2 sm:py-4">
+    <div className="space-y-6 sm:space-y-8 w-full max-w-none px-1 xs:px-2 sm:px-4 lg:px-6 py-2 sm:py-4">
       
       {/* Top Banner (Hidden in Print) */}
       <div className="no-print rounded-3xl bg-gradient-to-r from-amber-700 via-orange-700 to-amber-900 text-white p-5 sm:p-7 shadow-2xl border border-amber-500/40 relative overflow-hidden">

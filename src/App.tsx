@@ -521,8 +521,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Content Area - Dynamically responsive for mobile and desktop windows without nested vertical scrollbars */}
-      <main className="flex-1 max-w-7xl w-full min-w-0 mx-auto px-2 xs:px-3 sm:px-6 lg:px-8 py-3 sm:py-6 overflow-x-clip">
+      {/* Main Content Area - Full-width stretched on desktop/laptop and dynamically responsive on mobile */}
+      <main className="flex-1 w-full max-w-none min-w-0 px-2 xs:px-3 sm:px-5 lg:px-8 py-3 sm:py-6 overflow-x-clip">
         
         {/* VIEW 1: Main Calendar View (1900 to 2100+) */}
         {activeView === 'calendar' && (
@@ -684,7 +684,7 @@ export default function App() {
 
       {/* Application Footer */}
       <footer className="no-print mt-auto border-t border-amber-200/60 dark:border-stone-800 bg-white/80 dark:bg-stone-900/80 py-4 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500 dark:text-stone-400">
+        <div className="w-full max-w-none px-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500 dark:text-stone-400">
           <div className="flex items-center gap-2">
             <span className="font-serif font-bold text-stone-800 dark:text-amber-200">
               HCMM Vedic Panchanga Calendar & Kundali
